@@ -15,9 +15,9 @@
 
 ## Active Story
 
-E2-S6 — tenant firewall in MockServiceFactory.
+E2-S7 — tenant firewall in MockServiceFactory (every mock receives `{userId, organizationId}` and rejects cross-tenant).
 
-E2-S5 closed: `app/components/nav/UserMenu.vue` dropdown replaces the inline Sign Out chip in `AppTopBar`. Click-to-toggle, Escape-closes, `mousedown` listener attached only while open. Panel exposes the user identity row, conditional `Switch organization` link (only when `memberships.length > 1`), and Sign Out. **35 chromium tests passing** (1 skipped) including 5 new user-menu tests.
+E2-S6 closed: `app/error.vue` renders branded 404 / 500 cards (different copy + testids per branch) with Home + Back actions. New `/dev/throw` route deliberately throws so the spec can drive the 500 path. Removed `@pinia/nuxt` module + uninstalled `pinia` / `@pinia/nuxt` — its payload plugin called `obj.hasOwnProperty(skipHydrateSymbol)` on Nuxt's null-prototype `NuxtError` payload, which threw and turned every 4xx into a 500. We don't use any Pinia stores yet; re-add when the first store lands. **38 chromium tests passing** (1 skipped) including 3 new error-pages tests.
 
 ## Recent Completions
 
@@ -38,14 +38,14 @@ E2-S5 closed: `app/components/nav/UserMenu.vue` dropdown replaces the inline Sig
 | 2026-05-04 | E2-S2 | Forgot/reset password + accept-invite (stateless base64url tokens with kind + exp; trivial to verify). New pages `/forgot-password`, `/reset-password`, `/accept-invite` (all `layout: false`). `useAuth` extended with `requestPasswordReset` / `resetPassword` / `previewInvite` / `acceptInvite`. Reset path forces fresh sign-in (logout + bounce to `/login?reset=ok`) — matches future real backend session-revoke. Accept-invite does a hard navigation into `/admin/dashboard` to sidestep a Nuxt 3.21 SPA-vs-`layout: false` transition race. Mock `lookup()` now synthesizes a SessionUser when the cookie email isn't yet in `userByEmail` (mirrors how a real backend trusts a signed session cookie). **23 chromium tests passing** + 6 new auth-recovery tests. |
 | 2026-05-04 | E2-S3 | Role-based middleware + `/403` page. New `usePermissions` composable exports role-group constants (`ROLE_GROUPS.admin`, `.field`, `.sub`, etc.) plus `hasAnyRole` / `isAdmin` / `isField` / `isSub` / `isSuperAdmin`. New named middleware `app/middleware/role.ts` reads `definePageMeta({ requiredRoles })` and bounces non-matches to `/403` (302). `/403` page is styled (layout-less, calls `ensureLoaded` itself since auth.global skips public routes), shows the user's actual role and offers a role-aware "Go to my dashboard" button + Back. `/admin/dashboard` and `/admin/properties` opted in. **28 chromium tests passing** (1 skipped) including 5 new role-guard tests; auth-spec adjusted to use admin persona for `?next=/admin/properties`. |
 | 2026-05-04 | E2-S4 | Org switcher. New super_admin fixture (`sasha@bulwark.platform`) with memberships in Bulwark Demo Co. + Acme Restoration LLC. Active-org override persisted via second cookie `bulwark.mock.activeOrg`. `MockAuthService.currentUser` applies the override (and falls back gracefully if it points to a revoked membership); `switchActiveOrg` validates membership and writes the cookie; `login` / `logout` clear the override. New `/org-switcher` page + topbar widget upgraded to a NuxtLink for multi-org users (static chip for singletons). `useAuth.switchActiveOrg`. **30 chromium tests passing** (1 skipped) including 2 new org-switcher tests. |
+| 2026-05-04 | E2-S6 | Styled 404 / 500 error pages. New `app/error.vue` branches on `error.statusCode`: 404 card (`data-testid="not-found-card"`) and generic server-error card (`data-testid="server-error-card"`), both with `home-button` + `back-button`. Home calls `clearError({ redirect: '/' })`; Back uses `window.history.length > 1` then `router.back()` after `clearError()`, else falls through to home. New `/dev/throw` page (public per `auth.global` `/^\/dev(\/\|$)/`) deliberately throws a 500 for the spec. Removed `@pinia/nuxt` from `nuxt.config.ts` modules and uninstalled `pinia` / `@pinia/nuxt` — its payload plugin's `shouldHydrate` calls `obj.hasOwnProperty(skipHydrateSymbol)` on null-prototype objects in the `NuxtError` payload and throws, masking every 4xx as a 500. No stores in the app yet — re-enable when needed. New `tests/e2e/error-pages.spec.ts` (3 tests). **38 chromium tests passing** (1 skipped). |
 | 2026-05-04 | E2-S5 | UserMenu dropdown. New `app/components/nav/UserMenu.vue` (`data-testid` `user-menu-button`, `user-menu-panel`, `user-menu-switch-org`, `logout-button`) replaces the inline Sign Out chip in `AppTopBar`. Click-to-toggle, Escape closes, `mousedown` listener attached only while the menu is open and removed on close. `Switch organization` link only renders for multi-membership users. Existing tests that asserted the bare `logout-button` updated to assert `user-menu-button` (or to first open the dropdown). New `tests/e2e/user-menu.spec.ts` with 5 tests. **35 chromium tests passing** (1 skipped). |
 
 ## Next Up
 
-1. **E2-S6** — tenant firewall in MockServiceFactory.
-2. E2-S7 — Playwright persona matrix.
-3. E2-S8 — 404 + 500 styled error pages.
-4. E3-S1 — Properties pipeline list view.
+1. **E2-S7** — tenant firewall in MockServiceFactory.
+2. E2-S8 — Playwright persona matrix.
+3. E3-S1 — Properties pipeline list view.
 
 ## Verified locally
 

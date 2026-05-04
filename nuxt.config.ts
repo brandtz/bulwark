@@ -52,7 +52,11 @@ export default defineNuxtConfig({
   // -------------------------------------------------------------------------
   modules: [
     '@nuxtjs/tailwindcss',
-    '@pinia/nuxt',
+    // '@pinia/nuxt' intentionally disabled (E2-S6): the @pinia/nuxt
+    // payload plugin tries to call `obj.hasOwnProperty` on every payload
+    // node, which throws on Nuxt's NuxtError objects (created with
+    // Object.create(null)) and turns every 404 into a 500. We don't use
+    // any Pinia stores yet — re-enable when the first store lands.
     'nuxt-auth-utils', // session cookie auth (ADR-0001 / TECH §5)
     '@nuxt/eslint',
   ],
