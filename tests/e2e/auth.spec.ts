@@ -33,6 +33,7 @@ test.describe('Auth — login form + middleware', () => {
 
   test('persona quick-pick logs in and lands on admin dashboard', async ({ page }) => {
     await page.goto('/login?next=%2Fadmin%2Fdashboard')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: /Org admin/ }).click()
     await expect(page).toHaveURL('/admin/dashboard')
     await expect(page.getByTestId('user-menu-button').getByText('Drew Owens')).toBeVisible()
@@ -40,6 +41,7 @@ test.describe('Auth — login form + middleware', () => {
 
   test('manual form submit with admin email signs in and ?next= is honoured', async ({ page }) => {
     await page.goto('/login?next=%2Fadmin%2Fproperties')
+    await page.waitForLoadState('networkidle')
     await page.getByLabel('Email').fill('drew@bulwark.demo')
     await page.getByLabel('Password').fill('whatever')
     await page.getByRole('button', { name: 'Sign in' }).click()

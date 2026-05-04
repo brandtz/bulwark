@@ -37,6 +37,7 @@ test.describe('Pipeline view toggle (E3-S2)', () => {
 
   test('switching to List shows the list view and hides kanban columns', async ({ page }) => {
     await page.goto('/admin/properties')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('tab', { name: 'List' }).click()
     await expect(page.getByTestId('pipeline-list')).toBeVisible()
     await expect(page.getByTestId('pipeline-column').first()).not.toBeVisible()
@@ -46,6 +47,7 @@ test.describe('Pipeline view toggle (E3-S2)', () => {
 
   test('switching back to Kanban restores columns', async ({ page }) => {
     await page.goto('/admin/properties')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('tab', { name: 'List' }).click()
     await page.getByRole('tab', { name: 'Kanban' }).click()
     await expect(page.getByTestId('pipeline-column').first()).toBeVisible()

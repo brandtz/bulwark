@@ -15,14 +15,15 @@
 
 ## Active Story
 
-E3-S3 — Drag-drop status change (desktop) + long-press action sheet (mobile).
+E3-S5 — Property detail hub with tabs (Overview, Assessment, Quotes, Work Orders, Compliance, Invoices, Photos, Notes).
 
-E3-S2 closed: pipeline list view + FT-12 segmented kanban/list toggle. New `app/components/property/PipelineList.vue` renders status-grouped flat list with sticky headers (omits empty sections — the kanban already shows the full set). `BulwarkSegmentedControl` toggle in the page header drives `useState('properties.view')`; `onMounted` flips narrow viewports (`< 768px`) to list automatically. New `tests/e2e/properties-pipeline-list.spec.ts` (4 tests — toggle visible, switch to list hides columns, switch back restores, mobile defaults to list). **56 chromium tests passing** (2 skipped) + 6 unit tests.
+E3-S4 closed: property intake form at `/admin/properties/new` with Zod validation. New `app/pages/admin/properties/new.vue` (form moved into `properties/index.vue` so the folder can host `new.vue`). Validation runs against `PropertyCreateInputSchema.omit({ organizationId: true })` — `organizationId` is injected from `useSession()` and isn't user-controlled (the fixture orgId is intentionally non-RFC-4122 for readability). On success: `property.create()` then `refreshNuxtData("properties-${orgId}")` then `router.push("/admin/properties")` so the new card appears immediately. New `tests/e2e/property-intake.spec.ts` (3 tests). Cold-start race fixes: added `waitForLoadState('networkidle')` after `goto()` for `auth.spec.ts` persona quick-pick, both list-toggle tests, and the intake submit tests. **59 chromium tests passing** (2 skipped) + 6 unit tests.
 
 ## Recent Completions
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E3-S4 | Property intake form. New `app/pages/admin/properties/new.vue` (the kanban moved into `properties/index.vue` so the folder can host the new route). Form uses `BulwarkInput` / `BulwarkSelect` / `BulwarkTextarea`; validates with `PropertyCreateInputSchema.omit({ organizationId: true })` (org id is injected from session, not user-controlled — fixture orgIds are intentionally non-RFC-4122). On success: `property.create()` → `refreshNuxtData('properties-${orgId}')` → `router.push('/admin/properties')`. New `tests/e2e/property-intake.spec.ts` (3 tests — render, empty-form validation, valid submission lands on pipeline). Cold-start fixes: added `waitForLoadState('networkidle')` to auth persona quick-pick, both list-toggle tests, and the intake submit tests. **E3-S3 deferred** (drag-drop is risky; will return after E3-S5/S6). **59 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-03 | (planning) | BUILD_PLAN.md, all 14 epic files, 11 ADRs, BUILD_STATUS.md created. Demo frozen. |
 | 2026-05-03 | E0-S1 | CONTRACTS.md + UI-CONTRACTS.md skeletons + CONVENTIONS root pointer landed. |
 | 2026-05-03 | E0-S2 | Nuxt 3 scaffold at repo root. Verified booting on http://localhost:3000. |
@@ -47,8 +48,10 @@ E3-S2 closed: pipeline list view + FT-12 segmented kanban/list toggle. New `app/
 
 ## Next Up
 
-1. **E3-S3** — Drag-drop status change (desktop) + long-press action sheet (mobile).
-2. E3-S4 — Property intake form with Zod validation.
+1. **E3-S5** — Property detail hub with tabs (Overview populated, others render `EmptyState` placeholders).
+2. E3-S6 — Client detail page (`/admin/clients/[id]`).
+3. E3-S3 — Drag-drop status change (deferred from E3 — risky, return after S5/S6).
+4. E3-S7 — Full happy-path Playwright (login → intake → pipeline → detail).
 
 ## Verified locally
 
