@@ -30,6 +30,10 @@ const NOW = '2026-05-03T20:00:00.000Z'
 // Org + users
 // ----------------------------------------------------------------------------
 export const FIXTURE_ORG_ID = mk('org-bulwark-demo')
+// E2-S4: a second org so the org switcher actually has somewhere to switch
+// to. Real prod will of course have arbitrarily many.
+export const FIXTURE_ORG_ID_2 = mk('org-acme-restoration')
+export const FIXTURE_ORG_2_NAME = 'Acme Restoration LLC'
 
 export const FIXTURE_USER_ADMIN: SessionUser = {
   userId: mk('user-drew-admin'),
@@ -64,6 +68,21 @@ export const FIXTURE_USER_SUB: SessionUser = {
   activeRole: 'sub_contractor',
   memberships: [
     { organizationId: FIXTURE_ORG_ID, organizationName: 'Bulwark Demo Co.', role: 'sub_contractor' },
+  ],
+}
+
+// E2-S4: a super_admin with memberships in BOTH orgs — the only persona
+// for which the org-switcher widget is actually meaningful in the demo.
+export const FIXTURE_USER_SUPER: SessionUser = {
+  userId: mk('user-sasha-super'),
+  email: 'sasha@bulwark.platform',
+  fullName: 'Sasha Liu',
+  avatarUrl: null,
+  activeOrganizationId: FIXTURE_ORG_ID,
+  activeRole: 'super_admin',
+  memberships: [
+    { organizationId: FIXTURE_ORG_ID, organizationName: 'Bulwark Demo Co.', role: 'super_admin' },
+    { organizationId: FIXTURE_ORG_ID_2, organizationName: FIXTURE_ORG_2_NAME, role: 'super_admin' },
   ],
 }
 

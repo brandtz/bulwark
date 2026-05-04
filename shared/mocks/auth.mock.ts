@@ -28,17 +28,25 @@ import type {
   AcceptInviteInput,
   InvitePreview,
 } from '../contracts/auth'
-import { FIXTURE_USER_ADMIN, FIXTURE_USER_FIELD, FIXTURE_USER_SUB, FIXTURE_ORG_ID } from './fixtures'
+import { FIXTURE_USER_ADMIN, FIXTURE_USER_FIELD, FIXTURE_USER_SUB, FIXTURE_USER_SUPER, FIXTURE_ORG_ID } from './fixtures'
 
 export interface MockAuthSessionAdapter {
   getActivePersonaEmail(): string | null
   setActivePersonaEmail(email: string | null): void
+  /**
+   * E2-S4: per-session active-organization override. Null/missing means
+   * "use whatever the SessionUser's `activeOrganizationId` already says".
+   * Set when the user picks a different membership in the org switcher.
+   */
+  getActiveOrgOverride?(): string | null
+  setActiveOrgOverride?(orgId: string | null): void
 }
 
 const userByEmail: Record<string, SessionUser> = {
   'drew@bulwark.demo': FIXTURE_USER_ADMIN,
   'matthew@bulwark.demo': FIXTURE_USER_FIELD,
   'jeff@bulwark.demo': FIXTURE_USER_SUB,
+  'sasha@bulwark.platform': FIXTURE_USER_SUPER,
 }
 
 function lookup(email: string | null): SessionUser | null {
@@ -138,21 +146,39 @@ export class MockAuthService implements IAuthService {
     const u = userByEmail[key] ?? FIXTURE_USER_ADMIN
     const persistedEmail = userByEmail[key] ? key : 'drew@bulwark.demo'
     this.adapter.setActivePersonaEmail(persistedEmail)
+    // Reset any prior org override — fresh login starts on the user's
+    // default org.
+    this.adapter.setActiveOrgOverride?.(null)
     return { user: u }
   }
 
   async logout(): Promise<void> {
     this.adapter.setActivePersonaEmail(null)
+    this.adapter.setActiveOrgOverride?.(null)
   }
 
   async currentUser(): Promise<SessionUser | null> {
-    return lookup(this.adapter.getActivePersonaEmail())
+    const u = lookup(this.adapter.getActivePersonaEmail())
+    if (!u) return null
+    // Apply the active-org override if the user picked a different
+    // membership in the org switcher (E2-S4). Falls through to the user's
+    // default activeOrganizationId when no override is set or when the
+    // override no longer matches a membership (e.g. it was revoked).
+    const override = this.adapter.getActiveOrgOverride?.() ?? null
+    if (override && u.memberships.some((m) => m.organizationId === override)) {
+      const m = u.memberships.find((mm) => mm.organizationId === override)!
+      return { ...u, activeOrganizationId: override, activeRole: m.role }
+    }
+    return u
   }
 
   async switchActiveOrg(organizationId: string): Promise<SessionUser> {
     const u = await this.currentUser()
     if (!u) throw new Error('Not signed in')
-    return { ...u, activeOrganizationId: organizationId }
+    const m = u.memberships.find((mm) => mm.organizationId === organizationId)
+    if (!m) throw new Error('You are not a member of that organization')
+    this.adapter.setActiveOrgOverride?.(organizationId)
+    return { ...u, activeOrganizationId: organizationId, activeRole: m.role }
   }
 
   // --- Password reset ---------------------------------------------------

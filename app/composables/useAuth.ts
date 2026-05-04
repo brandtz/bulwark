@@ -121,6 +121,23 @@ export function useAuth() {
     }
   }
 
+  // E2-S4: org switcher — pick a different membership and persist it.
+  async function switchActiveOrg(organizationId: string): Promise<boolean> {
+    const auth = useService('auth')
+    loading.value = true
+    error.value = null
+    try {
+      await auth.switchActiveOrg(organizationId)
+      await refresh()
+      return true
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Could not switch organization'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     session,
     loading,
@@ -131,5 +148,6 @@ export function useAuth() {
     resetPassword,
     previewInvite,
     acceptInvite,
+    switchActiveOrg,
   }
 }

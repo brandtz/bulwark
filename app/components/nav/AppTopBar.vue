@@ -30,8 +30,22 @@ const orgName = computed(() => {
       </slot>
     </div>
 
-    <!-- Org switcher (placeholder; full impl E2-S5) -->
+    <!--
+      Org switcher chip. For users with >1 membership it's a NuxtLink to
+      /org-switcher. For single-org users it stays a static label so we
+      don't tease an action that isn't actionable.
+    -->
+    <NuxtLink
+      v-if="(session?.memberships?.length ?? 0) > 1"
+      to="/org-switcher"
+      class="hidden sm:flex items-center px-3 py-1.5 rounded text-small text-text-primary border border-border bg-background hover:border-primary"
+      data-testid="org-switcher"
+    >
+      <span class="truncate max-w-[14rem]">{{ orgName }}</span>
+      <span class="ml-2 text-text-secondary">▾</span>
+    </NuxtLink>
     <div
+      v-else
       class="hidden sm:flex items-center px-3 py-1.5 rounded text-small text-text-secondary border border-border bg-background"
       data-testid="org-switcher"
     >

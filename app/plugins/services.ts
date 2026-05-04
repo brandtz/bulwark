@@ -46,10 +46,17 @@ export default defineNuxtPlugin(() => {
      * factory time would leak across requests on SSR.
      */
     const COOKIE = 'bulwark.mock.persona'
+    const ORG_COOKIE = 'bulwark.mock.activeOrg'
     services = createMockServices({
       getActivePersonaEmail: () => useCookie<string | null>(COOKIE, { sameSite: 'lax' }).value ?? null,
       setActivePersonaEmail: (email) => {
         useCookie<string | null>(COOKIE, { sameSite: 'lax' }).value = email
+      },
+      // E2-S4: per-session active-org override. Null = use the user's
+      // default activeOrganizationId (their first membership).
+      getActiveOrgOverride: () => useCookie<string | null>(ORG_COOKIE, { sameSite: 'lax' }).value ?? null,
+      setActiveOrgOverride: (orgId) => {
+        useCookie<string | null>(ORG_COOKIE, { sameSite: 'lax' }).value = orgId
       },
     })
   }
