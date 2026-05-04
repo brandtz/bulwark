@@ -15,16 +15,17 @@
 
 ## Active Story
 
-E4-S5 — Playwright happy-path closing Epic E4: chain intake → assessment form (non-compliant) → summary banner non-compliant → upgrades surface roof flag → detail tab shows compliance state.
+E5-S1 — Quote builder scaffolding (next epic).
 
-E4-S4 closed: property detail Assessment tab now renders a compliance preview banner + "View full summary →" link when an assessment exists, and a "Start assessment" CTA otherwise. New `tests/e2e/property-assessment-tab.spec.ts` (2 tests). **79 chromium tests passing** (2 skipped) + 15 unit tests.
+E4-S5 closed: Playwright happy-path closing Epic E4. New `tests/e2e/happy-path-assessment.spec.ts` chains detail → Start CTA → form (non-compliant wood_shake roof) → summary banner non-compliant + `OAR 629-044-1030` → breadcrumb back → Assessment tab now shows the same compliance state. **Epic E4 complete** (S1–S5). **80 chromium tests passing** (2 skipped) + 15 unit tests.
 
-E4-S3 closed: assessment summary page. New `app/pages/admin/properties/[id]/assessment-summary.vue` calls `evaluateCompliance(latest, OREGON_DEFAULT_STANDARDS)` client-side and renders a banner (✓ compliant / ! non-compliant) plus a one-row-per-flagged-field upgrades card with current value, required value, and ORS/OAR reference. Empty state deep-links to the form. **Important fix to E4-S2**: form's success redirect now goes to `/assessment-summary` via `router.push` (client navigation) instead of `?tab=assessment` because a full goto would hit a different SSR module instance with empty `rows[]`. Lesson logged in session memory: client-side mock mutations only survive client-side navigations — design redirects accordingly. New `tests/e2e/assessment-summary.spec.ts` (3 tests). **77 chromium tests passing** (2 skipped) + 15 unit tests.
+E4-S4 closed: property detail Assessment tab now renders a compliance preview banner + "View full summary →" link when an assessment exists, and a "Start assessment" CTA otherwise. New `app/pages/admin/properties/[id]/assessment-summary.vue` calls `evaluateCompliance(latest, OREGON_DEFAULT_STANDARDS)` client-side and renders a banner (✓ compliant / ! non-compliant) plus a one-row-per-flagged-field upgrades card with current value, required value, and ORS/OAR reference. Empty state deep-links to the form. **Important fix to E4-S2**: form's success redirect now goes to `/assessment-summary` via `router.push` (client navigation) instead of `?tab=assessment` because a full goto would hit a different SSR module instance with empty `rows[]`. Lesson logged in session memory: client-side mock mutations only survive client-side navigations — design redirects accordingly. New `tests/e2e/assessment-summary.spec.ts` (3 tests). **77 chromium tests passing** (2 skipped) + 15 unit tests.
 
 ## Recent Completions
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E4-S5 | Closing happy-path for Epic E4. New `tests/e2e/happy-path-assessment.spec.ts` (chromium-only, single long test): pick a property → Assessment tab CTA → form with non-compliant wood_shake roof → summary shows non-compliant banner + `upgrade-roofMaterial` row containing `OAR 629-044-1030` → breadcrumb back → Assessment tab preview reflects the same non-compliant state. **Epic E4 complete** (S1–S5). **80 chromium tests passing** (2 skipped) + 15 unit tests. |
 | 2026-05-04 | E4-S4 | Property detail Assessment tab wired to evaluator. `[id]/index.vue` now imports `evaluateCompliance` + `OREGON_DEFAULT_STANDARDS` and adds a `compliance` computed; the tab slot conditionally renders an EmptyState + `tab-start-assessment-cta` (no assessment) or a colored banner + `tab-view-summary-link` deep-link to the summary (assessment exists). Re-run link points back at the form. New `tests/e2e/property-assessment-tab.spec.ts` (2 tests — empty CTA, post-submit banner via NuxtLink-only navigation honoring the mock-state rule). **79 chromium tests passing** (2 skipped) + 15 unit tests. |
 | 2026-05-04 | E4-S3 | Assessment summary page. New `[id]/assessment-summary.vue` calls the pure evaluator + renders banner + upgrades table with ORS/OAR refs. Form redirect changed to client-side `router.push('/assessment-summary')` so the mock service singleton survives navigation. New `tests/e2e/assessment-summary.spec.ts` (3 tests — empty-state CTA, compliant green banner, non-compliant flag with correct standard ref). **77 chromium tests passing** (2 skipped). |
 | 2026-05-04 | E4-S2 | Assessment form + mock service. New `IAssessmentService` + `MockAssessmentService` (singleton via factory, tenant-firewalled). New nested route `app/pages/admin/properties/[id]/assessment.vue` (BulwarkSelect material pickers + BulwarkToggle defensible-space). Restructured `[id].vue` → `[id]/index.vue` to support the nested page. New `tests/e2e/property-assessment-form.spec.ts` (3 tests — renders, blocks-empty-submit, saves+routes-back). **74 chromium tests passing** (2 skipped). |
@@ -58,7 +59,7 @@ E4-S3 closed: assessment summary page. New `app/pages/admin/properties/[id]/asse
 
 ## Next Up
 
-1. **E4-S5** — Playwright happy-path closing Epic E4 (intake → non-compliant assessment → summary flag → detail tab preview).
+1. **E5-S1** — Quote builder data model + mock service.
 2. E5 — Quote builder + acceptance.
 3. E6 — Work orders.
 
