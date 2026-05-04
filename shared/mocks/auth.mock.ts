@@ -181,6 +181,24 @@ export class MockAuthService implements IAuthService {
     return { ...u, activeOrganizationId: organizationId, activeRole: m.role }
   }
 
+  /**
+   * E2-S7 — synchronous tenant context resolver used by MockServiceFactory.
+   * Returns null when there is no active session (cookie missing or unknown
+   * email lookup yields nothing). Mirrors the async `currentUser()` logic
+   * for the active-org override but stays sync so the factory can hand it
+   * to domain mocks as a per-call closure.
+   */
+  resolveTenantSync(): { userId: string; organizationId: string } | null {
+    const u = lookup(this.adapter.getActivePersonaEmail())
+    if (!u) return null
+    const override = this.adapter.getActiveOrgOverride?.() ?? null
+    const orgId =
+      override && u.memberships.some((m) => m.organizationId === override)
+        ? override
+        : u.activeOrganizationId
+    return { userId: u.userId, organizationId: orgId }
+  }
+
   // --- Password reset ---------------------------------------------------
   async requestPasswordReset(input: RequestPasswordResetInput): Promise<RequestPasswordResetResult> {
     const key = input.email.toLowerCase()
