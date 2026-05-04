@@ -7,6 +7,13 @@
   link doesn't 404 in dev.
 -->
 <script setup lang="ts">
+import { ROLE_GROUPS } from '~/composables/usePermissions'
+
+definePageMeta({
+  middleware: ['role'],
+  requiredRoles: ROLE_GROUPS.admin,
+})
+
 useHead({ title: 'Properties' })
 </script>
 

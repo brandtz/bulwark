@@ -38,9 +38,9 @@ test.describe('Auth — login form + middleware', () => {
     await expect(page.getByTestId('user-menu').getByText('Drew Owens')).toBeVisible()
   })
 
-  test('manual form submit with field-worker email signs in and ?next= is honoured', async ({ page }) => {
+  test('manual form submit with admin email signs in and ?next= is honoured', async ({ page }) => {
     await page.goto('/login?next=%2Fadmin%2Fproperties')
-    await page.getByLabel('Email').fill('matthew@bulwark.demo')
+    await page.getByLabel('Email').fill('drew@bulwark.demo')
     await page.getByLabel('Password').fill('whatever')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL('/admin/properties')

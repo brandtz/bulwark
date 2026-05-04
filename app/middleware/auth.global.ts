@@ -25,6 +25,7 @@ const PUBLIC_ROUTES: ReadonlyArray<string | RegExp> = [
   '/forgot-password',
   '/reset-password',
   '/accept-invite',
+  '/403',
   /^\/dev(\/|$)/,
   /^\/_/,
 ]

@@ -15,9 +15,9 @@
 
 ## Active Story
 
-E2-S3 — role-based middleware + 403 page.
+E2-S4 — org switcher (super_admin + multi-org users).
 
-E2-S2 closed: forgot/reset password and accept-invite flows with stateless base64url tokens (kind + exp). Reset bounces to /login?reset=ok for fresh sign-in; accept-invite does a hard navigation into /admin/dashboard. Mock `lookup()` synthesizes a SessionUser for cookie-known emails so SSR + browser stay in sync across hard navs. **23 Playwright tests passing** in chromium project (1 skipped).
+E2-S3 closed: `usePermissions` composable with role groups (`ROLE_GROUPS.admin`, etc.), named `role` middleware reading `definePageMeta.requiredRoles`, styled `/403` page with role-aware home/back recovery. Admin pages now declare their role policy at the call-site. **28 chromium tests passing** (1 skipped).
 
 ## Recent Completions
 
@@ -36,15 +36,15 @@ E2-S2 closed: forgot/reset password and accept-invite flows with stateless base6
 | 2026-05-04 | E1-S2 + E1-S3 + E1-S4 + E1-S5 (combined) | 22 UI primitives shipped: Input, Textarea, Select, MultiSelect, Toggle, PassFailToggle, DatePicker, SegmentedControl, SearchField, FilePicker, KpiCard, JobCard, Avatar, EmptyState, Skeleton, Pagination, Breadcrumbs, Modal, Drawer, Tabs, Stepper, ToastHost. `useToast()` composable + `<BulwarkToastHost />` mounted in default layout. `/dev/ui` playground page. Tailwind tokens extended (status.{success,warning,error,info}, surface.muted, primary.700, height.input, borderRadius.input, spacing.bottom-nav/topbar). Fixed AppBottomNav inline `display:grid` defeating `md:hidden`. **19 Playwright tests passing** (smoke + nav-shell + 9 ui-primitives spec running serial). |
 | 2026-05-04 | E2-S1 | Cookie-backed MockAuthService (replaces broken module-level state — SSR + client now share session via `bulwark.mock.persona` cookie). New `useAuth()` composable (login/logout/loading/error). `/login` page with form + dev persona quick-pick. `auth.global.ts` middleware redirects unauthed traffic to `/login?next=...` with status 302. AppTopBar gains inline Sign Out (full UserMenu in E2-S5). Test helpers `signIn` / `signInAsAdmin` / `signOut` added; existing specs updated to seed admin cookie in beforeEach. **23 Playwright tests passing**. |
 | 2026-05-04 | E2-S2 | Forgot/reset password + accept-invite (stateless base64url tokens with kind + exp; trivial to verify). New pages `/forgot-password`, `/reset-password`, `/accept-invite` (all `layout: false`). `useAuth` extended with `requestPasswordReset` / `resetPassword` / `previewInvite` / `acceptInvite`. Reset path forces fresh sign-in (logout + bounce to `/login?reset=ok`) — matches future real backend session-revoke. Accept-invite does a hard navigation into `/admin/dashboard` to sidestep a Nuxt 3.21 SPA-vs-`layout: false` transition race. Mock `lookup()` now synthesizes a SessionUser when the cookie email isn't yet in `userByEmail` (mirrors how a real backend trusts a signed session cookie). **23 chromium tests passing** + 6 new auth-recovery tests. |
+| 2026-05-04 | E2-S3 | Role-based middleware + `/403` page. New `usePermissions` composable exports role-group constants (`ROLE_GROUPS.admin`, `.field`, `.sub`, etc.) plus `hasAnyRole` / `isAdmin` / `isField` / `isSub` / `isSuperAdmin`. New named middleware `app/middleware/role.ts` reads `definePageMeta({ requiredRoles })` and bounces non-matches to `/403` (302). `/403` page is styled (layout-less, calls `ensureLoaded` itself since auth.global skips public routes), shows the user's actual role and offers a role-aware "Go to my dashboard" button + Back. `/admin/dashboard` and `/admin/properties` opted in. **28 chromium tests passing** (1 skipped) including 5 new role-guard tests; auth-spec adjusted to use admin persona for `?next=/admin/properties`. |
 
 ## Next Up
 
-1. **E2-S3** — role-based middleware + 403 page.
-2. E2-S4 — org switcher (super_admin + multi-org users).
-3. E2-S5 — full UserMenu dropdown (replaces inline Sign Out).
-4. E2-S6 — tenant firewall in MockServiceFactory.
-5. E2-S7 — Playwright persona matrix.
-6. E3-S1 — Properties pipeline list view.
+1. **E2-S4** — org switcher (super_admin + multi-org users).
+2. E2-S5 — full UserMenu dropdown (replaces inline Sign Out).
+3. E2-S6 — tenant firewall in MockServiceFactory.
+4. E2-S7 — Playwright persona matrix.
+5. E3-S1 — Properties pipeline list view.
 
 ## Verified locally
 
