@@ -169,6 +169,31 @@ async function chooseSub(subId: string | null) {
     pickerBusy.value = false
   }
 }
+
+// E6-S4 -------- Per-slot progress updater --------------------------
+const progressBusySlot = ref<string | null>(null)
+const progressError = ref('')
+
+async function onProgressUpdate(slotId: string, next: TradeSlotStatus) {
+  if (!bundle.value?.workOrder) return
+  progressError.value = ''
+  progressBusySlot.value = slotId
+  try {
+    await workOrder.updateTradeStatus(
+      bundle.value.workOrder.id,
+      slotId,
+      next,
+      orgId.value,
+    )
+    await refresh()
+    toastSuccess('Progress updated', `Slot is now ${next.replace('_', ' ')}.`)
+  } catch (err: unknown) {
+    progressError.value =
+      err instanceof Error ? err.message : 'Could not update progress.'
+  } finally {
+    progressBusySlot.value = null
+  }
+}
 </script>
 
 <template>
@@ -266,6 +291,14 @@ async function chooseSub(subId: string | null) {
                 >
                   {{ SLOT_LABEL[slot.status] }}
                 </span>
+              </div>
+              <div class="md:col-span-12">
+                <JobProgressUpdater
+                  :status="slot.status"
+                  :has-assignment="slot.assignedSubcontractorId !== null"
+                  :busy="progressBusySlot === slot.id"
+                  @update="(next) => onProgressUpdate(slot.id, next)"
+                />
               </div>
             </li>
           </ul>
