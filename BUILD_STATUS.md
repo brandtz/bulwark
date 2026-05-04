@@ -15,14 +15,15 @@
 
 ## Active Story
 
-E3-S7 — Full happy-path Playwright (login → intake → pipeline → status change → detail → client) closing Epic E3.
+E4-S1 — Field assessment surfaces (Screen 06: Property Assessment Form). Epic E4 begins after closing Epic E3.
 
-E3-S3 closed (substituted form): inline status-change menu on every PropertyCard. New `app/components/property/PropertyStatusMenu.vue` (kebab button → panel of all 13 statuses with the current one disabled and labelled). PropertyCard emits `change-status` (id, status); both kanban + list views forward the event up to the page, which calls `property.updateStatus()` and `refreshNuxtData('properties-${orgId}')`. Drag-drop was rejected as flaky to assert in Playwright — the data path stays the same so drag sugar can layer on later. New `tests/e2e/property-status-menu.spec.ts` (3 tests — menu opens with 13 items + current marker, clicking moves card across columns, clicking the menu doesn't navigate). **70 chromium tests passing** (2 skipped) + 6 unit tests.
+Epic E3 closed. E3-S7 final happy-path spec exercises the full property domain end-to-end: intake → pipeline → status menu → detail → tab switch → breadcrumb back. New `tests/e2e/happy-path-property.spec.ts` (1 long integration test, chromium-only). All seven E3 stories landed: kanban (S1), list view + toggle (S2), inline status menu (S3 substituted), intake form (S4), detail hub (S5), client list + detail (S6), happy-path (S7). **71 chromium tests passing** (2 skipped) + 6 unit tests.
 
 ## Recent Completions
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E3-S7 | Happy-path Playwright closing Epic E3. One long integration test threads intake → pipeline → status menu → detail hub → tab switch → breadcrumb back. New `tests/e2e/happy-path-property.spec.ts`. **Epic E3 complete** (S1–S7). **71 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-04 | E3-S3 | Inline status-change menu (substituted for original drag-drop). New `PropertyStatusMenu.vue` (kebab button → 13-item menu with current marker, click-outside + Escape close). Card + list forward `change-status` up to the page, which calls `property.updateStatus()` + `refreshNuxtData()`. Drag-drop sugar can layer on later without changing the data path. New `tests/e2e/property-status-menu.spec.ts` (3 tests). **70 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-04 | E3-S6 | Clients list at `/admin/clients` (closes the sidebar's previously-404 link) and client detail at `/admin/clients/[id]`. Detail shows contact, notes, and the client's linked properties (filtered client-side from a pageSize-200 list call — fixture-scale only). 404 empty state on unknown ids. Property hub Overview already deep-links here. New `tests/e2e/client-detail.spec.ts` (4 tests). **67 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-04 | E3-S5 | Property detail hub at `/admin/properties/[id]`. Eight tabs via `BulwarkTabs`; Overview pulls property + linked client through a single `useAsyncData` join. Other tabs are `EmptyState` placeholders pointing at their owning epic (E4 assessment/photos, E5 quotes, E6 work orders, E8 compliance, E9 invoices, E10 notes). `?tab=` query is the source of truth (deep-link friendly). 404 empty state for unknown ids. New `tests/e2e/property-detail.spec.ts` (4 tests). **63 chromium tests passing** (2 skipped) + 6 unit tests. |
@@ -51,8 +52,9 @@ E3-S3 closed (substituted form): inline status-change menu on every PropertyCard
 
 ## Next Up
 
-1. **E3-S7** — Full happy-path Playwright closing Epic E3.
-2. E4 — Field assessment surfaces.
+1. **E4-S1** — Field assessment intake (Screen 06).
+2. E4 remaining — photo capture + summary view.
+3. E5 — Quote builder + acceptance.
 
 ## Verified locally
 
