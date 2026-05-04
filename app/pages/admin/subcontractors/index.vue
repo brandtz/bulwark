@@ -70,27 +70,33 @@ const { data: bundle } = await useAsyncData(
         :key="s.id"
         data-testid="subcontractor-row"
       >
-        <BulwarkCard padding="md">
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-body font-medium text-text-primary" data-testid="subcontractor-row-name">
-                {{ s.companyName }}
-              </p>
-              <p class="text-small text-text-secondary">
-                {{ s.contactName }} · {{ s.phone }}
-              </p>
+        <NuxtLink
+          :to="`/admin/subcontractors/${s.id}`"
+          class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-card"
+          :data-testid="`subcontractor-row-link-${s.id}`"
+        >
+          <BulwarkCard padding="md" clickable>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-body font-medium text-text-primary" data-testid="subcontractor-row-name">
+                  {{ s.companyName }}
+                </p>
+                <p class="text-small text-text-secondary">
+                  {{ s.contactName }} · {{ s.phone }}
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-1.5" data-testid="subcontractor-row-trades">
+                <span
+                  v-for="t in s.trades"
+                  :key="t"
+                  class="inline-flex items-center rounded-pill px-2.5 py-1 text-tiny font-medium bg-surface-muted text-text-secondary whitespace-nowrap"
+                >
+                  {{ TRADE_LABEL[t] }}
+                </span>
+              </div>
             </div>
-            <div class="flex flex-wrap gap-1.5" data-testid="subcontractor-row-trades">
-              <span
-                v-for="t in s.trades"
-                :key="t"
-                class="inline-flex items-center rounded-pill px-2.5 py-1 text-tiny font-medium bg-surface-muted text-text-secondary whitespace-nowrap"
-              >
-                {{ TRADE_LABEL[t] }}
-              </span>
-            </div>
-          </div>
-        </BulwarkCard>
+          </BulwarkCard>
+        </NuxtLink>
       </li>
     </ul>
   </div>

@@ -2,16 +2,27 @@
  * shared/mocks/subcontractor.mock.ts — MockSubcontractorService (E6).
  *
  * # Decisions (ADR-0008)
- *   - Read-only in v1: list + get. Create/edit lands in E6-S5 once we
- *     have a real form to hang it off; for now the fixture set is
- *     enough to drive trade assignment.
- *   - Tenant firewall (E2-S7) on every method.
+ *   - list + get + update. Create lands in a future story when there's
+ *     a real intake form; v1 admin only edits seeded subs. Tenant
+ *     firewall (E2-S7) on every method.
+ *   - `update` is a partial merge that preserves immutable fields
+ *     (id, organizationId, createdAt, deletedAt) and bumps `updatedAt`.
+ *     Validates against `SubcontractorSchema` after the merge so the
+ *     stored row is always shape-correct.
+ *
+ * # Decision cast down
+ *   - Rejected: optimistic concurrency (etag/version). Single-tenant
+ *     mock — collisions aren't realistic. Real backend will add it.
  */
 import type {
   ISubcontractorService,
   Subcontractor,
   SubcontractorListInput,
   SubcontractorListOutput,
+  SubcontractorUpdateInput,
+} from '../contracts/subcontractor'
+import {
+  SubcontractorUpdateInputSchema,
 } from '../contracts/subcontractor'
 import { FIXTURE_SUBCONTRACTORS } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
@@ -48,5 +59,30 @@ export class MockSubcontractorService implements ISubcontractorService {
       (x) => x.id === id && x.organizationId === organizationId && !x.deletedAt,
     )
     return r ?? null
+  }
+
+  async update(
+    id: string,
+    input: SubcontractorUpdateInput,
+    organizationId: string,
+  ): Promise<Subcontractor> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const patch = SubcontractorUpdateInputSchema.parse(input)
+    const idx = rows.findIndex(
+      (x) => x.id === id && x.organizationId === organizationId && !x.deletedAt,
+    )
+    if (idx === -1) throw new Error(`Subcontractor ${id} not found`)
+    // Patch is already validated by SubcontractorUpdateInputSchema.parse.
+    // We deliberately skip a re-parse against SubcontractorSchema here
+    // because the seeded fixture ids are non-RFC4122 strings (per the
+    // E3-S4 lesson) and would fail UUID validation. Real backend will
+    // round-trip through Postgres, so this is a mock-only shortcut.
+    const merged: Subcontractor = {
+      ...rows[idx]!,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    }
+    rows[idx] = merged
+    return merged
   }
 }
