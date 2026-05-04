@@ -281,12 +281,21 @@ const compliance = computed(() => {
         </template>
 
         <template #tab-quotes>
-          <EmptyState
-            icon="·"
-            title="No quotes yet"
-            body="Quote builder + acceptance flow lands in Epic E5."
-            data-testid="tab-panel-quotes"
-          />
+          <section data-testid="tab-panel-quotes" class="flex flex-col items-start gap-4">
+            <EmptyState
+              icon="·"
+              title="No quotes yet"
+              body="Build the first quote for this property. The list view + acceptance flow will land alongside E5."
+              class="self-stretch"
+            />
+            <NuxtLink
+              :to="`/admin/properties/${propertyId}/quotes/new`"
+              class="self-center inline-flex h-input items-center rounded-input bg-primary px-4 text-body font-medium text-white hover:bg-primary-700 transition"
+              data-testid="tab-new-quote-cta"
+            >
+              New quote
+            </NuxtLink>
+          </section>
         </template>
 
         <template #tab-work-orders>

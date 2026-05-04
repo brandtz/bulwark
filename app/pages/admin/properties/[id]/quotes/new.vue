@@ -38,6 +38,8 @@ import {
   formatCents,
   parseDollarsToCents,
 } from '~~/shared/utils/money'
+import { evaluateCompliance, OREGON_DEFAULT_STANDARDS } from '~~/shared/utils/compliance'
+import type { ComplianceField, UpgradeItem } from '~~/shared/contracts/assessment'
 
 definePageMeta({
   middleware: ['role'],
@@ -52,22 +54,53 @@ const { session, ensureLoaded } = useSession()
 await ensureLoaded()
 
 const property = useService('property')
+const assessment = useService('assessment')
 const quote = useService('quote')
 
 const propertyId = computed(() => String(route.params.id))
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 const userId = computed(() => session.value?.userId ?? '')
 
-const { data: propertyData } = await useAsyncData(
-  () => `quote-builder-property-${propertyId.value}-${orgId.value}`,
-  () => property.get(propertyId.value, orgId.value),
+const { data: bundle } = await useAsyncData(
+  () => `quote-builder-${propertyId.value}-${orgId.value}`,
+  async () => {
+    const [prop, latest] = await Promise.all([
+      property.get(propertyId.value, orgId.value),
+      assessment.getLatestForProperty(propertyId.value, orgId.value),
+    ])
+    return { property: prop, assessment: latest }
+  },
   { watch: [propertyId, orgId] },
 )
 
 const propertyAddress = computed(() => {
-  const p = propertyData.value
+  const p = bundle.value?.property
   return p ? `${p.addressLine1}, ${p.city}, ${p.state}` : ''
 })
+
+const compliance = computed(() => {
+  const a = bundle.value?.assessment
+  if (!a) return null
+  return evaluateCompliance(a, OREGON_DEFAULT_STANDARDS)
+})
+
+// E5-S2: when a non-compliant assessment exists, surface a button that
+// pre-populates one labor line per required upgrade. We also auto-trigger
+// when the page is opened with `?from=assessment` (the summary page's
+// deep-link). The user can still tweak / remove items afterwards.
+const FIELD_LABEL: Record<ComplianceField, string> = {
+  roofMaterial: 'Roof material',
+  sidingMaterial: 'Siding material',
+  eaveType: 'Eave type',
+  ventType: 'Vent type',
+  defensibleSpaceCleared: 'Defensible space',
+}
+
+const upgradeSuggestions = computed<UpgradeItem[]>(() =>
+  compliance.value && !compliance.value.overallCompliant
+    ? compliance.value.requiredUpgrades
+    : [],
+)
 
 // Local UI line-item shape. We keep `unitCostInput` as a string so the
 // user can type freely; `unitCostCents` is derived for the totals math.
@@ -101,6 +134,42 @@ const lineItems = ref<UiLineItem[]>([blankItem()])
 const markupPercent = ref<number>(10)
 const taxPercent = ref<number>(0)
 const notes = ref('')
+
+function populateFromAssessment() {
+  const ups = upgradeSuggestions.value
+  if (ups.length === 0) return
+  lineItems.value = ups.map((u) => ({
+    id: crypto.randomUUID(),
+    kind: 'labor' as QuoteLineItemKind,
+    description: `${FIELD_LABEL[u.field]}: upgrade to ${u.requiredValue}`,
+    quantity: 1,
+    unitCostInput: '0',
+    sourceField: u.field,
+  }))
+  // Surface the assessmentId so the persisted quote links back to the
+  // source data (audit trail; future re-evaluations will check freshness).
+  linkedAssessmentId.value = bundle.value?.assessment?.id ?? null
+}
+
+const linkedAssessmentId = ref<string | null>(null)
+
+// Auto-populate when arriving from the summary page's deep-link. We wait
+// for `bundle` to resolve so the upgrades exist before we read them.
+const populated = ref(false)
+watch(
+  () => bundle.value?.assessment?.id,
+  () => {
+    if (
+      !populated.value &&
+      route.query.from === 'assessment' &&
+      upgradeSuggestions.value.length > 0
+    ) {
+      populateFromAssessment()
+      populated.value = true
+    }
+  },
+  { immediate: true },
+)
 
 const errors = ref<{
   lineItems?: string
@@ -179,7 +248,7 @@ async function onSubmit() {
     const input: QuoteCreateInput = {
       organizationId: orgId.value,
       propertyId: propertyId.value,
-      assessmentId: null,
+      assessmentId: linkedAssessmentId.value,
       createdById: userId.value,
       lineItems: contractItems.value,
       markupPercent: markupPercent.value,
@@ -212,6 +281,34 @@ async function onSubmit() {
     <p v-if="propertyAddress" class="text-body text-text-secondary mt-1" data-testid="quote-property-address">
       {{ propertyAddress }}
     </p>
+
+    <!-- Pre-populate banner (E5-S2). Shown only when the latest assessment
+         flagged at least one upgrade. Click replaces the line items. -->
+    <BulwarkCard
+      v-if="upgradeSuggestions.length > 0 && !populated"
+      class="mt-4 border-status-info"
+      padding="sm"
+      data-testid="prepopulate-banner"
+    >
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p class="text-body font-medium text-text-primary">
+            Latest assessment flagged {{ upgradeSuggestions.length }} item(s).
+          </p>
+          <p class="text-small text-text-secondary">
+            Pre-populate one labor line per required upgrade.
+          </p>
+        </div>
+        <BulwarkButton
+          type="button"
+          variant="secondary"
+          data-testid="prepopulate-button"
+          @click="populateFromAssessment(); populated = true"
+        >
+          Start from assessment
+        </BulwarkButton>
+      </div>
+    </BulwarkCard>
 
     <form class="mt-6 flex flex-col gap-6" novalidate @submit.prevent="onSubmit">
       <!-- Line items ------------------------------------------------ -->

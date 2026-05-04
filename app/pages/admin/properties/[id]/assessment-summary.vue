@@ -178,7 +178,15 @@ const FIELD_LABEL: Record<ComplianceField, string> = {
         </ul>
       </BulwarkCard>
 
-      <div class="mt-4 flex items-center gap-3">
+      <div class="mt-4 flex items-center gap-3 flex-wrap">
+        <NuxtLink
+          v-if="!result.overallCompliant"
+          :to="`/admin/properties/${propertyId}/quotes/new?from=assessment`"
+          class="inline-flex h-input items-center rounded-input bg-primary px-4 text-body font-medium text-white hover:bg-primary-700 transition"
+          data-testid="build-quote-from-assessment"
+        >
+          Build quote from upgrades
+        </NuxtLink>
         <NuxtLink
           :to="`/admin/properties/${propertyId}/assessment`"
           class="text-body text-primary hover:underline"

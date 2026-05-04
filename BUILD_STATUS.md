@@ -15,7 +15,9 @@
 
 ## Active Story
 
-E5-S2 — Pre-populate quote builder from assessment recommended upgrades ("Start from assessment" button).
+E5-S3 — Quote preview HTML + Send (mock email).
+
+E5-S2 closed: quote builder pre-populates from the latest non-compliant assessment. New `tests/e2e/quote-prepopulate.spec.ts` (2 tests). Builder watches `bundle.assessment.id`; if `route.query.from === 'assessment'` it auto-populates labor line items per recommended upgrade. Otherwise it shows a `prepopulate-banner` with a manual `prepopulate-button`. Property detail Quotes tab now ships a `tab-new-quote-cta` NuxtLink to `/quotes/new` (no query) so flow tests can navigate without `page.goto` (which would lose the client-side mock state). Summary page ships a `build-quote-from-assessment` NuxtLink (only when non-compliant) carrying `?from=assessment`. **85 chromium tests passing** (2 skipped) + 28 unit tests.
 
 E5-S1 closed: quote builder + money helper + MockQuoteService. New `shared/contracts/quote.ts` (Zod), `shared/utils/money.ts` (formatCents / parseDollarsToCents / computeQuoteTotals), `shared/mocks/quote.mock.ts` (org-scoped Q-YYYY-NNNN sequence), `app/pages/admin/properties/[id]/quotes/new.vue` (mobile-first builder, live totals). New `tests/unit/money.test.ts` (13 tests) + `tests/e2e/quote-builder.spec.ts` (3 tests). **83 chromium tests passing** (2 skipped) + **28 unit tests**.
 
@@ -25,6 +27,7 @@ E4-S5 closed: Playwright happy-path closing Epic E4. New `app/pages/admin/proper
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E5-S2 | Quote builder pre-populates from non-compliant assessment. New `tests/e2e/quote-prepopulate.spec.ts` (2 tests — auto-populate via summary CTA carrying `?from=assessment`, manual `prepopulate-banner` + button when arriving without the query). Builder watches `bundle.assessment.id` and `populateFromAssessment()` writes one labor line item per `requiredUpgrade` with field-label-aware descriptions. `populated` ref hides the banner once items exist. Summary page gains `build-quote-from-assessment` NuxtLink for the non-compliant branch. Property detail Quotes tab gains a `tab-new-quote-cta` button → `/quotes/new` (no query) so flow tests can route there via NuxtLink (the mock-state rule forbids `page.goto` after a client-side mutation). **85 chromium tests passing** (2 skipped) + 28 unit tests. |
 | 2026-05-04 | E5-S1 | Quote builder scaffolding. New Zod contract `shared/contracts/quote.ts` (Quote, QuoteLineItem, QuoteTotals, QuoteCreateInput, IQuoteService). New pure helpers `shared/utils/money.ts` — `formatCents`, `parseDollarsToCents`, `computeQuoteTotals` (markup-then-tax order, half-away-from-zero rounding). New `MockQuoteService` (module-level rows[], tenant firewall, org-scoped `Q-YYYY-NNNN` sequence, idempotent `markSent`). New `app/pages/admin/properties/[id]/quotes/new.vue` builder — mobile-first stack of line-item cards, live `formatCents` totals card, save-draft routes to (yet-empty) preview URL. New `tests/unit/money.test.ts` (13 tests) + `tests/e2e/quote-builder.spec.ts` (3 tests — render, live totals, persist+route). **83 chromium tests passing** (2 skipped) + **28 unit tests**. |
 | 2026-05-04 | E4-S5 | Closing happy-path for Epic E4. New `tests/e2e/happy-path-assessment.spec.ts` (chromium-only, single long test): pick a property → Assessment tab CTA → form with non-compliant wood_shake roof → summary shows non-compliant banner + `upgrade-roofMaterial` row containing `OAR 629-044-1030` → breadcrumb back → Assessment tab preview reflects the same non-compliant state. **Epic E4 complete** (S1–S5). **80 chromium tests passing** (2 skipped) + 15 unit tests. |
 | 2026-05-04 | E4-S4 | Property detail Assessment tab wired to evaluator. `[id]/index.vue` now imports `evaluateCompliance` + `OREGON_DEFAULT_STANDARDS` and adds a `compliance` computed; the tab slot conditionally renders an EmptyState + `tab-start-assessment-cta` (no assessment) or a colored banner + `tab-view-summary-link` deep-link to the summary (assessment exists). Re-run link points back at the form. New `tests/e2e/property-assessment-tab.spec.ts` (2 tests — empty CTA, post-submit banner via NuxtLink-only navigation honoring the mock-state rule). **79 chromium tests passing** (2 skipped) + 15 unit tests. |
@@ -60,10 +63,9 @@ E4-S5 closed: Playwright happy-path closing Epic E4. New `app/pages/admin/proper
 
 ## Next Up
 
-1. **E5-S2** — Pre-populate quote from assessment recommended upgrades.
-2. E5-S3 — Quote preview HTML + Send (mock email).
-3. E5-S4 — Quote list + status filters.
-4. E5-S5 — Closing happy-path for Epic E5.
+1. **E5-S3** — Quote preview HTML + Send (mock email).
+2. E5-S4 — Quote list + status filters.
+3. E5-S5 — Closing happy-path for Epic E5.
 
 ## Verified locally
 
