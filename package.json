@@ -1,0 +1,61 @@
+{
+  "//": "Bulwark — production app manifest. The static demo at demo/ is not a Nuxt app and has no package.json. This file governs the real product (ADR-0001, ADR-0011).",
+  "name": "bulwark",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Wildfire Retrofit Operations & Compliance Platform",
+  "type": "module",
+  "scripts": {
+    "//1": "Dev server runs Nuxt with mock services (BULWARK_BACKEND=mock by default per ADR-0004).",
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "//2": "Generate static demo only — not the production build path.",
+    "generate": "nuxt generate",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "//3": "Playwright spec for every UI-affecting story (ADR-0007).",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "//4": "Drizzle is wired in E0-S4 (schemas) and applied in E11-S1 (migrations).",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "nuxt": "^3.14.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.4.0",
+    "@pinia/nuxt": "^0.7.0",
+    "pinia": "^2.2.0",
+    "nuxt-auth-utils": "^0.5.0",
+    "vee-validate": "^4.13.0",
+    "@vee-validate/zod": "^4.13.0",
+    "zod": "^3.23.0",
+    "jose": "^5.9.0",
+    "bcryptjs": "^2.4.3",
+    "drizzle-orm": "^0.36.0",
+    "postgres": "^3.4.0"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^0.6.0",
+    "@nuxtjs/tailwindcss": "^6.12.0",
+    "@playwright/test": "^1.48.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.0.0",
+    "@vitejs/plugin-vue": "^5.1.0",
+    "drizzle-kit": "^0.28.0",
+    "eslint": "^9.0.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

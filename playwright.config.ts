@@ -1,0 +1,53 @@
+/**
+ * playwright.config.ts — Bulwark E2E config
+ *
+ * What this file does:
+ *   - Boots `pnpm dev` against the mock backend and runs Playwright specs in
+ *     tests/e2e/.
+ *   - Configures three projects: Chromium desktop, Mobile Safari (390x844),
+ *     Mobile Chrome — covering the device matrix per BULWARK_TECH §10.
+ *
+ * Decisions captured here:
+ *   - ADR-0007: a Playwright spec is required per UI-affecting story.
+ *   - We reuse the Nuxt dev server in CI rather than `nuxt build && preview`.
+ *     Tradeoff: dev mode is slower per page; but we get HMR-quality stack
+ *     traces on failure, which matters for an agent-driven build.
+ *
+ * Decisions NOT taken:
+ *   - We do NOT enable the Playwright Vue plugin yet — we test through the
+ *     real browser, not against mounted components. Component-level testing
+ *     lives in Vitest (vitest.config.ts).
+ *   - We do NOT wire visual regression (e.g. percy) for MVP. Revisit at
+ *     Phase 2 once UI churn slows.
+ */
+import { defineConfig, devices } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './tests/e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : undefined,
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
+
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+
+  webServer: {
+    command: 'pnpm dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    env: { BULWARK_BACKEND: 'mock' },
+  },
+
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'mobile-safari', use: { ...devices['iPhone 13'] } },
+    { name: 'mobile-chrome', use: { ...devices['Pixel 7'] } },
+  ],
+})

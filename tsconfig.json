@@ -1,0 +1,29 @@
+{
+  "//": "Bulwark TypeScript config. Extends Nuxt's auto-generated tsconfig; adds project-wide path aliases for shared/ and server/.",
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@/*": ["./app/*"],
+      "~~/shared/*": ["./shared/*"],
+      "~~/server/*": ["./server/*"],
+      "~~/tests/*": ["./tests/*"]
+    }
+  },
+  "include": [
+    "app/**/*",
+    "server/**/*",
+    "shared/**/*",
+    "tests/**/*",
+    "nuxt.config.ts",
+    "drizzle.config.ts",
+    "playwright.config.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": ["node_modules", ".nuxt", ".output", "dist", "demo", "boilerplate"]
+}
