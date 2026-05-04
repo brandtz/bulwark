@@ -11,16 +11,16 @@
  *     instance.
  */
 import type { BulwarkServices } from '../contracts/services'
-import { MockAuthService } from './auth.mock'
+import { MockAuthService, type MockAuthSessionAdapter } from './auth.mock'
 import { MockPropertyService } from './property.mock'
 import { MockClientService } from './client.mock'
 
 let cachedServices: BulwarkServices | null = null
 
-export function createMockServices(): BulwarkServices {
+export function createMockServices(authAdapter: MockAuthSessionAdapter): BulwarkServices {
   if (!cachedServices) {
     cachedServices = {
-      auth: new MockAuthService(),
+      auth: new MockAuthService(authAdapter),
       property: new MockPropertyService(),
       client: new MockClientService(),
     }

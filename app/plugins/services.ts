@@ -27,7 +27,31 @@ export default defineNuxtPlugin(() => {
     // E11-S1 will replace this throw with createRealServices().
     throw new Error('[bulwark] BULWARK_BACKEND=real is not yet supported. Set BULWARK_BACKEND=mock until E11.')
   } else {
-    services = createMockServices()
+    /*
+     * Cookie-backed adapter so SSR + client + middleware all read the same
+     * "who's signed in?" state.
+     *
+     * Decision (revised in E2-S1): NO default value. The earlier
+     * `default: 'drew@bulwark.demo'` was a tempting dev DX shortcut, but it
+     * meant logout could not actually sign anyone out — every subsequent
+     * request hit the missing-cookie code path and re-defaulted to admin.
+     * The dev shortcut moved to /login (the persona quick-pick block).
+     *
+     * Decision cast down: storing a JSON-encoded SessionUser in the cookie.
+     * Rejected — fixture data is small and the email key is enough to
+     * rehydrate. Cookie size stays tiny and we don't ship internal IDs.
+     *
+     * Note: useCookie() is called per-method-invocation rather than once,
+     * so each request resolves its own cookie ref. Caching the ref at
+     * factory time would leak across requests on SSR.
+     */
+    const COOKIE = 'bulwark.mock.persona'
+    services = createMockServices({
+      getActivePersonaEmail: () => useCookie<string | null>(COOKIE, { sameSite: 'lax' }).value ?? null,
+      setActivePersonaEmail: (email) => {
+        useCookie<string | null>(COOKIE, { sameSite: 'lax' }).value = email
+      },
+    })
   }
 
   return {

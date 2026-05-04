@@ -15,9 +15,9 @@
 
 ## Active Story
 
-E2-S1 — `/login` real form + middleware (replaces always-signed-in mock default).
+E2-S2 — forgot/reset password flow + accept-invite (mock email link).
 
-E1-S2 closed: full UI primitive library shipped with `/dev/ui` playground and Playwright coverage.
+E2-S1 closed: cookie-backed mock auth, /login form, global auth middleware, Sign Out wired in topbar. 23 Playwright tests passing.
 
 ## Recent Completions
 
@@ -34,14 +34,15 @@ E1-S2 closed: full UI primitive library shipped with `/dev/ui` playground and Pl
 | 2026-05-04 | E0-S6 | Mock services + factory + Nuxt plugin + composables: `useService('property')`, `useSession()`. Defaults to FIXTURE_USER_ADMIN signed in for dev DX (real auth lands E2-S1). 13 property fixtures (one per status), 5 clients, 3 users. |
 | 2026-05-04 | E1-S1 | Single AppLayout (sidebar + topbar + bottom nav). `nav.config.ts` is the only nav source. ADR-0005 enforced: only `default.vue` renders nav. nuxt.config `components: { pathPrefix: false }` so nested folders don't prefix names. Admin dashboard placeholder + role-aware index redirect. **10 Playwright tests passing** across Chromium/Mobile Safari/Pixel (4 nav-shell desktop+mobile tests, 6 smoke tests). 3 UI primitives shipped: BulwarkButton, BulwarkCard, StatusBadge. |
 | 2026-05-04 | E1-S2 + E1-S3 + E1-S4 + E1-S5 (combined) | 22 UI primitives shipped: Input, Textarea, Select, MultiSelect, Toggle, PassFailToggle, DatePicker, SegmentedControl, SearchField, FilePicker, KpiCard, JobCard, Avatar, EmptyState, Skeleton, Pagination, Breadcrumbs, Modal, Drawer, Tabs, Stepper, ToastHost. `useToast()` composable + `<BulwarkToastHost />` mounted in default layout. `/dev/ui` playground page. Tailwind tokens extended (status.{success,warning,error,info}, surface.muted, primary.700, height.input, borderRadius.input, spacing.bottom-nav/topbar). Fixed AppBottomNav inline `display:grid` defeating `md:hidden`. **19 Playwright tests passing** (smoke + nav-shell + 9 ui-primitives spec running serial). |
+| 2026-05-04 | E2-S1 | Cookie-backed MockAuthService (replaces broken module-level state — SSR + client now share session via `bulwark.mock.persona` cookie). New `useAuth()` composable (login/logout/loading/error). `/login` page with form + dev persona quick-pick. `auth.global.ts` middleware redirects unauthed traffic to `/login?next=...` with status 302. AppTopBar gains inline Sign Out (full UserMenu in E2-S5). Test helpers `signIn` / `signInAsAdmin` / `signOut` added; existing specs updated to seed admin cookie in beforeEach. **23 Playwright tests passing**. |
 
 ## Next Up
 
-1. **E2-S1** — `/login` real form + middleware (replaces always-signed-in mock default).
-2. E2-S2 — forgot/reset password flow.
-3. E2-S3 — invite acceptance flow + first-login password set.
-4. E2-S4 — role-based middleware + 403 page.
-5. E3-S1 — Properties pipeline list view (real service-backed).
+1. **E2-S2** — forgot/reset password + accept-invite (mock email link).
+2. E2-S3 — role-based middleware + 403 page.
+3. E2-S4 — org switcher (super_admin + multi-org users).
+4. E2-S5 — full UserMenu dropdown (replaces inline Sign Out).
+5. E3-S1 — Properties pipeline list view.
 
 ## Verified locally
 

@@ -14,10 +14,12 @@
  * Chromium project; mobile assertions only run on mobile-safari/pixel.
  */
 import { test, expect } from '@playwright/test'
+import { signInAsAdmin } from './_helpers'
 
 test.describe('Persistent app shell — desktop', () => {
-  test.beforeEach(async ({}, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'desktop-only')
+    await signInAsAdmin(page)
   })
 
   test('renders sidebar + topbar on the dashboard', async ({ page }) => {
@@ -37,8 +39,9 @@ test.describe('Persistent app shell — desktop', () => {
 })
 
 test.describe('Persistent app shell — mobile', () => {
-  test.beforeEach(async ({}, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === 'chromium', 'mobile-only')
+    await signInAsAdmin(page)
   })
 
   test('renders bottom nav and hides desktop sidebar', async ({ page }) => {

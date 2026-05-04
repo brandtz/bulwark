@@ -9,6 +9,7 @@
  * by the responsive specs in nav-shell + per-page specs.
  */
 import { test, expect, type Page } from '@playwright/test'
+import { signInAsAdmin } from './_helpers'
 
 /**
  * Hydration-safe navigation. Nuxt 3 SSR ships HTML before client JS finishes
@@ -28,8 +29,9 @@ test.describe('UI primitives playground', () => {
   // simultaneously hammer cold /dev/ui routes on the same Vite server.
   test.describe.configure({ mode: 'serial' })
 
-  test.beforeEach(async ({}, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'desktop-only')
+    await signInAsAdmin(page)
   })
 
   test('all primitive sections render', async ({ page }) => {
