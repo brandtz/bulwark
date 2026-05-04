@@ -26,6 +26,8 @@ import { MockPropertyService } from './property.mock'
 import { MockClientService } from './client.mock'
 import { MockAssessmentService } from './assessment.mock'
 import { MockQuoteService } from './quote.mock'
+import { MockSubcontractorService } from './subcontractor.mock'
+import { MockWorkOrderService } from './work-order.mock'
 import type { TenantResolver } from './tenant'
 
 let cachedServices: BulwarkServices | null = null
@@ -45,6 +47,8 @@ export function createMockServices(
       client: new MockClientService(resolver),
       assessment: new MockAssessmentService(resolver),
       quote: new MockQuoteService(resolver),
+      subcontractor: new MockSubcontractorService(resolver),
+      workOrder: new MockWorkOrderService(resolver),
     }
   }
   return cachedServices

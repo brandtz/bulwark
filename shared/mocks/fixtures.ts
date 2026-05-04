@@ -16,6 +16,8 @@
 import type { Property, PropertyStatus } from '../contracts/property'
 import type { Client } from '../contracts/client'
 import type { SessionUser } from '../contracts/auth'
+import type { Subcontractor } from '../contracts/subcontractor'
+import type { WorkOrder } from '../contracts/work-order'
 
 /** Build a deterministic UUID from a slug. */
 const mk = (slug: string): string => {
@@ -132,3 +134,118 @@ export const FIXTURE_PROPERTIES: Property[] = propertySeed.map(([line1, status, 
   updatedAt: NOW,
   deletedAt: null,
 }))
+
+// ----------------------------------------------------------------------------
+// Subcontractors (E6).
+// ----------------------------------------------------------------------------
+export const FIXTURE_SUBCONTRACTORS: Subcontractor[] = [
+  {
+    id: mk('sub-roof-king'),
+    organizationId: FIXTURE_ORG_ID,
+    companyName: 'Roof King Co.',
+    contactName: 'Mateo Ruiz',
+    email: 'mateo@roofking.test',
+    phone: '+1-555-0201',
+    trades: ['roofing', 'gutters'],
+    licenseNumber: 'CCB-228114',
+    licenseExpiresAt: '2027-04-30T00:00:00.000Z',
+    notes: 'Preferred metal-roof partner.',
+    createdAt: NOW,
+    updatedAt: NOW,
+    deletedAt: null,
+  },
+  {
+    id: mk('sub-cascade-siding'),
+    organizationId: FIXTURE_ORG_ID,
+    companyName: 'Cascade Siding LLC',
+    contactName: 'Priya Shah',
+    email: 'priya@cascadesiding.test',
+    phone: '+1-555-0202',
+    trades: ['siding', 'eaves_vents'],
+    licenseNumber: 'CCB-118842',
+    licenseExpiresAt: '2026-12-15T00:00:00.000Z',
+    notes: null,
+    createdAt: NOW,
+    updatedAt: NOW,
+    deletedAt: null,
+  },
+  {
+    id: mk('sub-firebreak-clearing'),
+    organizationId: FIXTURE_ORG_ID,
+    companyName: 'Firebreak Clearing',
+    contactName: 'Jordan Wells',
+    email: null,
+    phone: '+1-555-0203',
+    trades: ['defensible_space', 'general_labor'],
+    licenseNumber: null,
+    licenseExpiresAt: null,
+    notes: 'No CCB \u2014 unlicensed labor only.',
+    createdAt: NOW,
+    updatedAt: NOW,
+    deletedAt: null,
+  },
+]
+
+// ----------------------------------------------------------------------------
+// Seed work order (E6-S1) so the detail page has something to render on
+// first paint, before any client-side WO is built. Bound to the
+// `accepted` property so the demo flow lines up.
+// ----------------------------------------------------------------------------
+const SEED_PROPERTY = FIXTURE_PROPERTIES.find((p) => p.status === 'accepted')!
+const SEED_QUOTE_ID = mk('quote-seed')
+
+export const FIXTURE_WORK_ORDERS: WorkOrder[] = [
+  {
+    id: mk('wo-seed-1'),
+    organizationId: FIXTURE_ORG_ID,
+    propertyId: SEED_PROPERTY.id,
+    quoteId: SEED_QUOTE_ID,
+    workOrderNumber: 'WO-2026-0001',
+    status: 'scheduled',
+    scheduledStart: '2026-05-12T15:00:00.000Z',
+    scheduledEnd: '2026-05-15T23:00:00.000Z',
+    tradeSlots: [
+      {
+        id: mk('slot-roofing'),
+        trade: 'roofing',
+        description: 'Replace wood shake roof with class-A metal',
+        status: 'assigned',
+        assignedSubcontractorId: mk('sub-roof-king'),
+        scheduledStart: '2026-05-12T15:00:00.000Z',
+        scheduledEnd: '2026-05-14T00:00:00.000Z',
+        notes: null,
+      },
+      {
+        id: mk('slot-defensible'),
+        trade: 'defensible_space',
+        description: 'Clear 30-foot defensible-space radius',
+        status: 'unassigned',
+        assignedSubcontractorId: null,
+        scheduledStart: null,
+        scheduledEnd: null,
+        notes: null,
+      },
+    ],
+    materials: [
+      {
+        id: mk('mat-metal-panels'),
+        name: 'Steel roof panels (charcoal)',
+        quantity: 28,
+        unit: 'panel',
+        unitCostCents: 6500,
+      },
+      {
+        id: mk('mat-underlayment'),
+        name: 'Synthetic underlayment',
+        quantity: 6,
+        unit: 'roll',
+        unitCostCents: 8200,
+      },
+    ],
+    notes: 'Customer requested early-morning starts; access via side gate.',
+    createdById: FIXTURE_USER_ADMIN.userId,
+    createdAt: NOW,
+    updatedAt: NOW,
+    deletedAt: null,
+  },
+]

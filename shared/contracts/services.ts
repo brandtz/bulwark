@@ -10,6 +10,8 @@ import type { IPropertyService } from './property'
 import type { IClientService } from './client'
 import type { IAssessmentService } from './assessment'
 import type { IQuoteService } from './quote'
+import type { ISubcontractorService } from './subcontractor'
+import type { IWorkOrderService } from './work-order'
 
 export interface BulwarkServices {
   auth: IAuthService
@@ -17,8 +19,10 @@ export interface BulwarkServices {
   client: IClientService
   assessment: IAssessmentService
   quote: IQuoteService
-  // E0-S6 stubs the rest as we add them: workOrder, sub,
-  // complianceDoc, invoice, job, auditLog, apiKey, settings.*
+  subcontractor: ISubcontractorService
+  workOrder: IWorkOrderService
+  // E0-S6 stubs the rest as we add them: complianceDoc, invoice,
+  // job, auditLog, apiKey, settings.*
 }
 
 export type ServiceName = keyof BulwarkServices
