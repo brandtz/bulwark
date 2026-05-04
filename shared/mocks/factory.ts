@@ -25,6 +25,7 @@ import { MockAuthService, type MockAuthSessionAdapter } from './auth.mock'
 import { MockPropertyService } from './property.mock'
 import { MockClientService } from './client.mock'
 import { MockAssessmentService } from './assessment.mock'
+import { MockQuoteService } from './quote.mock'
 import type { TenantResolver } from './tenant'
 
 let cachedServices: BulwarkServices | null = null
@@ -43,6 +44,7 @@ export function createMockServices(
       property: new MockPropertyService(resolver),
       client: new MockClientService(resolver),
       assessment: new MockAssessmentService(resolver),
+      quote: new MockQuoteService(resolver),
     }
   }
   return cachedServices

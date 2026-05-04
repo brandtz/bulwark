@@ -9,13 +9,15 @@ import type { IAuthService } from './auth'
 import type { IPropertyService } from './property'
 import type { IClientService } from './client'
 import type { IAssessmentService } from './assessment'
+import type { IQuoteService } from './quote'
 
 export interface BulwarkServices {
   auth: IAuthService
   property: IPropertyService
   client: IClientService
   assessment: IAssessmentService
-  // E0-S6 stubs the rest as we add them: quote, workOrder, sub,
+  quote: IQuoteService
+  // E0-S6 stubs the rest as we add them: workOrder, sub,
   // complianceDoc, invoice, job, auditLog, apiKey, settings.*
 }
 
