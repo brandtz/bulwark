@@ -15,14 +15,15 @@
 
 ## Active Story
 
-E3-S5 — Property detail hub with tabs (Overview, Assessment, Quotes, Work Orders, Compliance, Invoices, Photos, Notes).
+E3-S6 — Client detail page at `/admin/clients/[id]` (Screen 07), linked from property detail Overview tab.
 
-E3-S4 closed: property intake form at `/admin/properties/new` with Zod validation. New `app/pages/admin/properties/new.vue` (form moved into `properties/index.vue` so the folder can host `new.vue`). Validation runs against `PropertyCreateInputSchema.omit({ organizationId: true })` — `organizationId` is injected from `useSession()` and isn't user-controlled (the fixture orgId is intentionally non-RFC-4122 for readability). On success: `property.create()` then `refreshNuxtData("properties-${orgId}")` then `router.push("/admin/properties")` so the new card appears immediately. New `tests/e2e/property-intake.spec.ts` (3 tests). Cold-start race fixes: added `waitForLoadState('networkidle')` after `goto()` for `auth.spec.ts` persona quick-pick, both list-toggle tests, and the intake submit tests. **59 chromium tests passing** (2 skipped) + 6 unit tests.
+E3-S5 closed: property detail hub at `/admin/properties/[id]` with eight tabs (Overview, Assessment, Quotes, Work orders, Compliance, Invoices, Photos, Notes). Overview is populated from `property.get()` + `client.get()` (joined via `useAsyncData`); the seven downstream tabs render `<EmptyState>` placeholders pointing to their owning epic. Active tab is reflected in the `?tab=` query for shareable deep-links (PropertyCard already navigates to `/admin/properties/{id}`). 404-style "Property not found" empty state for unknown ids. New `tests/e2e/property-detail.spec.ts` (4 tests: open via card click, overview default, tab switching + URL sync, 404 fallback). **63 chromium tests passing** (2 skipped) + 6 unit tests.
 
 ## Recent Completions
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E3-S5 | Property detail hub at `/admin/properties/[id]`. Eight tabs via `BulwarkTabs`; Overview pulls property + linked client through a single `useAsyncData` join. Other tabs are `EmptyState` placeholders pointing at their owning epic (E4 assessment/photos, E5 quotes, E6 work orders, E8 compliance, E9 invoices, E10 notes). `?tab=` query is the source of truth (deep-link friendly). 404 empty state for unknown ids. New `tests/e2e/property-detail.spec.ts` (4 tests). **63 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-04 | E3-S4 | Property intake form. New `app/pages/admin/properties/new.vue` (the kanban moved into `properties/index.vue` so the folder can host the new route). Form uses `BulwarkInput` / `BulwarkSelect` / `BulwarkTextarea`; validates with `PropertyCreateInputSchema.omit({ organizationId: true })` (org id is injected from session, not user-controlled — fixture orgIds are intentionally non-RFC-4122). On success: `property.create()` → `refreshNuxtData('properties-${orgId}')` → `router.push('/admin/properties')`. New `tests/e2e/property-intake.spec.ts` (3 tests — render, empty-form validation, valid submission lands on pipeline). Cold-start fixes: added `waitForLoadState('networkidle')` to auth persona quick-pick, both list-toggle tests, and the intake submit tests. **E3-S3 deferred** (drag-drop is risky; will return after E3-S5/S6). **59 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-03 | (planning) | BUILD_PLAN.md, all 14 epic files, 11 ADRs, BUILD_STATUS.md created. Demo frozen. |
 | 2026-05-03 | E0-S1 | CONTRACTS.md + UI-CONTRACTS.md skeletons + CONVENTIONS root pointer landed. |
@@ -48,10 +49,9 @@ E3-S4 closed: property intake form at `/admin/properties/new` with Zod validatio
 
 ## Next Up
 
-1. **E3-S5** — Property detail hub with tabs (Overview populated, others render `EmptyState` placeholders).
-2. E3-S6 — Client detail page (`/admin/clients/[id]`).
-3. E3-S3 — Drag-drop status change (deferred from E3 — risky, return after S5/S6).
-4. E3-S7 — Full happy-path Playwright (login → intake → pipeline → detail).
+1. **E3-S6** — Client detail page (`/admin/clients/[id]`).
+2. E3-S3 — Drag-drop status change (deferred from E3 — risky, return after S6).
+3. E3-S7 — Full happy-path Playwright (login → intake → pipeline → detail).
 
 ## Verified locally
 
