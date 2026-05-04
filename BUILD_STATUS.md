@@ -15,7 +15,9 @@
 
 ## Active Story
 
-E5-S4 — Quote list + status filters.
+E5-S5 — Closing happy-path for Epic E5.
+
+E5-S4 closed: org-wide quotes list at `/admin/quotes` with status filter (`?status=`) backed by `BulwarkSegmentedControl`. Each row links to the existing preview page; addresses resolved by parallel property fetches. `useAsyncData` runs `{ server: false }` so the list reads from the same client mock module the builder mutated. New `tests/e2e/quotes-list.spec.ts` (3 tests — empty state, two-quote listing, sent-only filter). **90 chromium tests passing** (2 skipped) + 28 unit tests.
 
 E5-S3 closed: read-only quote preview at `/admin/properties/[id]/quotes/[quoteId]` plus mock Send. Page renders persisted line items + totals + status pill; `Send` button calls `quote.markSent` (idempotent), surfaces a success toast, and flips the pill to Sent. Preview's `useAsyncData` runs `{ server: false }` so it always reads from the same client mock module the builder mutated. New `tests/e2e/quote-preview.spec.ts` (2 tests). **87 chromium tests passing** (2 skipped) + 28 unit tests.
 
@@ -29,6 +31,7 @@ E4-S5 closed: Playwright happy-path closing Epic E4. New `app/pages/admin/proper
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E5-S4 | Org-wide quotes list at `/admin/quotes`. Filters via `?status=` (segmented control: All / Draft / Sent / Accepted / Rejected / Expired). Each row links to the existing preview at `/admin/properties/[id]/quotes/[quoteId]`; the loader fetches the matching properties in parallel for address rendering. Empty state CTA points back at `/admin/properties`. Page is `{ server: false }` so it stays consistent with builder/preview client-side mock state. New `tests/e2e/quotes-list.spec.ts` (3 tests). To navigate cross-page during the multi-quote tests we route through pipeline NuxtLinks + property detail Quotes tab — `page.goto` between mutations would reset the mock module. **90 chromium tests passing** (2 skipped) + 28 unit tests. |
 | 2026-05-04 | E5-S3 | Quote preview + mock Send. New `app/pages/admin/properties/[id]/quotes/[quoteId].vue` renders persisted quote (number, line items with kind / qty / unit, totals breakdown including markup% and tax%, optional notes) and a status pill. `Send` button calls `quote.markSent`, refreshes the bundle, fires a success toast (`Sent to {client.fullName}`), and is replaced by the already-sent note. Page uses `useAsyncData(…, { server: false })` so the fetch always reads from the same client mock module the builder mutated. New `tests/e2e/quote-preview.spec.ts` (2 tests — draft preview + send transition). **87 chromium tests passing** (2 skipped) + 28 unit tests. |
 | 2026-05-04 | E5-S2 | Quote builder pre-populates from non-compliant assessment. New `tests/e2e/quote-prepopulate.spec.ts` (2 tests — auto-populate via summary CTA carrying `?from=assessment`, manual `prepopulate-banner` + button when arriving without the query). Builder watches `bundle.assessment.id` and `populateFromAssessment()` writes one labor line item per `requiredUpgrade` with field-label-aware descriptions. `populated` ref hides the banner once items exist. Summary page gains `build-quote-from-assessment` NuxtLink for the non-compliant branch. Property detail Quotes tab gains a `tab-new-quote-cta` button → `/quotes/new` (no query) so flow tests can route there via NuxtLink (the mock-state rule forbids `page.goto` after a client-side mutation). **85 chromium tests passing** (2 skipped) + 28 unit tests. |
 | 2026-05-04 | E5-S1 | Quote builder scaffolding. New Zod contract `shared/contracts/quote.ts` (Quote, QuoteLineItem, QuoteTotals, QuoteCreateInput, IQuoteService). New pure helpers `shared/utils/money.ts` — `formatCents`, `parseDollarsToCents`, `computeQuoteTotals` (markup-then-tax order, half-away-from-zero rounding). New `MockQuoteService` (module-level rows[], tenant firewall, org-scoped `Q-YYYY-NNNN` sequence, idempotent `markSent`). New `app/pages/admin/properties/[id]/quotes/new.vue` builder — mobile-first stack of line-item cards, live `formatCents` totals card, save-draft routes to (yet-empty) preview URL. New `tests/unit/money.test.ts` (13 tests) + `tests/e2e/quote-builder.spec.ts` (3 tests — render, live totals, persist+route). **83 chromium tests passing** (2 skipped) + **28 unit tests**. |
@@ -66,8 +69,8 @@ E4-S5 closed: Playwright happy-path closing Epic E4. New `app/pages/admin/proper
 
 ## Next Up
 
-1. **E5-S4** — Quote list + status filters.
-2. E5-S5 — Closing happy-path for Epic E5.
+1. **E5-S5** — Closing happy-path for Epic E5 (build → preview → send → see in list).
+2. E6 — Work orders.
 
 ## Verified locally
 
