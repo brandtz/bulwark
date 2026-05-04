@@ -42,11 +42,12 @@ await ensureLoaded()
 const workOrder = useService('workOrder')
 const property = useService('property')
 const subcontractor = useService('subcontractor')
+const { success: toastSuccess } = useToast()
 
 const workOrderId = computed(() => String(route.params.id))
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
-const { data: bundle } = await useAsyncData(
+const { data: bundle, refresh } = await useAsyncData(
   () => `work-order-detail-${workOrderId.value}-${orgId.value}`,
   async () => {
     const wo = await workOrder.get(workOrderId.value, orgId.value)
@@ -117,6 +118,57 @@ function subDisplay(slotSubId: string | null): string {
   const sub = bundle.value?.subs.get(slotSubId)
   return sub ? sub.companyName : 'Unknown sub'
 }
+
+// E6-S3 -------- Sub assignment picker ------------------------------
+const pickerOpen = ref(false)
+const pickerSlotId = ref<string | null>(null)
+const pickerError = ref('')
+const pickerBusy = ref(false)
+
+const pickerSlot = computed(() =>
+  bundle.value?.workOrder?.tradeSlots.find((s) => s.id === pickerSlotId.value) ??
+  null,
+)
+
+const pickerCandidates = computed<Subcontractor[]>(() => {
+  if (!pickerSlot.value || !bundle.value) return []
+  const trade = pickerSlot.value.trade
+  return Array.from(bundle.value.subs.values())
+    .filter((s) => s.trades.includes(trade))
+    .sort((a, b) => a.companyName.localeCompare(b.companyName))
+})
+
+function openPicker(slotId: string) {
+  pickerSlotId.value = slotId
+  pickerError.value = ''
+  pickerOpen.value = true
+}
+
+async function chooseSub(subId: string | null) {
+  if (!bundle.value?.workOrder || !pickerSlotId.value) return
+  pickerError.value = ''
+  pickerBusy.value = true
+  try {
+    await workOrder.assignTrade(
+      bundle.value.workOrder.id,
+      pickerSlotId.value,
+      subId,
+      orgId.value,
+    )
+    await refresh()
+    toastSuccess(
+      subId ? 'Subcontractor assigned' : 'Assignment cleared',
+      subId ? 'Crew is on the job.' : 'Slot is unassigned.',
+    )
+    pickerOpen.value = false
+    pickerSlotId.value = null
+  } catch (err: unknown) {
+    pickerError.value =
+      err instanceof Error ? err.message : 'Could not update assignment.'
+  } finally {
+    pickerBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -179,6 +231,7 @@ function subDisplay(slotSubId: string | null): string {
               class="p-3 md:p-4 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4"
               data-testid="trade-slot"
               :data-trade="slot.trade"
+              :data-slot-id="slot.id"
             >
               <div class="md:col-span-4">
                 <p class="text-body font-medium text-text-primary" data-testid="trade-slot-trade">
@@ -188,11 +241,19 @@ function subDisplay(slotSubId: string | null): string {
                   {{ slot.description }}
                 </p>
               </div>
-              <div class="md:col-span-4 flex items-baseline gap-2">
+              <div class="md:col-span-4 flex flex-wrap items-baseline gap-2">
                 <span class="md:hidden text-small text-text-secondary">Sub</span>
                 <span class="text-body" data-testid="trade-slot-sub">
                   {{ subDisplay(slot.assignedSubcontractorId) }}
                 </span>
+                <button
+                  type="button"
+                  class="text-small text-primary-700 hover:text-primary underline"
+                  data-testid="assign-sub-button"
+                  @click="openPicker(slot.id)"
+                >
+                  {{ slot.assignedSubcontractorId ? 'Change' : 'Assign' }}
+                </button>
               </div>
               <div class="md:col-span-4 flex md:justify-end items-center">
                 <span
@@ -250,5 +311,74 @@ function subDisplay(slotSubId: string | null): string {
         </BulwarkCard>
       </section>
     </template>
+
+    <!-- Sub-assignment picker (E6-S3) ----------------------- -->
+    <BulwarkModal
+      v-model="pickerOpen"
+      :title="pickerSlot ? `Assign ${TRADE_LABEL[pickerSlot.trade]}` : 'Assign subcontractor'"
+      size="md"
+    >
+      <div data-testid="assign-sub-modal">
+        <p
+          v-if="pickerCandidates.length === 0"
+          class="text-body text-text-secondary"
+          data-testid="assign-no-candidates"
+        >
+          No subcontractors are registered for this trade yet. Add one
+          on the Subcontractors page.
+        </p>
+        <ul v-else class="flex flex-col gap-2">
+          <li
+            v-for="sub in pickerCandidates"
+            :key="sub.id"
+            data-testid="assign-candidate"
+            :data-sub-id="sub.id"
+          >
+            <button
+              type="button"
+              class="w-full text-left rounded-card border border-border-default p-3 hover:bg-surface-muted disabled:opacity-50"
+              :disabled="pickerBusy"
+              data-testid="assign-candidate-button"
+              @click="chooseSub(sub.id)"
+            >
+              <p class="text-body font-medium text-text-primary">
+                {{ sub.companyName }}
+              </p>
+              <p class="text-small text-text-secondary">
+                {{ sub.contactName }} · {{ sub.phone }}
+              </p>
+            </button>
+          </li>
+        </ul>
+        <p
+          v-if="pickerError"
+          class="mt-3 text-small text-status-error"
+          data-testid="assign-error"
+        >
+          {{ pickerError }}
+        </p>
+      </div>
+      <template #footer>
+        <BulwarkButton
+          v-if="pickerSlot?.assignedSubcontractorId"
+          type="button"
+          variant="secondary"
+          :disabled="pickerBusy"
+          data-testid="assign-clear-button"
+          @click="chooseSub(null)"
+        >
+          Clear assignment
+        </BulwarkButton>
+        <BulwarkButton
+          type="button"
+          variant="secondary"
+          :disabled="pickerBusy"
+          data-testid="assign-cancel-button"
+          @click="pickerOpen = false"
+        >
+          Cancel
+        </BulwarkButton>
+      </template>
+    </BulwarkModal>
   </div>
 </template>
