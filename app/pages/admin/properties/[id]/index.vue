@@ -29,6 +29,7 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
+import { evaluateCompliance, OREGON_DEFAULT_STANDARDS } from '~~/shared/utils/compliance'
 
 definePageMeta({
   middleware: ['role'],
@@ -46,14 +47,18 @@ const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
 const property = useService('property')
 const client = useService('client')
+const assessment = useService('assessment')
 
 const { data: detail } = await useAsyncData(
   () => `property-detail-${propertyId.value}-${orgId.value}`,
   async () => {
     const p = await property.get(propertyId.value, orgId.value)
-    if (!p) return { property: null, client: null }
-    const c = p.clientId ? await client.get(p.clientId, orgId.value) : null
-    return { property: p, client: c }
+    if (!p) return { property: null, client: null, assessment: null }
+    const [c, a] = await Promise.all([
+      p.clientId ? client.get(p.clientId, orgId.value) : Promise.resolve(null),
+      assessment.getLatestForProperty(p.id, orgId.value),
+    ])
+    return { property: p, client: c, assessment: a }
   },
   { watch: [propertyId, orgId] },
 )
@@ -112,6 +117,15 @@ const fullAddress = computed(() => {
   if (!p) return ''
   const line2 = p.addressLine2 ? `, ${p.addressLine2}` : ''
   return `${p.addressLine1}${line2}, ${p.city}, ${p.state} ${p.postalCode}`
+})
+
+// Assessment-tab data (E4-S4): if there's a latest assessment, run it
+// through the pure evaluator client-side. We use the Oregon defaults
+// here; per-tenant override (E9) will swap to a settings-service call.
+const compliance = computed(() => {
+  const a = detail.value?.assessment
+  if (!a) return null
+  return evaluateCompliance(a, OREGON_DEFAULT_STANDARDS)
 })
 </script>
 
@@ -197,12 +211,73 @@ const fullAddress = computed(() => {
         </template>
 
         <template #tab-assessment>
-          <EmptyState
-            icon="·"
-            title="No assessment yet"
-            body="Field assessment surfaces will land in Epic E4."
-            data-testid="tab-panel-assessment"
-          />
+          <section data-testid="tab-panel-assessment">
+            <!-- No assessment yet — direct CTA into the form. -->
+            <div v-if="!compliance" class="flex flex-col items-start gap-4">
+              <EmptyState
+                icon="·"
+                title="No assessment yet"
+                body="Capture roof, siding, eaves, vents, and defensible-space data to evaluate Oregon WUI compliance."
+                class="self-stretch"
+              />
+              <NuxtLink
+                :to="`/admin/properties/${propertyId}/assessment`"
+                class="self-center inline-flex h-input items-center rounded-input bg-primary px-4 text-body font-medium text-white hover:bg-primary-700 transition"
+                data-testid="tab-start-assessment-cta"
+              >
+                Start assessment
+              </NuxtLink>
+            </div>
+
+            <!-- Latest assessment exists — show compliance summary preview. -->
+            <div v-else class="flex flex-col gap-4">
+              <BulwarkCard
+                padding="md"
+                :class="compliance.overallCompliant ? 'border-status-success' : 'border-status-error'"
+                data-testid="assessment-tab-banner"
+                :data-compliant="compliance.overallCompliant ? 'true' : 'false'"
+              >
+                <div class="flex items-start gap-4">
+                  <div
+                    class="text-2xl"
+                    :class="compliance.overallCompliant ? 'text-status-success' : 'text-status-error'"
+                  >
+                    {{ compliance.overallCompliant ? '✓' : '!' }}
+                  </div>
+                  <div class="flex-1">
+                    <h2 class="text-h2">
+                      {{ compliance.overallCompliant ? 'Compliant' : 'Non-compliant' }}
+                    </h2>
+                    <p class="text-body text-text-secondary mt-1">
+                      <template v-if="compliance.overallCompliant">
+                        All measured fields meet Oregon WUI baseline standards.
+                      </template>
+                      <template v-else>
+                        {{ compliance.requiredUpgrades.length }} item(s) require upgrade.
+                      </template>
+                    </p>
+                  </div>
+                </div>
+              </BulwarkCard>
+
+              <div class="flex items-center gap-4">
+                <NuxtLink
+                  :to="`/admin/properties/${propertyId}/assessment-summary`"
+                  class="text-body text-primary hover:underline"
+                  data-testid="tab-view-summary-link"
+                >
+                  View full summary →
+                </NuxtLink>
+                <NuxtLink
+                  :to="`/admin/properties/${propertyId}/assessment`"
+                  class="text-body text-text-secondary hover:text-text-primary"
+                  data-testid="tab-redo-assessment-link"
+                >
+                  Re-run assessment
+                </NuxtLink>
+              </div>
+            </div>
+          </section>
         </template>
 
         <template #tab-quotes>

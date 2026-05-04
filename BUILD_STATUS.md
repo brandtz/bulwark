@@ -15,7 +15,9 @@
 
 ## Active Story
 
-E4-S4 — Hook into property detail hub Assessment tab (replace placeholder with current assessment summary card or "Start assessment" CTA).
+E4-S5 — Playwright happy-path closing Epic E4: chain intake → assessment form (non-compliant) → summary banner non-compliant → upgrades surface roof flag → detail tab shows compliance state.
+
+E4-S4 closed: property detail Assessment tab now renders a compliance preview banner + "View full summary →" link when an assessment exists, and a "Start assessment" CTA otherwise. New `tests/e2e/property-assessment-tab.spec.ts` (2 tests). **79 chromium tests passing** (2 skipped) + 15 unit tests.
 
 E4-S3 closed: assessment summary page. New `app/pages/admin/properties/[id]/assessment-summary.vue` calls `evaluateCompliance(latest, OREGON_DEFAULT_STANDARDS)` client-side and renders a banner (✓ compliant / ! non-compliant) plus a one-row-per-flagged-field upgrades card with current value, required value, and ORS/OAR reference. Empty state deep-links to the form. **Important fix to E4-S2**: form's success redirect now goes to `/assessment-summary` via `router.push` (client navigation) instead of `?tab=assessment` because a full goto would hit a different SSR module instance with empty `rows[]`. Lesson logged in session memory: client-side mock mutations only survive client-side navigations — design redirects accordingly. New `tests/e2e/assessment-summary.spec.ts` (3 tests). **77 chromium tests passing** (2 skipped) + 15 unit tests.
 
@@ -23,6 +25,7 @@ E4-S3 closed: assessment summary page. New `app/pages/admin/properties/[id]/asse
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E4-S4 | Property detail Assessment tab wired to evaluator. `[id]/index.vue` now imports `evaluateCompliance` + `OREGON_DEFAULT_STANDARDS` and adds a `compliance` computed; the tab slot conditionally renders an EmptyState + `tab-start-assessment-cta` (no assessment) or a colored banner + `tab-view-summary-link` deep-link to the summary (assessment exists). Re-run link points back at the form. New `tests/e2e/property-assessment-tab.spec.ts` (2 tests — empty CTA, post-submit banner via NuxtLink-only navigation honoring the mock-state rule). **79 chromium tests passing** (2 skipped) + 15 unit tests. |
 | 2026-05-04 | E4-S3 | Assessment summary page. New `[id]/assessment-summary.vue` calls the pure evaluator + renders banner + upgrades table with ORS/OAR refs. Form redirect changed to client-side `router.push('/assessment-summary')` so the mock service singleton survives navigation. New `tests/e2e/assessment-summary.spec.ts` (3 tests — empty-state CTA, compliant green banner, non-compliant flag with correct standard ref). **77 chromium tests passing** (2 skipped). |
 | 2026-05-04 | E4-S2 | Assessment form + mock service. New `IAssessmentService` + `MockAssessmentService` (singleton via factory, tenant-firewalled). New nested route `app/pages/admin/properties/[id]/assessment.vue` (BulwarkSelect material pickers + BulwarkToggle defensible-space). Restructured `[id].vue` → `[id]/index.vue` to support the nested page. New `tests/e2e/property-assessment-form.spec.ts` (3 tests — renders, blocks-empty-submit, saves+routes-back). **74 chromium tests passing** (2 skipped). |
 | 2026-05-04 | E4-S1 | Pure-function compliance evaluator + Vitest unit tests. New `shared/contracts/assessment.ts` (Assessment, ComplianceResult, ComplianceStandards). New `shared/utils/compliance.ts` exports `evaluateCompliance(input, standards)` and `OREGON_DEFAULT_STANDARDS` (BULWARK_TECH §8). 9-case unit suite covers every failure mode, multi-fail aggregation, tenant override (E9 wiring), and optional defensible-space. **15 unit tests passing**. |
@@ -55,9 +58,9 @@ E4-S3 closed: assessment summary page. New `app/pages/admin/properties/[id]/asse
 
 ## Next Up
 
-1. **E4-S4** — Hook into property detail hub Assessment tab.
-2. E4-S5 — Playwright: full happy-path closing Epic E4.
-3. E5 — Quote builder + acceptance.
+1. **E4-S5** — Playwright happy-path closing Epic E4 (intake → non-compliant assessment → summary flag → detail tab preview).
+2. E5 — Quote builder + acceptance.
+3. E6 — Work orders.
 
 ## Verified locally
 
