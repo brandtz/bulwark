@@ -47,15 +47,16 @@ test.describe('Org switcher — multi-org persona', () => {
     // Topbar widget should be a link for multi-org users.
     await page.getByTestId('org-switcher').click()
     await expect(page).toHaveURL(/\/org-switcher$/)
+    await page.waitForLoadState('networkidle')
     // Two org rows visible.
     const rows = page.getByTestId('org-list').locator('button')
     await expect(rows).toHaveCount(2)
     // The currently-active row carries the badge.
     await expect(page.getByTestId('org-active-badge')).toBeVisible()
     // Pick the OTHER org (Acme).
-    await page.getByText('Acme Restoration LLC').click()
+    await page.getByRole('button', { name: /Acme Restoration LLC/ }).click()
     // Lands somewhere signed-in (role-aware redirect via /).
-    await page.waitForURL(/\/(admin|field|sub)\/dashboard$/)
+    await page.waitForURL(/\/(admin|field|sub)\/dashboard$/, { timeout: 15000 })
     // Topbar reflects the new org.
     await expect(page.getByTestId('org-switcher')).toContainText('Acme Restoration LLC')
     // Hard reload keeps it active.

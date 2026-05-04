@@ -116,7 +116,7 @@ test.describe('Auth recovery — forgot / reset / invite', () => {
     // SPA-vs-layout-transition reasons documented in pages/accept-invite.vue.
     await page.waitForURL(/\/(admin|field|sub)\/dashboard$/, { timeout: 15000 })
     await page.waitForLoadState('networkidle')
-    await expect(page.getByTestId('logout-button')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('user-menu-button')).toBeVisible({ timeout: 15000 })
   })
 
   test('accept-invite with a malformed token shows the error state', async ({ page }) => {

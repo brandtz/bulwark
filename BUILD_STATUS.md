@@ -15,9 +15,9 @@
 
 ## Active Story
 
-E2-S5 — full UserMenu dropdown (replaces inline Sign Out).
+E2-S6 — tenant firewall in MockServiceFactory.
 
-E2-S4 closed: super_admin fixture (sasha@bulwark.platform) with two memberships, second org `Acme Restoration LLC`. Active-org override persisted via `bulwark.mock.activeOrg` cookie. `useAuth.switchActiveOrg`. Dedicated `/org-switcher` page + topbar widget upgraded (NuxtLink for multi-org users, static chip for singleton). **30 chromium tests passing** (1 skipped).
+E2-S5 closed: `app/components/nav/UserMenu.vue` dropdown replaces the inline Sign Out chip in `AppTopBar`. Click-to-toggle, Escape-closes, `mousedown` listener attached only while open. Panel exposes the user identity row, conditional `Switch organization` link (only when `memberships.length > 1`), and Sign Out. **35 chromium tests passing** (1 skipped) including 5 new user-menu tests.
 
 ## Recent Completions
 
@@ -38,12 +38,13 @@ E2-S4 closed: super_admin fixture (sasha@bulwark.platform) with two memberships,
 | 2026-05-04 | E2-S2 | Forgot/reset password + accept-invite (stateless base64url tokens with kind + exp; trivial to verify). New pages `/forgot-password`, `/reset-password`, `/accept-invite` (all `layout: false`). `useAuth` extended with `requestPasswordReset` / `resetPassword` / `previewInvite` / `acceptInvite`. Reset path forces fresh sign-in (logout + bounce to `/login?reset=ok`) — matches future real backend session-revoke. Accept-invite does a hard navigation into `/admin/dashboard` to sidestep a Nuxt 3.21 SPA-vs-`layout: false` transition race. Mock `lookup()` now synthesizes a SessionUser when the cookie email isn't yet in `userByEmail` (mirrors how a real backend trusts a signed session cookie). **23 chromium tests passing** + 6 new auth-recovery tests. |
 | 2026-05-04 | E2-S3 | Role-based middleware + `/403` page. New `usePermissions` composable exports role-group constants (`ROLE_GROUPS.admin`, `.field`, `.sub`, etc.) plus `hasAnyRole` / `isAdmin` / `isField` / `isSub` / `isSuperAdmin`. New named middleware `app/middleware/role.ts` reads `definePageMeta({ requiredRoles })` and bounces non-matches to `/403` (302). `/403` page is styled (layout-less, calls `ensureLoaded` itself since auth.global skips public routes), shows the user's actual role and offers a role-aware "Go to my dashboard" button + Back. `/admin/dashboard` and `/admin/properties` opted in. **28 chromium tests passing** (1 skipped) including 5 new role-guard tests; auth-spec adjusted to use admin persona for `?next=/admin/properties`. |
 | 2026-05-04 | E2-S4 | Org switcher. New super_admin fixture (`sasha@bulwark.platform`) with memberships in Bulwark Demo Co. + Acme Restoration LLC. Active-org override persisted via second cookie `bulwark.mock.activeOrg`. `MockAuthService.currentUser` applies the override (and falls back gracefully if it points to a revoked membership); `switchActiveOrg` validates membership and writes the cookie; `login` / `logout` clear the override. New `/org-switcher` page + topbar widget upgraded to a NuxtLink for multi-org users (static chip for singletons). `useAuth.switchActiveOrg`. **30 chromium tests passing** (1 skipped) including 2 new org-switcher tests. |
+| 2026-05-04 | E2-S5 | UserMenu dropdown. New `app/components/nav/UserMenu.vue` (`data-testid` `user-menu-button`, `user-menu-panel`, `user-menu-switch-org`, `logout-button`) replaces the inline Sign Out chip in `AppTopBar`. Click-to-toggle, Escape closes, `mousedown` listener attached only while the menu is open and removed on close. `Switch organization` link only renders for multi-membership users. Existing tests that asserted the bare `logout-button` updated to assert `user-menu-button` (or to first open the dropdown). New `tests/e2e/user-menu.spec.ts` with 5 tests. **35 chromium tests passing** (1 skipped). |
 
 ## Next Up
 
-1. **E2-S5** — full UserMenu dropdown (replaces inline Sign Out).
-2. E2-S6 — tenant firewall in MockServiceFactory.
-3. E2-S7 — Playwright persona matrix.
+1. **E2-S6** — tenant firewall in MockServiceFactory.
+2. E2-S7 — Playwright persona matrix.
+3. E2-S8 — 404 + 500 styled error pages.
 4. E3-S1 — Properties pipeline list view.
 
 ## Verified locally

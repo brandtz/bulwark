@@ -35,7 +35,7 @@ test.describe('Auth — login form + middleware', () => {
     await page.goto('/login?next=%2Fadmin%2Fdashboard')
     await page.getByRole('button', { name: /Org admin/ }).click()
     await expect(page).toHaveURL('/admin/dashboard')
-    await expect(page.getByTestId('user-menu').getByText('Drew Owens')).toBeVisible()
+    await expect(page.getByTestId('user-menu-button').getByText('Drew Owens')).toBeVisible()
   })
 
   test('manual form submit with admin email signs in and ?next= is honoured', async ({ page }) => {
@@ -51,6 +51,7 @@ test.describe('Auth — login form + middleware', () => {
     await signIn(page.context(), 'drew@bulwark.demo')
     await page.goto('/admin/dashboard')
     await page.waitForLoadState('networkidle')
+    await page.getByTestId('user-menu-button').click()
     await page.getByTestId('logout-button').click()
     await expect(page).toHaveURL(/\/login/)
     // After logout, hitting a protected route bounces again.

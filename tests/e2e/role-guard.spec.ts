@@ -49,7 +49,7 @@ test.describe('Role guard — admin pages reject non-admin personas', () => {
     await signIn(page.context(), 'drew@bulwark.demo')
     await page.goto('/admin/dashboard')
     await expect(page).toHaveURL(/\/admin\/dashboard$/)
-    await expect(page.getByTestId('logout-button')).toBeVisible()
+    await expect(page.getByTestId('user-menu-button')).toBeVisible()
   })
 
   test('anonymous visit to /403 shows the sign-in copy', async ({ page }) => {

@@ -25,7 +25,7 @@ test.describe('Persistent app shell — desktop', () => {
   test('renders sidebar + topbar on the dashboard', async ({ page }) => {
     await page.goto('/admin/dashboard')
     await expect(page.getByRole('navigation', { name: 'Primary', exact: true })).toBeVisible()
-    await expect(page.getByTestId('user-menu')).toBeVisible()
+    await expect(page.getByTestId('user-menu-button')).toBeVisible()
     await expect(page.getByText('Welcome back')).toBeVisible()
   })
 
@@ -34,7 +34,7 @@ test.describe('Persistent app shell — desktop', () => {
     await expect(page.getByRole('navigation', { name: 'Primary', exact: true })).toBeVisible()
     await page.goto('/admin/properties')
     await expect(page.getByRole('navigation', { name: 'Primary', exact: true })).toBeVisible()
-    await expect(page.getByTestId('user-menu')).toBeVisible()
+    await expect(page.getByTestId('user-menu-button')).toBeVisible()
   })
 })
 

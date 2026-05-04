@@ -6,12 +6,6 @@
 -->
 <script setup lang="ts">
 const { session } = useSession()
-const { logout } = useAuth()
-
-const initials = computed(() => {
-  const n = session.value?.fullName ?? ''
-  return n.split(' ').map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
-})
 
 const orgName = computed(() => {
   if (!session.value) return ''
@@ -52,26 +46,7 @@ const orgName = computed(() => {
       {{ orgName }}
     </div>
 
-    <!-- User chip -->
-    <div class="flex items-center gap-2" data-testid="user-menu">
-      <div class="w-8 h-8 rounded-full bg-primary text-white text-small font-semibold flex items-center justify-center">
-        {{ initials }}
-      </div>
-      <div class="hidden sm:block">
-        <div class="text-small text-text-primary leading-tight">{{ session?.fullName }}</div>
-        <div class="text-tiny text-text-secondary leading-tight">{{ session?.activeRole }}</div>
-      </div>
-      <!--
-        Sign Out is exposed inline until E2-S5 ships the full UserMenu dropdown.
-        Decision cast down: a hidden-by-default menu hides the most-used auth
-        action for testers. A visible button is uglier but immediately usable.
-      -->
-      <button
-        type="button"
-        class="ml-2 px-3 h-9 rounded-input text-small font-medium border border-border bg-surface hover:bg-surface-muted text-text-primary"
-        data-testid="logout-button"
-        @click="logout"
-      >Sign out</button>
-    </div>
+    <!-- User chip + dropdown (E2-S5). The UserMenu owns logout-button. -->
+    <UserMenu />
   </header>
 </template>
