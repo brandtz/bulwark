@@ -20,9 +20,7 @@ function isActive(to: string): boolean {
 <template>
   <nav
     v-if="items.length"
-    class="md:hidden fixed bottom-0 inset-x-0 h-bottom-nav bg-surface border-t border-border flex z-30"
-    :class="`grid-cols-${items.length}`"
-    style="display: grid"
+    class="md:hidden fixed bottom-0 inset-x-0 h-bottom-nav bg-surface border-t border-border grid z-30"
     :style="{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }"
     aria-label="Mobile primary"
   >

@@ -29,6 +29,11 @@ services.
 
 ## Primitive Library Index (filled out in E1)
 
+> **Status — E1-S2 shipped (2026-04-?? · commit pending):** All Form / Display / Overlay
+> primitives below are implemented in `app/components/ui/` and rendered on `/dev/ui`,
+> with Playwright coverage in [tests/e2e/ui-primitives.spec.ts](tests/e2e/ui-primitives.spec.ts).
+> An `update:modelValue` row WITHOUT a corresponding component file is a review defect.
+
 ### Form primitives
 
 | Component | Props | Emits | Slots |

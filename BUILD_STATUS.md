@@ -15,7 +15,9 @@
 
 ## Active Story
 
-E1-S2 — remaining UI primitives per `UI-CONTRACTS.md` (Input, Textarea, Select, MultiSelect, Toggle, PassFailToggle, DatePicker, SegmentedControl, SearchField, FilePicker, KpiCard, JobCard, Avatar, EmptyState, Skeleton, Pagination, Breadcrumbs, Modal, Drawer, Tabs, Stepper, Toast).
+E2-S1 — `/login` real form + middleware (replaces always-signed-in mock default).
+
+E1-S2 closed: full UI primitive library shipped with `/dev/ui` playground and Playwright coverage.
 
 ## Recent Completions
 
@@ -31,14 +33,15 @@ E1-S2 — remaining UI primitives per `UI-CONTRACTS.md` (Input, Textarea, Select
 | 2026-05-04 | E0-S5 | Zod contracts: `_shared`, `auth`, `property`, `client`, `services` barrel — service interfaces are the single source of truth between mock + real impls. |
 | 2026-05-04 | E0-S6 | Mock services + factory + Nuxt plugin + composables: `useService('property')`, `useSession()`. Defaults to FIXTURE_USER_ADMIN signed in for dev DX (real auth lands E2-S1). 13 property fixtures (one per status), 5 clients, 3 users. |
 | 2026-05-04 | E1-S1 | Single AppLayout (sidebar + topbar + bottom nav). `nav.config.ts` is the only nav source. ADR-0005 enforced: only `default.vue` renders nav. nuxt.config `components: { pathPrefix: false }` so nested folders don't prefix names. Admin dashboard placeholder + role-aware index redirect. **10 Playwright tests passing** across Chromium/Mobile Safari/Pixel (4 nav-shell desktop+mobile tests, 6 smoke tests). 3 UI primitives shipped: BulwarkButton, BulwarkCard, StatusBadge. |
+| 2026-05-04 | E1-S2 + E1-S3 + E1-S4 + E1-S5 (combined) | 22 UI primitives shipped: Input, Textarea, Select, MultiSelect, Toggle, PassFailToggle, DatePicker, SegmentedControl, SearchField, FilePicker, KpiCard, JobCard, Avatar, EmptyState, Skeleton, Pagination, Breadcrumbs, Modal, Drawer, Tabs, Stepper, ToastHost. `useToast()` composable + `<BulwarkToastHost />` mounted in default layout. `/dev/ui` playground page. Tailwind tokens extended (status.{success,warning,error,info}, surface.muted, primary.700, height.input, borderRadius.input, spacing.bottom-nav/topbar). Fixed AppBottomNav inline `display:grid` defeating `md:hidden`. **19 Playwright tests passing** (smoke + nav-shell + 9 ui-primitives spec running serial). |
 
 ## Next Up
 
-1. **E1-S2** — remaining UI primitives (one Playwright spec per primitive per ADR-0007).
-2. E1-S3 — Toast/notification system (`useToast()` composable + `<BulwarkToastHost />` mounted in `default.vue`).
-3. E1-S4 — Modal + Drawer (focus-trap, Escape, backdrop click).
-4. E1-S5 — Form primitives wrap-up (validation messaging, error states).
-5. E2-S1 — `/login` real form + middleware (replaces always-signed-in mock default).
+1. **E2-S1** — `/login` real form + middleware (replaces always-signed-in mock default).
+2. E2-S2 — forgot/reset password flow.
+3. E2-S3 — invite acceptance flow + first-login password set.
+4. E2-S4 — role-based middleware + 403 page.
+5. E3-S1 — Properties pipeline list view (real service-backed).
 
 ## Verified locally
 

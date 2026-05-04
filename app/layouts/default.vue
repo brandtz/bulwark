@@ -28,5 +28,6 @@ await ensureLoaded()
       </main>
     </div>
     <AppBottomNav />
+    <BulwarkToastHost />
   </div>
 </template>

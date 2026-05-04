@@ -45,11 +45,23 @@ const config: Config = {
           DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
           hover: 'rgb(var(--color-primary-hover) / <alpha-value>)',
           light: 'rgb(var(--color-primary-light) / <alpha-value>)',
+          // Numeric scale alias so `bg-primary-700` compiles to the brand
+          // hover color. We keep `primary-hover` as the semantic name and
+          // `primary-700` as the convenient legacy alias.
+          700: 'rgb(var(--color-primary-hover) / <alpha-value>)',
         },
 
         // Surfaces & structure
         background: 'rgb(var(--color-background) / <alpha-value>)',
-        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        surface: {
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          // `surface-muted` = the page background under cards. Maps to the
+          // same value as the page `background` token; the alias exists so
+          // primitives can say "I want a subtly recessed surface" without
+          // referencing the `background` token (which reads weird at use
+          // sites like `bg-background` inside a card).
+          muted: 'rgb(var(--color-background) / <alpha-value>)',
+        },
         sidebar: 'rgb(var(--color-sidebar) / <alpha-value>)',
         'sidebar-text': 'rgb(var(--color-sidebar-text) / <alpha-value>)',
         'sidebar-active': 'rgb(var(--color-sidebar-active) / <alpha-value>)',
@@ -65,7 +77,9 @@ const config: Config = {
           disabled: 'rgb(var(--color-text-disabled) / <alpha-value>)',
         },
 
-        // Semantic / status (STYLE_GUIDE §2.3)
+        // Semantic / status (STYLE_GUIDE §2.3) — both flat and namespaced
+        // forms exposed. `bg-success` for direct use; `bg-status-success`
+        // for the longer "status badge" reading. Both compile.
         success: {
           DEFAULT: 'rgb(var(--color-success) / <alpha-value>)',
           light: 'rgb(var(--color-success-light) / <alpha-value>)',
@@ -82,6 +96,12 @@ const config: Config = {
         info: {
           DEFAULT: 'rgb(var(--color-info) / <alpha-value>)',
           light: 'rgb(var(--color-info-light) / <alpha-value>)',
+        },
+        status: {
+          success: 'rgb(var(--color-success) / <alpha-value>)',
+          warning: 'rgb(var(--color-warning) / <alpha-value>)',
+          error: 'rgb(var(--color-error) / <alpha-value>)',
+          info: 'rgb(var(--color-info) / <alpha-value>)',
         },
         purple: {
           DEFAULT: 'rgb(var(--color-purple) / <alpha-value>)',
@@ -115,6 +135,7 @@ const config: Config = {
       // ----------------------------------------------------------------------
       borderRadius: {
         DEFAULT: '8px',
+        input: '8px',
         card: '12px',
         pill: '9999px',
       },
@@ -136,6 +157,14 @@ const config: Config = {
         'sidebar-collapsed': '64px',
       },
       height: {
+        'bottom-nav': '64px',
+        'topbar': '56px',
+        'input': '48px', // STYLE_GUIDE §6.2
+      },
+      // Custom spacing tokens — these flow through Tailwind's spacing scale
+      // so utilities like `pb-bottom-nav`, `bottom-bottom-nav`,
+      // `top-topbar` all compile.
+      spacing: {
         'bottom-nav': '64px',
         'topbar': '56px',
       },
