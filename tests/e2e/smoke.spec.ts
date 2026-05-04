@@ -1,22 +1,21 @@
 /**
- * smoke.spec.ts — Bulwark E0 sanity check
+ * smoke.spec.ts — Bulwark scaffold sanity check.
  *
- * Verifies the scaffold renders. Replaced/extended in E1+ as real screens
- * land. Run via `pnpm test:e2e`.
+ * The mock plugin defaults to FIXTURE_USER_ADMIN; the index page redirects
+ * by role; the admin dashboard renders pipeline-grouped properties.
+ * Shell invariants are covered in nav-shell.spec.ts.
  */
 import { test, expect } from '@playwright/test'
 
-test.describe('E0 scaffold smoke', () => {
-  test('home page renders the Bulwark wordmark', async ({ page }) => {
+test.describe('Scaffold smoke', () => {
+  test('root URL redirects to admin dashboard', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText('Bulwark')).toBeVisible()
+    await expect(page).toHaveURL(/\/admin\/dashboard$/)
+    await expect(page.getByText('Welcome back')).toBeVisible()
   })
 
-  test('home page lists the four portal homes', async ({ page }) => {
-    await page.goto('/')
-    await expect(page.getByText('Admin / Owner')).toBeVisible()
-    await expect(page.getByText('Field / GC')).toBeVisible()
-    await expect(page.getByText('Subcontractor')).toBeVisible()
-    await expect(page.getByText('Homeowner')).toBeVisible()
+  test('admin dashboard renders status pills from fixtures', async ({ page }) => {
+    await page.goto('/admin/dashboard')
+    await expect(page.locator('[data-status]').first()).toBeVisible()
   })
 })

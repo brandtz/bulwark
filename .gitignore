@@ -38,3 +38,8 @@ pnpm-debug.log*
 # Embedded boilerplate repo (managed separately)
 boilerplate/
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+

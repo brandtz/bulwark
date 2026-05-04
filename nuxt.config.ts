@@ -58,6 +58,15 @@ export default defineNuxtConfig({
   ],
 
   // -------------------------------------------------------------------------
+  // Components — disable path-prefix so app/components/nav/AppSidebar.vue
+  // registers as <AppSidebar />, not <NavAppSidebar />. The folders exist
+  // for organization, not naming.
+  // -------------------------------------------------------------------------
+  components: [
+    { path: '~/components', pathPrefix: false },
+  ],
+
+  // -------------------------------------------------------------------------
   // Global CSS — tokens load before main so utilities can reference them
   // -------------------------------------------------------------------------
   css: [

@@ -7,15 +7,15 @@
 
 ## Current Phase
 
-**Phase 0 — Spec & Scaffold**
+**Phase 1 — App Shell & Design System**
 
 ## Active Epic
 
-[E0 — Spec & Scaffold](agents/epics/E00-spec-and-scaffold.md)
+[E1 — App Shell & Design System](agents/epics/E01-app-shell-and-design-system.md)
 
 ## Active Story
 
-_Between stories_ — half of E0 is done; rest (E0-S4 / S5 / S6) lands in next session.
+E1-S2 — remaining UI primitives per `UI-CONTRACTS.md` (Input, Textarea, Select, MultiSelect, Toggle, PassFailToggle, DatePicker, SegmentedControl, SearchField, FilePicker, KpiCard, JobCard, Avatar, EmptyState, Skeleton, Pagination, Breadcrumbs, Modal, Drawer, Tabs, Stepper, Toast).
 
 ## Recent Completions
 
@@ -23,18 +23,22 @@ _Between stories_ — half of E0 is done; rest (E0-S4 / S5 / S6) lands in next s
 |---|---|---|
 | 2026-05-03 | (planning) | BUILD_PLAN.md, all 14 epic files, 11 ADRs, BUILD_STATUS.md created. Demo frozen. |
 | 2026-05-03 | E0-S1 | CONTRACTS.md + UI-CONTRACTS.md skeletons + CONVENTIONS root pointer landed. |
-| 2026-05-03 | E0-S2 | Nuxt 3 scaffold at repo root: package.json, nuxt.config.ts, tsconfig.json, app/app.vue, app/pages/index.vue, .env.example. Verified booting on http://localhost:3000 (HTTP 200, wordmark + portal cards render). |
-| 2026-05-03 | E0-S3 | tailwind.config.ts + app/assets/css/tokens.css + app/assets/css/main.css aligned to BULWARK_STYLE_GUIDE §2–§4. |
-| 2026-05-03 | E0-S7 | playwright.config.ts (3 device projects), vitest.config.ts, drizzle.config.ts, tests/e2e/smoke.spec.ts. |
-| 2026-05-03 | E0-S8 | .github/workflows/ci.yml — typecheck/lint/unit + Playwright with browser install. |
+| 2026-05-03 | E0-S2 | Nuxt 3 scaffold at repo root. Verified booting on http://localhost:3000. |
+| 2026-05-03 | E0-S3 | tailwind.config.ts + tokens.css + main.css aligned to BULWARK_STYLE_GUIDE §2–§4. |
+| 2026-05-03 | E0-S7 | playwright.config.ts (3 device projects), vitest.config.ts, drizzle.config.ts. |
+| 2026-05-03 | E0-S8 | .github/workflows/ci.yml — typecheck/lint/unit + Playwright. |
+| 2026-05-04 | E0-S4 | Drizzle schemas: organizations, users (+ roleEnum), memberships, clients, properties (+ propertyStatusEnum 13 values). Remaining domain tables land just-in-time per epic. |
+| 2026-05-04 | E0-S5 | Zod contracts: `_shared`, `auth`, `property`, `client`, `services` barrel — service interfaces are the single source of truth between mock + real impls. |
+| 2026-05-04 | E0-S6 | Mock services + factory + Nuxt plugin + composables: `useService('property')`, `useSession()`. Defaults to FIXTURE_USER_ADMIN signed in for dev DX (real auth lands E2-S1). 13 property fixtures (one per status), 5 clients, 3 users. |
+| 2026-05-04 | E1-S1 | Single AppLayout (sidebar + topbar + bottom nav). `nav.config.ts` is the only nav source. ADR-0005 enforced: only `default.vue` renders nav. nuxt.config `components: { pathPrefix: false }` so nested folders don't prefix names. Admin dashboard placeholder + role-aware index redirect. **10 Playwright tests passing** across Chromium/Mobile Safari/Pixel (4 nav-shell desktop+mobile tests, 6 smoke tests). 3 UI primitives shipped: BulwarkButton, BulwarkCard, StatusBadge. |
 
 ## Next Up
 
-1. **Commit + push** the planning artifacts and scaffold to `origin/main`.
-2. E0-S4 — Drizzle schemas (`server/db/schema/*`).
-3. E0-S5 — Zod contracts (`shared/contracts/*.ts`) — full per-domain.
-4. E0-S6 — `MockServiceFactory` + per-domain mocks with realistic fixtures.
-5. E1-S1 — Single AppLayout (sidebar + topbar + bottom nav) consuming `nav.config.ts`.
+1. **E1-S2** — remaining UI primitives (one Playwright spec per primitive per ADR-0007).
+2. E1-S3 — Toast/notification system (`useToast()` composable + `<BulwarkToastHost />` mounted in `default.vue`).
+3. E1-S4 — Modal + Drawer (focus-trap, Escape, backdrop click).
+4. E1-S5 — Form primitives wrap-up (validation messaging, error states).
+5. E2-S1 — `/login` real form + middleware (replaces always-signed-in mock default).
 
 ## Verified locally
 
