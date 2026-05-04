@@ -15,11 +15,11 @@
 
 ## Active Story
 
-E5-S5 — Closing happy-path for Epic E5.
+E6-S1 — Work order assignment + scheduling (Epic E6 opens).
 
-E5-S4 closed: org-wide quotes list at `/admin/quotes` with status filter (`?status=`) backed by `BulwarkSegmentedControl`. Each row links to the existing preview page; addresses resolved by parallel property fetches. `useAsyncData` runs `{ server: false }` so the list reads from the same client mock module the builder mutated. New `tests/e2e/quotes-list.spec.ts` (3 tests — empty state, two-quote listing, sent-only filter). **90 chromium tests passing** (2 skipped) + 28 unit tests.
+E5-S5 closed: closing happy-path for Epic E5. New `tests/e2e/happy-path-quote.spec.ts` (chromium-only, single long test, `mode: 'serial'`) threads property → assessment form → summary CTA → builder auto-populated → fill costs → save draft → preview → Send → sidebar to /admin/quotes → row visible as Sent → status filter narrows correctly. **Epic E5 complete** (S1–S5). **91 chromium tests passing** (2 skipped) + 28 unit tests.
 
-E5-S3 closed: read-only quote preview at `/admin/properties/[id]/quotes/[quoteId]` plus mock Send. Page renders persisted line items + totals + status pill; `Send` button calls `quote.markSent` (idempotent), surfaces a success toast, and flips the pill to Sent. Preview's `useAsyncData` runs `{ server: false }` so it always reads from the same client mock module the builder mutated. New `tests/e2e/quote-preview.spec.ts` (2 tests). **87 chromium tests passing** (2 skipped) + 28 unit tests.
+E5-S4 closed: org-wide quotes list at `/admin/quotes` with status filter. Page renders persisted line items + totals + status pill; `Send` button calls `quote.markSent` (idempotent), surfaces a success toast, and flips the pill to Sent. Preview's `useAsyncData` runs `{ server: false }` so it always reads from the same client mock module the builder mutated. New `tests/e2e/quote-preview.spec.ts` (2 tests). **87 chromium tests passing** (2 skipped) + 28 unit tests.
 
 E5-S2 closed: quote builder pre-populates from the latest non-compliant assessment. New `tests/e2e/quote-prepopulate.spec.ts` (2 tests). Builder watches `bundle.assessment.id`; if `route.query.from === 'assessment'` it auto-populates labor line items per recommended upgrade. Otherwise it shows a `prepopulate-banner` with a manual `prepopulate-button`. Property detail Quotes tab now ships a `tab-new-quote-cta` NuxtLink to `/quotes/new` (no query) so flow tests can navigate without `page.goto` (which would lose the client-side mock state). Summary page ships a `build-quote-from-assessment` NuxtLink (only when non-compliant) carrying `?from=assessment`. **85 chromium tests passing** (2 skipped) + 28 unit tests.
 
@@ -31,6 +31,7 @@ E4-S5 closed: Playwright happy-path closing Epic E4. New `app/pages/admin/proper
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E5-S5 | Closing happy-path for Epic E5. New `tests/e2e/happy-path-quote.spec.ts` (chromium-only, `serial`, single long test): pick property → Assessment tab → fill non-compliant assessment (wood_shake, vinyl, enclosed eave, ember_resistant vent, defensible toggled) → summary banner → build-quote-from-assessment link → builder auto-populated with ≥ 2 line items → fill unit costs → save draft → preview shows draft status + Q-YYYY-NNNN number → Send → sidebar Quotes link → list shows the row as Sent → Sent filter keeps it → Draft filter shows empty state. **Epic E5 complete** (S1–S5). **91 chromium tests passing** (2 skipped) + 28 unit tests. |
 | 2026-05-04 | E5-S4 | Org-wide quotes list at `/admin/quotes`. Filters via `?status=` (segmented control: All / Draft / Sent / Accepted / Rejected / Expired). Each row links to the existing preview at `/admin/properties/[id]/quotes/[quoteId]`; the loader fetches the matching properties in parallel for address rendering. Empty state CTA points back at `/admin/properties`. Page is `{ server: false }` so it stays consistent with builder/preview client-side mock state. New `tests/e2e/quotes-list.spec.ts` (3 tests). To navigate cross-page during the multi-quote tests we route through pipeline NuxtLinks + property detail Quotes tab — `page.goto` between mutations would reset the mock module. **90 chromium tests passing** (2 skipped) + 28 unit tests. |
 | 2026-05-04 | E5-S3 | Quote preview + mock Send. New `app/pages/admin/properties/[id]/quotes/[quoteId].vue` renders persisted quote (number, line items with kind / qty / unit, totals breakdown including markup% and tax%, optional notes) and a status pill. `Send` button calls `quote.markSent`, refreshes the bundle, fires a success toast (`Sent to {client.fullName}`), and is replaced by the already-sent note. Page uses `useAsyncData(…, { server: false })` so the fetch always reads from the same client mock module the builder mutated. New `tests/e2e/quote-preview.spec.ts` (2 tests — draft preview + send transition). **87 chromium tests passing** (2 skipped) + 28 unit tests. |
 | 2026-05-04 | E5-S2 | Quote builder pre-populates from non-compliant assessment. New `tests/e2e/quote-prepopulate.spec.ts` (2 tests — auto-populate via summary CTA carrying `?from=assessment`, manual `prepopulate-banner` + button when arriving without the query). Builder watches `bundle.assessment.id` and `populateFromAssessment()` writes one labor line item per `requiredUpgrade` with field-label-aware descriptions. `populated` ref hides the banner once items exist. Summary page gains `build-quote-from-assessment` NuxtLink for the non-compliant branch. Property detail Quotes tab gains a `tab-new-quote-cta` button → `/quotes/new` (no query) so flow tests can route there via NuxtLink (the mock-state rule forbids `page.goto` after a client-side mutation). **85 chromium tests passing** (2 skipped) + 28 unit tests. |
@@ -69,8 +70,9 @@ E4-S5 closed: Playwright happy-path closing Epic E4. New `app/pages/admin/proper
 
 ## Next Up
 
-1. **E5-S5** — Closing happy-path for Epic E5 (build → preview → send → see in list).
-2. E6 — Work orders.
+1. **E6-S1** — Work order schema + service + assignment.
+2. E6-S2 — Work order detail + status transitions.
+3. E6-S3+ — Subcontractor wiring, photo evidence, completion flow.
 
 ## Verified locally
 
