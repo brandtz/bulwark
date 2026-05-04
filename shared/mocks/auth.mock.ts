@@ -17,8 +17,18 @@
  * because that couples a "shared/mocks" file to Nuxt's auto-import surface,
  * making the mock harder to unit-test outside Nuxt.
  */
-import type { IAuthService, AuthResult, LoginInput, SessionUser } from '../contracts/auth'
-import { FIXTURE_USER_ADMIN, FIXTURE_USER_FIELD, FIXTURE_USER_SUB } from './fixtures'
+import type {
+  IAuthService,
+  AuthResult,
+  LoginInput,
+  SessionUser,
+  RequestPasswordResetInput,
+  RequestPasswordResetResult,
+  ResetPasswordInput,
+  AcceptInviteInput,
+  InvitePreview,
+} from '../contracts/auth'
+import { FIXTURE_USER_ADMIN, FIXTURE_USER_FIELD, FIXTURE_USER_SUB, FIXTURE_ORG_ID } from './fixtures'
 
 export interface MockAuthSessionAdapter {
   getActivePersonaEmail(): string | null
@@ -33,8 +43,90 @@ const userByEmail: Record<string, SessionUser> = {
 
 function lookup(email: string | null): SessionUser | null {
   if (!email) return null
-  return userByEmail[email.toLowerCase()] ?? null
+  const known = userByEmail[email.toLowerCase()]
+  if (known) return known
+  // Unknown emails (e.g. an invite-accepted user whose record was minted
+  // on the OTHER tier — server vs browser — and never replicated) get a
+  // synthesized SessionUser so the cookie alone is enough to restore a
+  // session across a hard navigation. This mirrors how a real backend
+  // (E11) treats a signed session cookie: trust the identity, fetch the
+  // profile lazily.
+  const synthesized: SessionUser = {
+    userId: `00000000-0000-4000-8000-${email.length.toString(16).padStart(12, '0').slice(-12)}`,
+    email,
+    fullName: email.split('@')[0] ?? 'New User',
+    avatarUrl: null,
+    activeOrganizationId: FIXTURE_ORG_ID,
+    activeRole: 'org_admin',
+    memberships: [
+      {
+        organizationId: FIXTURE_ORG_ID,
+        organizationName: 'Bulwark Demo Co.',
+        role: 'org_admin',
+      },
+    ],
+  }
+  userByEmail[email.toLowerCase()] = synthesized
+  return synthesized
 }
+
+// ----------------------------------------------------------------------------
+// Token helpers (E2-S2)
+// ----------------------------------------------------------------------------
+//
+// Decision: encode tokens as base64url(JSON({email, kind, exp})). Stateless,
+// trivial to verify on server *and* client, and survives the SSR/hydration
+// boundary without needing shared storage. RealAuthService (E11-S2) replaces
+// this with a signed-JWT or a `password_resets` table — same call sites.
+//
+// Decision cast down: store tokens in a module-level Map. Rejected because
+// SSR Node and the browser run independent module instances, so a token
+// minted on the server wouldn't be redeemable on the client (same trap that
+// bit us with module-level `active` in E2-S1).
+//
+// Decision cast down: use a real JWT library. Rejected because the mock
+// must stay Nuxt-free (`shared/` boundary) and we don't want to ship `jose`
+// to the demo. Production swap = swap the service, not this layer.
+
+type TokenKind = 'reset' | 'invite'
+interface TokenPayload {
+  email: string
+  kind: TokenKind
+  exp: number
+  // Invite-only metadata.
+  organizationId?: string
+  organizationName?: string
+  role?: SessionUser['activeRole']
+}
+
+function b64url(s: string): string {
+  // btoa exists in Node 18+ and the browser; works in both tiers.
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+function b64urlDecode(s: string): string {
+  const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4))
+  return atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad)
+}
+
+function mintToken(payload: TokenPayload): string {
+  return b64url(JSON.stringify(payload))
+}
+
+function verifyToken(token: string, kind: TokenKind): TokenPayload {
+  let p: TokenPayload
+  try {
+    p = JSON.parse(b64urlDecode(token)) as TokenPayload
+  } catch {
+    throw new Error('This link is invalid. Request a new one.')
+  }
+  if (p.kind !== kind) throw new Error('This link is for a different action.')
+  if (typeof p.exp !== 'number' || Date.now() > p.exp) {
+    throw new Error('This link has expired. Request a new one.')
+  }
+  return p
+}
+
+const ONE_HOUR_MS = 60 * 60 * 1000
 
 export class MockAuthService implements IAuthService {
   constructor(private readonly adapter: MockAuthSessionAdapter) {}
@@ -62,5 +154,80 @@ export class MockAuthService implements IAuthService {
     if (!u) throw new Error('Not signed in')
     return { ...u, activeOrganizationId: organizationId }
   }
+
+  // --- Password reset ---------------------------------------------------
+  async requestPasswordReset(input: RequestPasswordResetInput): Promise<RequestPasswordResetResult> {
+    const key = input.email.toLowerCase()
+    // Always succeed-shape so we don't leak existence of the email.
+    if (!userByEmail[key]) {
+      return { devToken: null }
+    }
+    const token = mintToken({ email: key, kind: 'reset', exp: Date.now() + ONE_HOUR_MS })
+    return { devToken: token }
+  }
+
+  async resetPassword(input: ResetPasswordInput): Promise<AuthResult> {
+    const payload = verifyToken(input.token, 'reset')
+    // Mock backend doesn't actually store passwords — verifying the token
+    // is sufficient. Sign the user in so they don't have to re-type.
+    const u = userByEmail[payload.email.toLowerCase()] ?? FIXTURE_USER_ADMIN
+    this.adapter.setActivePersonaEmail(payload.email.toLowerCase())
+    return { user: u }
+  }
+
+  // --- Invitations ------------------------------------------------------
+  async previewInvite(token: string): Promise<InvitePreview> {
+    const p = verifyToken(token, 'invite')
+    return {
+      email: p.email,
+      organizationName: p.organizationName ?? 'Bulwark Demo Co.',
+      role: p.role ?? 'field',
+    }
+  }
+
+  async acceptInvite(input: AcceptInviteInput): Promise<AuthResult> {
+    const p = verifyToken(input.token, 'invite')
+    // For mock: synthesize a SessionUser. Real backend creates the row,
+    // sends a verification email, etc.
+    const role = p.role ?? 'field'
+    const user: SessionUser = {
+      userId: `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0').slice(-12)}`,
+      email: p.email,
+      fullName: input.fullName,
+      avatarUrl: null,
+      activeOrganizationId: p.organizationId ?? FIXTURE_ORG_ID,
+      activeRole: role,
+      memberships: [
+        {
+          organizationId: p.organizationId ?? FIXTURE_ORG_ID,
+          organizationName: p.organizationName ?? 'Bulwark Demo Co.',
+          role,
+        },
+      ],
+    }
+    // Register in the in-memory lookup so subsequent /login works.
+    userByEmail[p.email.toLowerCase()] = user
+    this.adapter.setActivePersonaEmail(p.email.toLowerCase())
+    return { user }
+  }
+}
+
+// Convenience for /dev tooling and Playwright: mint an invite token without
+// going through an admin UI. NOT exposed via IAuthService — it's a helper
+// for fixtures, not part of the contract.
+export function mintInviteTokenForDev(opts: {
+  email: string
+  organizationName?: string
+  role?: SessionUser['activeRole']
+  ttlMs?: number
+}): string {
+  return mintToken({
+    email: opts.email,
+    kind: 'invite',
+    organizationId: FIXTURE_ORG_ID,
+    organizationName: opts.organizationName ?? 'Bulwark Demo Co.',
+    role: opts.role ?? 'field',
+    exp: Date.now() + (opts.ttlMs ?? ONE_HOUR_MS),
+  })
 }
 

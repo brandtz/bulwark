@@ -22,7 +22,13 @@
  *   the demo's auth UX is intentionally simple (one banner, one line).
  *   E11-S2 may upgrade to field-level errors when real backend returns them.
  */
-import type { LoginInput } from '~~/shared/contracts/auth'
+import type {
+  LoginInput,
+  RequestPasswordResetInput,
+  ResetPasswordInput,
+  AcceptInviteInput,
+  InvitePreview,
+} from '~~/shared/contracts/auth'
 
 export function useAuth() {
   const { session, refresh } = useSession()
@@ -53,5 +59,77 @@ export function useAuth() {
     await navigateTo('/login')
   }
 
-  return { session, loading, error, login, logout }
+  // --- Password reset (E2-S2) -------------------------------------------
+  async function requestPasswordReset(
+    input: RequestPasswordResetInput,
+  ): Promise<{ ok: boolean; devToken: string | null }> {
+    const auth = useService('auth')
+    loading.value = true
+    error.value = null
+    try {
+      const r = await auth.requestPasswordReset(input)
+      return { ok: true, devToken: r.devToken }
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Could not send reset link'
+      return { ok: false, devToken: null }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function resetPassword(input: ResetPasswordInput): Promise<boolean> {
+    const auth = useService('auth')
+    loading.value = true
+    error.value = null
+    try {
+      await auth.resetPassword(input)
+      await refresh()
+      return true
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Reset failed'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // --- Invitations (E2-S2) ---------------------------------------------
+  async function previewInvite(token: string): Promise<InvitePreview | null> {
+    const auth = useService('auth')
+    error.value = null
+    try {
+      return await auth.previewInvite(token)
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Invitation invalid'
+      return null
+    }
+  }
+
+  async function acceptInvite(input: AcceptInviteInput): Promise<boolean> {
+    const auth = useService('auth')
+    loading.value = true
+    error.value = null
+    try {
+      await auth.acceptInvite(input)
+      await refresh()
+      return true
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Could not accept invite'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    session,
+    loading,
+    error,
+    login,
+    logout,
+    requestPasswordReset,
+    resetPassword,
+    previewInvite,
+    acceptInvite,
+  }
 }
