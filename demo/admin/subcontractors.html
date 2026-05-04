@@ -1,0 +1,403 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="m-0 p-0 h-full w-full">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subcontractor List - Bulwark Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        darkBg: '#0f172a',
+                        lightBg: '#f8fafc',
+                        amberAlert: '#f59e0b',
+                        redAlert: '#ef4444',
+                        textMain: '#111827',
+                        textMuted: '#6b7280',
+                        borderLight: '#e5e7eb'
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<link rel="stylesheet" href="/shared/demo.css">
+</head>
+<body class="m-0 p-0 h-full w-full bg-lightBg text-textMain antialiased flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex flex-col w-64 bg-darkBg text-white h-screen shrink-0 relative z-20" id="desktop-sidebar">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+            </div>
+            <span class="text-white text-xl font-bold tracking-tight">Bulwark</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                Home
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                Pipeline
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                Jobs
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                Quotes
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] bg-primary text-white font-medium mt-4">
+                <i class="fa-solid fa-users-gear w-5 text-center"></i>
+                Subcontractors
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-bars w-5 text-center"></i>
+                Menu
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative z-10" id="main-content">
+        
+        <!-- Mobile Top Bar -->
+        <header class="md:hidden bg-white border-b border-borderLight px-4 py-3 flex items-center justify-between shrink-0" id="mobile-topbar">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                    <i class="fa-solid fa-shield-halved text-sm"></i>
+                </div>
+                <span class="text-textMain text-lg font-bold tracking-tight">Bulwark</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg min-w-[48px] min-h-[48px] flex items-center justify-center">
+                    <i class="fa-regular fa-bell text-xl"></i>
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border border-borderLight">
+            </div>
+        </header>
+
+        <!-- Desktop Header -->
+        <header class="hidden md:flex bg-white border-b border-borderLight px-6 py-4 items-center justify-between shrink-0" id="desktop-header">
+            <div>
+                <h1 class="text-xl font-bold text-textMain">Subcontractor Directory</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="bg-primary hover:bg-primaryHover text-white px-4 py-2 rounded-[8px] font-medium text-sm flex items-center gap-2 transition-colors">
+                    <i class="fa-solid fa-plus"></i> Add Subcontractor
+                </button>
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-borderLight">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-9 h-9 rounded-full object-cover border border-borderLight">
+                    <div class="text-sm">
+                        <div class="font-semibold text-textMain">Mike T.</div>
+                        <div class="text-xs text-textMuted">Field / GC</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto bg-lightBg pb-24 md:pb-8" id="dashboard-scroll-area">
+            <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+                <!-- Search & Filters -->
+                <section id="directory-controls" class="space-y-4">
+                    <div class="relative w-full">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-search text-textMuted"></i>
+                        </div>
+                        <input type="text" class="w-full pl-11 pr-4 py-3 bg-white border border-borderLight rounded-[12px] text-base focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-subtle transition-all" placeholder="Search subcontractors by name, trade, or phone...">
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-medium text-textMuted mr-2">Trades:</span>
+                        <button class="px-4 py-1.5 rounded-full text-sm font-medium bg-primary text-white border border-primary transition-colors">All</button>
+                        <button class="px-4 py-1.5 rounded-full text-sm font-medium bg-white text-textMain border border-borderLight hover:bg-gray-50 transition-colors">Roofing</button>
+                        <button class="px-4 py-1.5 rounded-full text-sm font-medium bg-white text-textMain border border-borderLight hover:bg-gray-50 transition-colors">Siding</button>
+                        <button class="px-4 py-1.5 rounded-full text-sm font-medium bg-white text-textMain border border-borderLight hover:bg-gray-50 transition-colors">Carpentry</button>
+                        <button class="px-4 py-1.5 rounded-full text-sm font-medium bg-white text-textMain border border-borderLight hover:bg-gray-50 transition-colors">General</button>
+                    </div>
+                </section>
+
+                <!-- Desktop Table View -->
+                <section id="desktop-table-view" class="hidden md:block bg-white rounded-[16px] shadow-subtle border border-borderLight overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-borderLight">
+                                    <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Trades</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Contact</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Details</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider text-center">Active Jobs</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-right"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-borderLight">
+                                <!-- Row 1 -->
+                                <tr class="hover:bg-lightBg transition-colors group">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" class="w-10 h-10 rounded-full object-cover" alt="Avatar">
+                                            <div>
+                                                <div class="text-sm font-bold text-textMain">Apex Roofing Co.</div>
+                                                <div class="text-xs text-textMuted">James Brown</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md border border-blue-100">Roofing</span>
+                                            <span class="px-2 py-1 bg-gray-50 text-gray-600 text-xs font-medium rounded-md border border-gray-200">General</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-textMain">(555) 123-4567</div>
+                                        <div class="text-xs text-textMuted">james@apexroof.com</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-textMain">CCB: #889234</div>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <span class="text-xs text-textMuted">Ins. Exp: Nov 12</span>
+                                            <span class="w-2 h-2 rounded-full bg-amberAlert" title="Expires in < 60 days"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-semibold text-textMain">4</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-textMuted hover:text-textMain p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- Row 2 -->
+                                <tr class="hover:bg-lightBg transition-colors group">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-8.jpg" class="w-10 h-10 rounded-full object-cover" alt="Avatar">
+                                            <div>
+                                                <div class="text-sm font-bold text-textMain">Elite Exteriors</div>
+                                                <div class="text-xs text-textMuted">Marcus Johnson</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="px-2 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-md border border-amber-100">Siding</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-textMain">(555) 987-6543</div>
+                                        <div class="text-xs text-textMuted">contact@eliteext.com</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-textMain">CCB: #774122</div>
+                                        <div class="text-xs text-textMuted mt-1">Ins. Exp: Mar 2024</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-semibold text-textMain">2</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-textMuted hover:text-textMain p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- Row 3 -->
+                                <tr class="hover:bg-lightBg transition-colors group">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-5.jpg" class="w-10 h-10 rounded-full object-cover" alt="Avatar">
+                                            <div>
+                                                <div class="text-sm font-bold text-textMain">Precision Carpentry</div>
+                                                <div class="text-xs text-textMuted">Sarah Jenkins</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-md border border-purple-100">Carpentry</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-textMain">(555) 456-7890</div>
+                                        <div class="text-xs text-textMuted">sarah@precision.net</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-textMain">CCB: #992341</div>
+                                        <div class="text-xs text-textMuted mt-1">Ins. Exp: Jan 2024</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-sm font-semibold text-textMain">0</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Inactive</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-textMuted hover:text-textMain p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination Footer -->
+                    <div class="p-4 border-t border-borderLight flex items-center justify-between bg-gray-50">
+                        <span class="text-sm text-textMuted">Showing 1 to 3 of 3 subcontractors</span>
+                        <div class="flex items-center gap-2">
+                            <button disabled class="w-8 h-8 rounded border border-borderLight flex items-center justify-center text-gray-400 bg-white cursor-not-allowed">
+                                <i class="fa-solid fa-chevron-left text-xs"></i>
+                            </button>
+                            <button class="w-8 h-8 rounded border border-borderLight flex items-center justify-center text-textMain bg-white hover:bg-gray-50">
+                                1
+                            </button>
+                            <button disabled class="w-8 h-8 rounded border border-borderLight flex items-center justify-center text-gray-400 bg-white cursor-not-allowed">
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Mobile Card View -->
+                <section id="mobile-card-view" class="md:hidden space-y-4">
+                    <!-- Card 1 -->
+                    <div class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-5 relative">
+                        <button class="absolute top-4 right-4 text-textMuted hover:text-textMain">
+                            <i class="fa-solid fa-ellipsis-vertical p-2"></i>
+                        </button>
+                        <div class="flex items-start gap-4 mb-4">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" class="w-12 h-12 rounded-full object-cover" alt="Avatar">
+                            <div>
+                                <h3 class="text-base font-bold text-textMain">Apex Roofing Co.</h3>
+                                <div class="text-sm text-textMuted">James Brown</div>
+                                <div class="flex flex-wrap gap-1 mt-2">
+                                    <span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-medium rounded border border-blue-100">Roofing</span>
+                                    <span class="px-2 py-0.5 bg-gray-50 text-gray-600 text-[10px] font-medium rounded border border-gray-200">General</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-borderLight">
+                            <div>
+                                <div class="text-xs text-textMuted mb-1">Active Jobs</div>
+                                <div class="text-sm font-semibold text-textMain">4 Jobs</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-textMuted mb-1">Status</div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-800">Active</span>
+                            </div>
+                        </div>
+                        <a href="tel:+15551234567" class="mt-4 w-full flex items-center justify-center gap-2 bg-lightBg hover:bg-gray-100 text-primary font-medium rounded-[8px] py-2.5 border border-borderLight transition-colors text-sm">
+                            <i class="fa-solid fa-phone"></i> Call (555) 123-4567
+                        </a>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-5 relative">
+                        <button class="absolute top-4 right-4 text-textMuted hover:text-textMain">
+                            <i class="fa-solid fa-ellipsis-vertical p-2"></i>
+                        </button>
+                        <div class="flex items-start gap-4 mb-4">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-8.jpg" class="w-12 h-12 rounded-full object-cover" alt="Avatar">
+                            <div>
+                                <h3 class="text-base font-bold text-textMain">Elite Exteriors</h3>
+                                <div class="text-sm text-textMuted">Marcus Johnson</div>
+                                <div class="flex flex-wrap gap-1 mt-2">
+                                    <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded border border-amber-100">Siding</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-borderLight">
+                            <div>
+                                <div class="text-xs text-textMuted mb-1">Active Jobs</div>
+                                <div class="text-sm font-semibold text-textMain">2 Jobs</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-textMuted mb-1">Status</div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-800">Active</span>
+                            </div>
+                        </div>
+                        <a href="tel:+15559876543" class="mt-4 w-full flex items-center justify-center gap-2 bg-lightBg hover:bg-gray-100 text-primary font-medium rounded-[8px] py-2.5 border border-borderLight transition-colors text-sm">
+                            <i class="fa-solid fa-phone"></i> Call (555) 987-6543
+                        </a>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-borderLight flex justify-around items-center h-16 px-2 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" id="mobile-bottom-nav">
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-house mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-layer-group mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <div class="relative w-full flex justify-center h-full">
+            <button class="absolute -top-5 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-lightBg hover:bg-primaryHover transition-colors">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-clipboard-list mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-primary min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-bars mb-1 text-lg"></i>
+            <span class="text-[10px] font-bold">Menu</span>
+        </a>
+    </nav>
+
+    <script src="/shared/demo.js"></script>
+</body>
+</html>

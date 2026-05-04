@@ -1,0 +1,610 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="m-0 p-0 h-full w-full">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Document Generator - Bulwark Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        darkBg: '#0f172a',
+                        lightBg: '#f8fafc',
+                        amberAlert: '#f59e0b',
+                        redAlert: '#ef4444',
+                        textMain: '#111827',
+                        textMuted: '#6b7280',
+                        borderLight: '#e5e7eb'
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Signature Canvas styling */
+        #signature-pad {
+            touch-action: none; /* Prevent scrolling when signing on mobile */
+        }
+    </style>
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<link rel="stylesheet" href="/shared/demo.css">
+</head>
+<body class="m-0 p-0 h-full w-full bg-lightBg text-textMain antialiased flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex flex-col w-64 bg-darkBg text-white h-screen shrink-0 relative z-20" id="desktop-sidebar">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+            </div>
+            <span class="text-white text-xl font-bold tracking-tight">Bulwark</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                Home
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                Pipeline
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                Jobs
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                Quotes
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] bg-primary text-white font-medium mt-4">
+                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                Compliance Docs
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-bars w-5 text-center"></i>
+                Menu
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative z-10" id="main-content">
+        
+        <!-- Mobile Top Bar -->
+        <header class="md:hidden bg-white border-b border-borderLight px-4 py-3 flex items-center justify-between shrink-0" id="mobile-topbar">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                    <i class="fa-solid fa-shield-halved text-sm"></i>
+                </div>
+                <span class="text-textMain text-lg font-bold tracking-tight">Bulwark</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg min-w-[48px] min-h-[48px] flex items-center justify-center">
+                    <i class="fa-regular fa-bell text-xl"></i>
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border border-borderLight">
+            </div>
+        </header>
+
+        <!-- Desktop Header -->
+        <header class="hidden md:flex bg-white border-b border-borderLight px-6 py-4 items-center justify-between shrink-0" id="desktop-header">
+            <div class="flex items-center gap-4">
+                <a href="#" class="text-textMuted hover:text-textMain transition-colors flex items-center gap-2 text-sm font-medium">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Work Order Detail
+                </a>
+                <div class="h-6 w-px bg-borderLight"></div>
+                <h1 class="text-xl font-bold text-textMain">Generate Compliance Document</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-borderLight">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-9 h-9 rounded-full object-cover border border-borderLight">
+                    <div class="text-sm">
+                        <div class="font-semibold text-textMain">Mike T.</div>
+                        <div class="text-xs text-textMuted">Admin</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Status Banner -->
+        <div class="bg-green-50 border-b border-green-200 px-4 py-3 sm:px-6 lg:px-8 shrink-0 flex items-center justify-between" id="status-banner">
+            <div class="flex items-center gap-3">
+                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <i class="fa-solid fa-check text-xs"></i>
+                </div>
+                <span class="text-sm font-medium text-green-800">Work Order Complete — Ready to Generate</span>
+            </div>
+        </div>
+
+        <!-- Scrollable Content Layout (Split Pane Desktop) -->
+        <div class="flex-1 overflow-hidden flex flex-col lg:flex-row bg-lightBg" id="dashboard-scroll-area">
+            
+            <!-- Left Pane: Form (Scrollable) -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-32 lg:pb-8 lg:border-r border-borderLight">
+                
+                <form id="compliance-form" class="max-w-3xl mx-auto space-y-8">
+                    
+                    <!-- Section A: Scope of Work -->
+                    <section id="section-a" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-lg font-bold text-textMain flex items-center gap-2">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-primary text-xs font-bold">1</span>
+                                Scope of Work
+                            </h2>
+                        </div>
+                        
+                        <div class="space-y-4" id="scope-items-container">
+                            <!-- Pre-populated items -->
+                            <div class="flex items-start gap-3 group">
+                                <div class="flex-1">
+                                    <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[8px] px-3 py-2 focus:ring-1 focus:ring-primary focus:border-primary transition-colors" value="Remove existing roofing materials down to decking." required>
+                                </div>
+                                <button type="button" class="mt-1.5 text-textMuted hover:text-redAlert transition-colors opacity-0 group-hover:opacity-100"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                            <div class="flex items-start gap-3 group">
+                                <div class="flex-1">
+                                    <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[8px] px-3 py-2 focus:ring-1 focus:ring-primary focus:border-primary transition-colors" value="Install Class A fire-rated architectural shingles." required>
+                                </div>
+                                <button type="button" class="mt-1.5 text-textMuted hover:text-redAlert transition-colors opacity-0 group-hover:opacity-100"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                            <div class="flex items-start gap-3 group">
+                                <div class="flex-1">
+                                    <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[8px] px-3 py-2 focus:ring-1 focus:ring-primary focus:border-primary transition-colors" value="Install ember-resistant roof vents (1/8 inch mesh)." required>
+                                </div>
+                                <button type="button" class="mt-1.5 text-textMuted hover:text-redAlert transition-colors opacity-0 group-hover:opacity-100"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="mt-4 flex items-center gap-2 text-sm font-medium text-primary hover:text-primaryHover transition-colors">
+                            <i class="fa-solid fa-plus"></i> Add Item
+                        </button>
+                    </section>
+
+                    <!-- Section B: Materials Used -->
+                    <section id="section-b" class="bg-white rounded-[16px] shadow-subtle border border-borderLight overflow-hidden">
+                        <div class="p-6 border-b border-borderLight">
+                            <h2 class="text-lg font-bold text-textMain flex items-center gap-2">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-primary text-xs font-bold">2</span>
+                                Materials Used
+                            </h2>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[800px]">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b border-borderLight">
+                                        <th class="px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider w-40">Category</th>
+                                        <th class="px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">Product Name</th>
+                                        <th class="px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">Manufacturer</th>
+                                        <th class="px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">Fire Rating/Spec</th>
+                                        <th class="px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider w-32">Qty & Unit</th>
+                                        <th class="px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider w-32">OAR Ref.</th>
+                                        <th class="px-4 py-3 w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-borderLight" id="materials-table-body">
+                                    <tr class="bg-white hover:bg-gray-50 transition-colors group">
+                                        <td class="px-4 py-3">
+                                            <select class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary">
+                                                <option selected>Roofing</option>
+                                                <option>Siding</option>
+                                                <option>Eaves</option>
+                                                <option>Vents</option>
+                                                <option>Deck</option>
+                                                <option>Other</option>
+                                            </select>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary" value="Timberline HDZ">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary" value="GAF">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary" value="Class A">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center gap-1">
+                                                <input type="number" class="w-16 text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary" value="30">
+                                                <select class="w-16 text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-1 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary">
+                                                    <option selected>Sq</option>
+                                                    <option>LF</option>
+                                                    <option>Ea</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="w-full text-sm text-textMain bg-gray-50 border border-borderLight rounded-[6px] px-2 py-1.5 text-textMuted" value="837-114" readonly>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <button type="button" class="text-textMuted hover:text-redAlert transition-colors opacity-0 group-hover:opacity-100"><i class="fa-solid fa-trash-can"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr class="bg-white hover:bg-gray-50 transition-colors group">
+                                        <td class="px-4 py-3">
+                                            <select class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary">
+                                                <option>Roofing</option>
+                                                <option>Siding</option>
+                                                <option>Eaves</option>
+                                                <option selected>Vents</option>
+                                                <option>Deck</option>
+                                                <option>Other</option>
+                                            </select>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary" value="Ember Shield">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary" value="Vulcan">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary" value="1/8'' Mesh">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center gap-1">
+                                                <input type="number" class="w-16 text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-2 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary" value="12">
+                                                <select class="w-16 text-sm text-textMain bg-white border border-borderLight rounded-[6px] px-1 py-1.5 focus:ring-1 focus:ring-primary focus:border-primary">
+                                                    <option>Sq</option>
+                                                    <option>LF</option>
+                                                    <option selected>Ea</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="w-full text-sm text-textMain bg-gray-50 border border-borderLight rounded-[6px] px-2 py-1.5 text-textMuted" value="837-115" readonly>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <button type="button" class="text-textMuted hover:text-redAlert transition-colors opacity-0 group-hover:opacity-100"><i class="fa-solid fa-trash-can"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="p-4 bg-white border-t border-borderLight">
+                            <button type="button" class="flex items-center gap-2 text-sm font-medium text-primary hover:text-primaryHover transition-colors">
+                                <i class="fa-solid fa-plus"></i> Add Material
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Section C: Permit and Inspection -->
+                    <section id="section-c" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                        <div class="mb-6">
+                            <h2 class="text-lg font-bold text-textMain flex items-center gap-2">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-primary text-xs font-bold">3</span>
+                                Permit & Inspection
+                            </h2>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="form-group">
+                                <label class="block text-sm font-semibold text-textMain mb-1">Permit Number <span class="text-redAlert">*</span></label>
+                                <input type="text" class="w-full text-sm text-textMain bg-gray-50 border border-borderLight rounded-[8px] px-3 py-2.5 focus:ring-1 focus:ring-primary focus:border-primary" value="PRMT-2023-0892" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="block text-sm font-semibold text-textMain mb-1">Permit Issue Date <span class="text-redAlert">*</span></label>
+                                <input type="date" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[8px] px-3 py-2.5 focus:ring-1 focus:ring-primary focus:border-primary" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="block text-sm font-semibold text-textMain mb-1">Inspection Date <span class="text-redAlert">*</span></label>
+                                <input type="date" class="w-full text-sm text-textMain bg-gray-50 border border-borderLight rounded-[8px] px-3 py-2.5 focus:ring-1 focus:ring-primary focus:border-primary" value="2023-10-18" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="block text-sm font-semibold text-textMain mb-1">Inspection Result <span class="text-redAlert">*</span></label>
+                                <select class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[8px] px-3 py-2.5 focus:ring-1 focus:ring-primary focus:border-primary" required>
+                                    <option value="" disabled>Select result...</option>
+                                    <option value="passed" selected>Passed</option>
+                                    <option value="passed_conditions">Passed with Conditions</option>
+                                </select>
+                            </div>
+                            <div class="form-group md:col-span-2">
+                                <label class="block text-sm font-semibold text-textMain mb-1">Inspector Name <span class="text-textMuted font-normal">(Optional)</span></label>
+                                <input type="text" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[8px] px-3 py-2.5 focus:ring-1 focus:ring-primary focus:border-primary" placeholder="e.g. John Smith">
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section D: GC Certification -->
+                    <section id="section-d" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                        <div class="mb-6">
+                            <h2 class="text-lg font-bold text-textMain flex items-center gap-2">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-primary text-xs font-bold">4</span>
+                                GC Certification
+                            </h2>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="form-group">
+                                <label class="block text-sm font-semibold text-textMain mb-1">GC Name <span class="text-redAlert">*</span></label>
+                                <input type="text" class="w-full text-sm text-textMain bg-gray-50 border border-borderLight rounded-[8px] px-3 py-2.5 text-textMuted" value="Bulwark Construction LLC" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="block text-sm font-semibold text-textMain mb-1">CCB License Number <span class="text-redAlert">*</span></label>
+                                <input type="text" class="w-full text-sm text-textMain bg-gray-50 border border-borderLight rounded-[8px] px-3 py-2.5 text-textMuted" value="#229485" readonly>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 border border-borderLight rounded-[8px] p-4 mb-6">
+                            <p class="text-xs text-textMuted leading-relaxed">
+                                I certify under penalty of perjury that the materials and methods used in this retrofit project comply with the Oregon Administrative Rules (OAR) standards for wildfire risk reduction. The information provided in this document is true and accurate to the best of my knowledge. I understand that this document will be used to verify compliance for property insurance and state grant purposes.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="form-group">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-sm font-semibold text-textMain">Signature <span class="text-redAlert">*</span></label>
+                                    <button type="button" class="text-xs text-primary hover:text-primaryHover font-medium">Clear</button>
+                                </div>
+                                <div class="border border-borderLight rounded-[8px] bg-white h-32 relative overflow-hidden">
+                                    <!-- Placeholder for Signature Canvas -->
+                                    <div class="absolute inset-0 flex items-center justify-center text-textMuted opacity-30 pointer-events-none">
+                                        <i class="fa-solid fa-pen-nib text-3xl"></i>
+                                    </div>
+                                    <canvas id="signature-pad" class="w-full h-full cursor-crosshair"></canvas>
+                                    <div class="absolute bottom-2 left-0 right-0 border-t border-dashed border-gray-300 mx-4"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="block text-sm font-semibold text-textMain mb-1">Date <span class="text-redAlert">*</span></label>
+                                <input type="date" class="w-full text-sm text-textMain bg-white border border-borderLight rounded-[8px] px-3 py-2.5 focus:ring-1 focus:ring-primary focus:border-primary" value="2023-10-24" required>
+                            </div>
+                        </div>
+                    </section>
+
+                </form>
+            </div>
+
+            <!-- Right Pane: Live PDF Preview (Desktop Only) -->
+            <aside class="hidden lg:flex flex-col w-[450px] xl:w-[500px] bg-slate-100 border-l border-borderLight relative z-10 shrink-0">
+                <div class="p-4 border-b border-borderLight bg-white flex items-center justify-between shrink-0">
+                    <h3 class="text-sm font-bold text-textMain flex items-center gap-2">
+                        <i class="fa-regular fa-file-pdf text-red-500"></i> Live Preview
+                    </h3>
+                    <button class="text-textMuted hover:text-textMain transition-colors">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-6 flex justify-center bg-slate-200">
+                    <!-- PDF Mockup Paper -->
+                    <div class="bg-white w-[8.5in] min-h-[11in] shadow-[0_10px_25px_rgba(0,0,0,0.1)] rounded-[4px] p-8 origin-top transform scale-[0.6] xl:scale-[0.7] 2xl:scale-75 transition-transform duration-300">
+                        
+                        <!-- PDF Header -->
+                        <div class="border-b-2 border-slate-800 pb-6 mb-6 flex justify-between items-start">
+                            <div>
+                                <h1 class="text-3xl font-bold text-slate-900 mb-2">WILDFIRE RETROFIT</h1>
+                                <h2 class="text-xl font-semibold text-slate-700">COMPLIANCE CERTIFICATE</h2>
+                            </div>
+                            <div class="text-right">
+                                <div class="w-12 h-12 bg-blue-800 rounded flex items-center justify-center text-white mb-2 ml-auto">
+                                    <i class="fa-solid fa-shield-halved text-2xl"></i>
+                                </div>
+                                <div class="text-sm font-bold text-slate-800">Bulwark Construction LLC</div>
+                                <div class="text-xs text-slate-500">CCB #229485</div>
+                            </div>
+                        </div>
+
+                        <!-- PDF Meta -->
+                        <div class="grid grid-cols-2 gap-4 mb-8 text-sm">
+                            <div>
+                                <div class="font-bold text-slate-800">Property Address:</div>
+                                <div class="text-slate-600">123 Pine Ridge Rd.<br>Bend, OR 97702</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-slate-800">Certificate Date:</div>
+                                <div class="text-slate-600">Oct 24, 2023</div>
+                                <div class="font-bold text-slate-800 mt-2">Work Order Ref:</div>
+                                <div class="text-slate-600">WO-2023-089</div>
+                            </div>
+                        </div>
+
+                        <!-- PDF Scope -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-bold text-slate-800 border-b border-slate-300 pb-1 mb-3">Scope of Work</h3>
+                            <ul class="list-disc pl-5 text-sm text-slate-700 space-y-1">
+                                <li>Remove existing roofing materials down to decking.</li>
+                                <li>Install Class A fire-rated architectural shingles.</li>
+                                <li>Install ember-resistant roof vents (1/8 inch mesh).</li>
+                            </ul>
+                        </div>
+
+                        <!-- PDF Materials Table -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-bold text-slate-800 border-b border-slate-300 pb-1 mb-3">Materials Utilized</h3>
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100">
+                                        <th class="p-2 border border-slate-300 font-bold">Category</th>
+                                        <th class="p-2 border border-slate-300 font-bold">Product</th>
+                                        <th class="p-2 border border-slate-300 font-bold">Spec</th>
+                                        <th class="p-2 border border-slate-300 font-bold">Qty</th>
+                                        <th class="p-2 border border-slate-300 font-bold">OAR Ref</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="p-2 border border-slate-300">Roofing</td>
+                                        <td class="p-2 border border-slate-300">GAF Timberline HDZ</td>
+                                        <td class="p-2 border border-slate-300">Class A</td>
+                                        <td class="p-2 border border-slate-300">30 Sq</td>
+                                        <td class="p-2 border border-slate-300">837-114</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2 border border-slate-300">Vents</td>
+                                        <td class="p-2 border border-slate-300">Vulcan Ember Shield</td>
+                                        <td class="p-2 border border-slate-300">1/8'' Mesh</td>
+                                        <td class="p-2 border border-slate-300">12 Ea</td>
+                                        <td class="p-2 border border-slate-300">837-115</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- PDF Signature Block -->
+                        <div class="mt-16">
+                            <div class="text-xs text-slate-500 mb-8 italic">
+                                I certify under penalty of perjury that the materials and methods used in this retrofit project comply with the Oregon Administrative Rules (OAR) standards for wildfire risk reduction.
+                            </div>
+                            
+                            <div class="flex justify-between items-end">
+                                <div class="w-64 border-t-2 border-slate-800 pt-2">
+                                    <div class="font-bold text-sm text-slate-800">Authorized Signature</div>
+                                    <div class="text-xs text-slate-500">Bulwark Construction LLC</div>
+                                </div>
+                                <div class="w-32 border-t-2 border-slate-800 pt-2 text-right">
+                                    <div class="font-bold text-sm text-slate-800">Date</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Sticky Action Footer (Desktop & Mobile) -->
+        <div id="sticky-action-footer" class="absolute bottom-0 left-0 w-full bg-white border-t border-borderLight p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-30 md:bottom-0 bottom-16">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="text-sm text-textMuted hidden md:flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-green-500"></i> Auto-saved just now
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                    <button type="button" class="md:hidden px-4 py-2.5 bg-white border border-borderLight text-textMain font-medium rounded-[8px] hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 flex-1 shadow-subtle">
+                        <i class="fa-regular fa-eye"></i> Preview
+                    </button>
+                    <button type="button" class="px-6 py-2.5 bg-white border border-borderLight text-textMain font-medium rounded-[8px] hover:bg-gray-50 transition-colors shadow-subtle hidden md:block">
+                        Save Draft
+                    </button>
+                    <button type="button" id="generate-btn" class="px-6 py-2.5 bg-primary text-white font-medium rounded-[8px] hover:bg-primaryHover transition-colors shadow-subtle flex-1 md:flex-none flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-signature"></i> Generate & Finalize
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-borderLight flex justify-around items-center h-16 px-2 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" id="mobile-bottom-nav">
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-house mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-layer-group mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <div class="relative w-full flex justify-center h-full">
+            <button class="absolute -top-5 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-lightBg hover:bg-primaryHover transition-colors">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-clipboard-list mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-primary min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-file-shield mb-1 text-lg"></i>
+            <span class="text-[10px] font-bold">Docs</span>
+        </a>
+    </nav>
+
+    <!-- Confirmation Modal (Hidden by default) -->
+    <div id="confirmation-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" id="modal-backdrop"></div>
+        <div class="bg-white rounded-[16px] shadow-xl w-full max-w-md mx-4 relative z-10 overflow-hidden transform transition-all">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amberAlert">
+                    <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-textMain mb-2">Finalize Document?</h3>
+                <p class="text-sm text-textMuted mb-6">
+                    Once finalized this document is permanently locked and cannot be edited. A compliance PDF will be generated and an audit log entry will be recorded. Continue?
+                </p>
+                <div class="flex items-center gap-3 w-full">
+                    <button type="button" id="cancel-modal-btn" class="flex-1 py-2.5 bg-white border border-borderLight text-textMain font-medium rounded-[8px] hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" class="flex-1 py-2.5 bg-primary text-white font-medium rounded-[8px] hover:bg-primaryHover transition-colors">
+                        Confirm & Lock
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Modal Logic
+            const generateBtn = document.getElementById('generate-btn');
+            const modal = document.getElementById('confirmation-modal');
+            const cancelBtn = document.getElementById('cancel-modal-btn');
+            const backdrop = document.getElementById('modal-backdrop');
+
+            function toggleModal(show) {
+                if (show) {
+                    modal.classList.remove('hidden');
+                } else {
+                    modal.classList.add('hidden');
+                }
+            }
+
+            if (generateBtn) generateBtn.addEventListener('click', () => toggleModal(true));
+            if (cancelBtn) cancelBtn.addEventListener('click', () => toggleModal(false));
+            if (backdrop) backdrop.addEventListener('click', () => toggleModal(false));
+
+            // Auto-save visual cue simulation
+            const inputs = document.querySelectorAll('input, select, textarea');
+            const saveIndicator = document.querySelector('.fa-cloud-arrow-up');
+            
+            inputs.forEach(input => {
+                input.addEventListener('blur', () => {
+                    if(saveIndicator) {
+                        const originalClass = saveIndicator.className;
+                        saveIndicator.className = 'fa-solid fa-spinner fa-spin text-textMuted';
+                        setTimeout(() => {
+                            saveIndicator.className = originalClass;
+                        }, 800);
+                    }
+                });
+            });
+        });
+    </script>
+    <script src="/shared/demo.js"></script>
+</body>
+</html>

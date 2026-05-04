@@ -1,0 +1,509 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotes List - Bulwark</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        success: '#10b981',
+                        surface: '#ffffff',
+                        background: '#f3f4f6',
+                        textMain: '#111827',
+                        textMuted: '#6b7280',
+                        border: '#e5e7eb',
+                        sidebar: '#111827',
+                        sidebarText: '#D1D5DB',
+                        sidebarHover: '#1F2937',
+                        sidebarActive: '#1d4ed8',
+                        // Status Colors
+                        statusDraftBg: '#F3F4F6', statusDraftText: '#4B5563',
+                        statusPendingBg: '#EEF2FF', statusPendingText: '#4F46E5',
+                        statusProgressBg: '#FEF3C7', statusProgressText: '#D97706',
+                        statusQuotedBg: '#F3E8FF', statusQuotedText: '#7E22CE',
+                        statusCompleteBg: '#D1FAE5', statusCompleteText: '#059669',
+                        statusBlockedBg: '#FEE2E2', statusBlockedText: '#DC2626',
+                        statusAcceptedBg: '#D1FAE5', statusAcceptedText: '#059669',
+                        statusDeclinedBg: '#FEE2E2', statusDeclinedText: '#DC2626',
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+                        'soft': '0 4px 20px 0 rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; overflow-x: hidden; }
+        
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+            min-height: 40px;
+        }
+        .btn-primary { background-color: #1d4ed8; color: white; }
+        .btn-primary:hover { background-color: #1e40af; transform: translateY(-1px); }
+        .btn-secondary { background-color: white; color: #111827; border-color: #e5e7eb; }
+        .btn-secondary:hover { background-color: #f3f4f6; }
+        .btn-outline { background-color: transparent; color: #111827; border-color: #e5e7eb; }
+        .btn-outline:hover { background-color: #f3f4f6; }
+        .btn-icon { width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.5rem; border: 1px solid #e5e7eb; background: white; color: #6b7280; transition: all 0.2s; }
+        .btn-icon:hover { background: #f3f4f6; color: #111827; }
+
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        /* Mobile Bottom Nav */
+        @media (max-width: 1279px) {
+            .mobile-nav-padding { padding-bottom: 6rem; }
+        }
+        
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background-color: #ffffff;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+        }
+
+        .filter-chip {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .filter-chip.active {
+            background-color: #111827;
+            color: white;
+        }
+        .filter-chip.inactive {
+            background-color: white;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+        }
+        .filter-chip.inactive:hover {
+            background-color: #f3f4f6;
+            color: #111827;
+        }
+    </style>
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<link rel="stylesheet" href="/shared/demo.css">
+</head>
+<body class="w-full min-h-screen m-0 p-0 flex bg-background text-textMain overflow-x-hidden">
+
+    <!-- Desktop Sidebar -->
+    <aside id="desktop-sidebar" class="hidden xl:flex w-64 flex-col bg-white border-r border-border text-textMain h-screen sticky top-0 flex-shrink-0 z-50 transition-all duration-300">
+        <div class="h-16 flex items-center px-6 border-b border-border">
+            <i class="fa-solid fa-shield-halved text-2xl text-primary mr-3"></i>
+            <span class="text-xl font-bold text-textMain tracking-tight">Bulwark</span>
+        </div>
+        
+        <div class="p-4">
+            <div class="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl mb-6 border border-gray-100">
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" alt="User Avatar" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
+                <div>
+                    <p class="text-sm font-semibold text-textMain">John Doe</p>
+                    <p class="text-xs text-textMuted">Field Technician</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-1 overflow-y-auto">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                <span class="font-medium">Field Dashboard</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-map-location-dot w-5 text-center"></i>
+                <span class="font-medium">Property Pipeline</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                <span class="font-medium">Work Orders (Jobs)</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 bg-primary/10 text-primary rounded-xl font-medium">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                <span>Quotes</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                <span class="font-medium">Compliance Docs</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-users-gear w-5 text-center"></i>
+                <span class="font-medium">Subcontractors</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center justify-between px-3 py-2 text-sm text-textMuted">
+                <span class="flex items-center gap-2"><i class="fa-solid fa-wifi text-green-500"></i> Online & Synced</span>
+            </div>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 mt-2 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-gear w-5 text-center"></i>
+                <span class="font-medium">Settings</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 flex flex-col min-h-screen w-full mobile-nav-padding xl:pb-0 relative h-screen overflow-y-auto bg-background">
+        
+        <!-- Top Header -->
+        <header id="quote-list-header" class="sticky-header h-16 border-b border-border flex items-center justify-between px-4 sm:px-6 lg:px-8 flex-shrink-0">
+            <div class="flex items-center gap-3 xl:hidden">
+                <button class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-textMain hover:bg-gray-200">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <span class="text-lg font-bold text-textMain tracking-tight">Quotes</span>
+            </div>
+            
+            <div class="hidden xl:flex items-center gap-4">
+                <div>
+                    <h1 class="text-xl font-bold text-textMain">Quotes Overview</h1>
+                    <p class="text-sm text-textMuted">Manage and track all property quotes</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button class="btn-action btn-primary hidden sm:flex">
+                    <i class="fa-solid fa-plus"></i> New Quote
+                </button>
+                <div class="hidden md:flex items-center gap-4 border-l border-border pl-4">
+                    <button class="relative p-2 text-textMuted hover:text-textMain transition-colors">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Container -->
+        <div class="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto flex flex-col gap-6">
+            
+            <!-- Filters & Search Section -->
+            <section id="filters-bar" class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-border shadow-sm">
+                
+                <!-- Status Tabs -->
+                <div class="flex gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 no-scrollbar">
+                    <button class="filter-chip active">All Quotes</button>
+                    <button class="filter-chip inactive">Draft <span class="ml-1 bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">12</span></button>
+                    <button class="filter-chip inactive">Sent <span class="ml-1 bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">8</span></button>
+                    <button class="filter-chip inactive">Accepted <span class="ml-1 bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">24</span></button>
+                    <button class="filter-chip inactive">Declined <span class="ml-1 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">3</span></button>
+                </div>
+
+                <!-- Search & Advanced Filters -->
+                <div class="flex items-center gap-3 w-full lg:w-auto">
+                    <div class="relative flex-1 lg:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" placeholder="Search property, owner..." class="input-field pl-10">
+                    </div>
+                    <button class="btn-icon" title="Filter by Date">
+                        <i class="fa-regular fa-calendar"></i>
+                    </button>
+                    <button class="btn-icon" title="More Filters">
+                        <i class="fa-solid fa-sliders"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Quotes List/Grid -->
+            <section id="quotes-content" class="flex-1">
+                
+                <!-- Desktop Table View (Hidden on mobile/tablet) -->
+                <div class="hidden lg:block card overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-border text-xs font-semibold text-textMuted uppercase tracking-wider">
+                                <th class="p-4">Quote Details</th>
+                                <th class="p-4">Property / Owner</th>
+                                <th class="p-4">Date</th>
+                                <th class="p-4">Amount</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border">
+                            <!-- Row 1: Sent -->
+                            <tr class="hover:bg-gray-50 transition-colors group">
+                                <td class="p-4">
+                                    <div class="font-semibold text-textMain">QT-2023-0892</div>
+                                    <div class="text-xs text-textMuted mt-1">Zone 0 Clearance</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="font-medium text-textMain">123 Main St, Springfield</div>
+                                    <div class="text-xs text-textMuted mt-1">Sarah Jenkins</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="text-sm text-textMain">Oct 24, 2023</div>
+                                    <div class="text-xs text-textMuted mt-1">Valid till Nov 24</div>
+                                </td>
+                                <td class="p-4 font-bold text-textMain">$1,001.00</td>
+                                <td class="p-4">
+                                    <span class="bg-statusPendingBg text-statusPendingText px-3 py-1 rounded-full text-xs font-semibold border border-blue-100">Sent</span>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button class="btn-icon w-8 h-8 text-sm" title="Preview"><i class="fa-regular fa-eye"></i></button>
+                                        <button class="btn-icon w-8 h-8 text-sm" title="Resend"><i class="fa-regular fa-paper-plane"></i></button>
+                                        <button class="btn-icon w-8 h-8 text-sm" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Row 2: Accepted -->
+                            <tr class="hover:bg-gray-50 transition-colors group">
+                                <td class="p-4">
+                                    <div class="font-semibold text-textMain">QT-2023-0891</div>
+                                    <div class="text-xs text-textMuted mt-1">Full Retrofit Package</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="font-medium text-textMain">456 Oak Ave, Shelbyville</div>
+                                    <div class="text-xs text-textMuted mt-1">Robert Chen</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="text-sm text-textMain">Oct 20, 2023</div>
+                                </td>
+                                <td class="p-4 font-bold text-textMain">$4,250.00</td>
+                                <td class="p-4">
+                                    <span class="bg-statusAcceptedBg text-statusAcceptedText px-3 py-1 rounded-full text-xs font-semibold border border-green-100">Accepted</span>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button class="btn-action btn-primary text-xs h-8 px-3 py-0">Convert to Work Order</button>
+                                        <button class="btn-icon w-8 h-8 text-sm" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Row 3: Draft -->
+                            <tr class="hover:bg-gray-50 transition-colors group">
+                                <td class="p-4">
+                                    <div class="font-semibold text-textMain">QT-2023-0895</div>
+                                    <div class="text-xs text-textMuted mt-1">Vent Replacement</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="font-medium text-textMain">789 Pine Ln, Capital City</div>
+                                    <div class="text-xs text-textMuted mt-1">Maria Garcia</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="text-sm text-textMain">Oct 25, 2023</div>
+                                </td>
+                                <td class="p-4 font-bold text-textMain">$850.00</td>
+                                <td class="p-4">
+                                    <span class="bg-statusDraftBg text-statusDraftText px-3 py-1 rounded-full text-xs font-semibold border border-gray-200">Draft</span>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button class="btn-icon w-8 h-8 text-sm" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                                        <button class="btn-icon w-8 h-8 text-sm text-danger hover:text-danger hover:bg-red-50" title="Delete"><i class="fa-regular fa-trash-can"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Row 4: Declined -->
+                            <tr class="hover:bg-gray-50 transition-colors group">
+                                <td class="p-4">
+                                    <div class="font-semibold text-textMain">QT-2023-0888</div>
+                                    <div class="text-xs text-textMuted mt-1">Tree Removal</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="font-medium text-textMain">321 Elm St, Ogdenville</div>
+                                    <div class="text-xs text-textMuted mt-1">James Wilson</div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="text-sm text-textMain">Oct 15, 2023</div>
+                                </td>
+                                <td class="p-4 font-bold text-textMain">$1,200.00</td>
+                                <td class="p-4">
+                                    <span class="bg-statusDeclinedBg text-statusDeclinedText px-3 py-1 rounded-full text-xs font-semibold border border-red-100">Declined</span>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button class="btn-icon w-8 h-8 text-sm" title="View Reason"><i class="fa-regular fa-comment"></i></button>
+                                        <button class="btn-icon w-8 h-8 text-sm" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Pagination -->
+                    <div class="p-4 border-t border-border flex items-center justify-between bg-white">
+                        <span class="text-sm text-textMuted">Showing 1 to 4 of 47 quotes</span>
+                        <div class="flex gap-1">
+                            <button class="btn-icon w-8 h-8 text-sm disabled:opacity-50"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="btn-icon w-8 h-8 text-sm bg-primary text-white border-primary">1</button>
+                            <button class="btn-icon w-8 h-8 text-sm">2</button>
+                            <button class="btn-icon w-8 h-8 text-sm">3</button>
+                            <button class="btn-icon w-8 h-8 text-sm"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile/Tablet Card View (Hidden on desktop) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+                    
+                    <!-- Card 1: Sent -->
+                    <div class="card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <span class="text-xs font-bold text-textMuted">QT-2023-0892</span>
+                                <h3 class="font-bold text-textMain mt-1">123 Main St, Springfield</h3>
+                            </div>
+                            <span class="bg-statusPendingBg text-statusPendingText px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-blue-100">Sent</span>
+                        </div>
+                        <p class="text-sm text-textMuted mb-4">Sarah Jenkins • Zone 0 Clearance</p>
+                        <div class="flex justify-between items-end mb-4 pt-4 border-t border-gray-100">
+                            <div>
+                                <p class="text-xs text-textMuted mb-1">Total Amount</p>
+                                <p class="font-bold text-lg text-textMain">$1,001.00</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-textMuted mb-1">Date</p>
+                                <p class="text-sm font-medium text-textMain">Oct 24, 2023</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn-action btn-secondary flex-1 text-sm"><i class="fa-regular fa-eye"></i> Preview</button>
+                            <button class="btn-action btn-outline flex-1 text-sm"><i class="fa-regular fa-paper-plane"></i> Resend</button>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Accepted -->
+                    <div class="card p-4 border-l-4 border-l-success">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <span class="text-xs font-bold text-textMuted">QT-2023-0891</span>
+                                <h3 class="font-bold text-textMain mt-1">456 Oak Ave, Shelbyville</h3>
+                            </div>
+                            <span class="bg-statusAcceptedBg text-statusAcceptedText px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-green-100">Accepted</span>
+                        </div>
+                        <p class="text-sm text-textMuted mb-4">Robert Chen • Full Retrofit Package</p>
+                        <div class="flex justify-between items-end mb-4 pt-4 border-t border-gray-100">
+                            <div>
+                                <p class="text-xs text-textMuted mb-1">Total Amount</p>
+                                <p class="font-bold text-lg text-textMain">$4,250.00</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-textMuted mb-1">Date</p>
+                                <p class="text-sm font-medium text-textMain">Oct 20, 2023</p>
+                            </div>
+                        </div>
+                        <button class="btn-action btn-primary w-full text-sm shadow-[0_4px_10px_rgba(29,78,216,0.2)]">
+                            <i class="fa-solid fa-clipboard-check"></i> Convert to Work Order
+                        </button>
+                    </div>
+
+                    <!-- Card 3: Draft -->
+                    <div class="card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <span class="text-xs font-bold text-textMuted">QT-2023-0895</span>
+                                <h3 class="font-bold text-textMain mt-1">789 Pine Ln, Capital City</h3>
+                            </div>
+                            <span class="bg-statusDraftBg text-statusDraftText px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-gray-200">Draft</span>
+                        </div>
+                        <p class="text-sm text-textMuted mb-4">Maria Garcia • Vent Replacement</p>
+                        <div class="flex justify-between items-end mb-4 pt-4 border-t border-gray-100">
+                            <div>
+                                <p class="text-xs text-textMuted mb-1">Total Amount</p>
+                                <p class="font-bold text-lg text-textMain">$850.00</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-textMuted mb-1">Date</p>
+                                <p class="text-sm font-medium text-textMain">Oct 25, 2023</p>
+                            </div>
+                        </div>
+                        <button class="btn-action btn-secondary w-full text-sm">
+                            <i class="fa-solid fa-pen"></i> Continue Editing
+                        </button>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar (Fixed) -->
+    <nav id="mobile-bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border flex justify-around items-center h-20 pb-safe z-50 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <a href="#" class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors">
+            <i class="fa-solid fa-house text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors">
+            <i class="fa-solid fa-map-location-dot text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <!-- Center Floating Action Button Placeholder for spacing -->
+        <div class="w-14 h-14 invisible"></div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors">
+            <i class="fa-solid fa-clipboard-list text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-16 h-full text-primary">
+            <i class="fa-solid fa-file-invoice-dollar text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Quotes</span>
+        </a>
+        
+        <!-- Actual Center Floating Action Button (Overlaying) -->
+        <div class="absolute left-1/2 transform -translate-x-1/2 -top-5">
+            <button class="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-[0_10px_20px_rgba(29,78,216,0.3)] hover:bg-primaryHover transition-transform hover:scale-105 border-4 border-white">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+    </nav>
+
+    <script src="/shared/demo.js"></script>
+</body>
+</html>

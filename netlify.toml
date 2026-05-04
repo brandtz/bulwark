@@ -1,0 +1,44 @@
+[build]
+  publish = "demo"
+
+[[redirects]]
+  from = "/"
+  to = "/login.html"
+  status = 302
+  force = false
+
+# Pretty URLs: /admin/dashboard -> /admin/dashboard.html
+[[redirects]]
+  from = "/admin/*"
+  to = "/admin/:splat.html"
+  status = 200
+
+[[redirects]]
+  from = "/field/*"
+  to = "/field/:splat.html"
+  status = 200
+
+[[redirects]]
+  from = "/sub/*"
+  to = "/sub/:splat.html"
+  status = 200
+
+[[redirects]]
+  from = "/homeowner/*"
+  to = "/homeowner/:splat.html"
+  status = 200
+
+# 404 fallback
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "interest-cohort=()"

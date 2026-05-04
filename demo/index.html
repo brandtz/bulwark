@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" class="m-0 p-0 h-full w-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <title>Choose Portal — Bulwark Operations</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared/demo.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: {
+            primary: '#1d4ed8', primaryHover: '#1e40af',
+            darkBg: '#0f172a', lightBg: '#f8fafc',
+            textMain: '#0f172a', textMuted: '#64748b',
+            borderLight: '#e2e8f0'
+        }}}}
+    </script>
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bw-no-shell min-h-screen bg-darkBg text-white antialiased">
+    <div class="min-h-screen flex flex-col">
+        <header class="px-6 md:px-12 py-6 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-primary rounded-[10px] flex items-center justify-center text-white shadow-lg">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <span class="text-2xl font-bold tracking-tight">Bulwark</span>
+            </div>
+            <button id="signout" class="text-sm text-slate-400 hover:text-white transition-colors">
+                <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>Sign out
+            </button>
+        </header>
+
+        <main class="flex-1 flex flex-col items-center justify-center px-6 pb-16">
+            <div class="text-center max-w-2xl mb-12">
+                <h1 class="text-3xl md:text-5xl font-bold mb-4">Choose your portal</h1>
+                <p class="text-slate-400 text-lg">Bulwark serves four user systems. Pick how you'd like to walk through the platform — you can switch at any time using the role pill in the top right of any screen.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-5xl">
+
+                <a href="/admin/dashboard" class="group bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-primary rounded-2xl p-7 transition-all duration-200 hover:-translate-y-0.5">
+                    <div class="flex items-start gap-5">
+                        <div class="w-14 h-14 rounded-xl bg-primary/20 group-hover:bg-primary/30 flex items-center justify-center text-primary text-2xl shrink-0 transition-colors">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-xl font-semibold">Admin Portal</h3>
+                                <span class="text-xs font-semibold text-primary bg-primary/15 px-2 py-1 rounded-full">P1 · Full access</span>
+                            </div>
+                            <p class="text-slate-400 text-sm mb-3">The superset role. Full pipeline, quotes, work orders, compliance, invoicing, users.</p>
+                            <div class="text-sm text-primary opacity-90 group-hover:opacity-100">Enter portal <i class="fa-solid fa-arrow-right ml-1 text-xs"></i></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/field/dashboard" class="group bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-green-500 rounded-2xl p-7 transition-all duration-200 hover:-translate-y-0.5">
+                    <div class="flex items-start gap-5">
+                        <div class="w-14 h-14 rounded-xl bg-green-500/20 group-hover:bg-green-500/30 flex items-center justify-center text-green-400 text-2xl shrink-0 transition-colors">
+                            <i class="fa-solid fa-helmet-safety"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-xl font-semibold">Field Contractor</h3>
+                                <span class="text-xs font-semibold text-green-400 bg-green-500/15 px-2 py-1 rounded-full">P2 · Mobile-first</span>
+                            </div>
+                            <p class="text-slate-400 text-sm mb-3">GC partner field view. Assigned jobs, on-site assessments, photo capture, status updates.</p>
+                            <div class="text-sm text-green-400 opacity-90 group-hover:opacity-100">Enter portal <i class="fa-solid fa-arrow-right ml-1 text-xs"></i></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/sub/dashboard" class="group bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-purple-500 rounded-2xl p-7 transition-all duration-200 hover:-translate-y-0.5">
+                    <div class="flex items-start gap-5">
+                        <div class="w-14 h-14 rounded-xl bg-purple-500/20 group-hover:bg-purple-500/30 flex items-center justify-center text-purple-400 text-2xl shrink-0 transition-colors">
+                            <i class="fa-solid fa-screwdriver-wrench"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-xl font-semibold">Subcontractor</h3>
+                                <span class="text-xs font-semibold text-purple-400 bg-purple-500/15 px-2 py-1 rounded-full">P3 · Restricted</span>
+                            </div>
+                            <p class="text-slate-400 text-sm mb-3">Trade partner view. Assigned jobs only, scope &amp; schedule, no financial visibility.</p>
+                            <div class="text-sm text-purple-400 opacity-90 group-hover:opacity-100">Enter portal <i class="fa-solid fa-arrow-right ml-1 text-xs"></i></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/homeowner/dashboard" class="group bg-slate-800/60 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500 rounded-2xl p-7 transition-all duration-200 hover:-translate-y-0.5">
+                    <div class="flex items-start gap-5">
+                        <div class="w-14 h-14 rounded-xl bg-cyan-500/20 group-hover:bg-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl shrink-0 transition-colors">
+                            <i class="fa-solid fa-house-chimney-window"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-xl font-semibold">Homeowner</h3>
+                                <span class="text-xs font-semibold text-cyan-400 bg-cyan-500/15 px-2 py-1 rounded-full">P4 · Read-only</span>
+                            </div>
+                            <p class="text-slate-400 text-sm mb-3">The end customer. Job progress timeline, compliance docs, invoice payment.</p>
+                            <div class="text-sm text-cyan-400 opacity-90 group-hover:opacity-100">Enter portal <i class="fa-solid fa-arrow-right ml-1 text-xs"></i></div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <p class="text-slate-500 text-xs mt-10">Tip: the floating role pill (top-right) lets you jump between portals on any screen.</p>
+        </main>
+    </div>
+
+    <script src="/shared/demo.js"></script>
+    <script>
+    (function () {
+      // Persist role choice when a tile is clicked
+      document.querySelectorAll('a[href^="/admin/"], a[href^="/field/"], a[href^="/sub/"], a[href^="/homeowner/"]').forEach(function (a) {
+        a.addEventListener('click', function () {
+          var href = a.getAttribute('href') || '';
+          var match = href.match(/^\/(admin|field|sub|homeowner)\//);
+          if (match) window.BulwarkDemo.setRole(match[1]);
+        });
+      });
+      document.getElementById('signout').addEventListener('click', function () {
+        window.BulwarkDemo.clearSession();
+        window.location.href = '/login.html';
+      });
+    })();
+    </script>
+</body>
+</html>

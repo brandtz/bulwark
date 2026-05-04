@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <title>Admin Dashboard — Bulwark</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared/demo.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: {
+        primary: '#1d4ed8', primaryHover: '#1e40af',
+        sidebar: '#0f172a', sidebarHover: '#1e293b', sidebarActive: '#1d4ed8',
+        sidebarText: '#cbd5e1',
+        textMain: '#0f172a', textMuted: '#64748b',
+        border: '#e2e8f0', background: '#f8fafc',
+        success: '#16a34a', warning: '#d97706', danger: '#dc2626'
+      }, boxShadow: { card: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' } }}}
+    </script>
+    <style>
+      body { font-family: 'Inter', sans-serif; background: #f8fafc; }
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .kpi-card { transition: transform .15s ease, box-shadow .15s ease; }
+      .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,.05); }
+    </style>
+</head>
+<body class="text-textMain antialiased">
+  <div class="flex min-h-screen">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex w-64 bg-sidebar text-sidebarText flex-col shrink-0 sticky top-0 h-screen">
+      <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+        <div class="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-shield-halved"></i></div>
+        <span class="text-white text-lg font-bold tracking-tight">Bulwark</span>
+      </div>
+      <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <a href="/admin/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-sidebarActive text-white font-medium"><i class="fa-solid fa-house w-5 text-center"></i> Dashboard</a>
+        <a href="/admin/pipeline" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-layer-group w-5 text-center"></i> Pipeline</a>
+        <a href="/admin/work-orders" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clipboard-list w-5 text-center"></i> Work Orders</a>
+        <a href="/admin/quotes" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Quotes</a>
+        <a href="/admin/subcontractors" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-people-group w-5 text-center"></i> Subcontractors</a>
+        <a href="/admin/compliance" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-shield w-5 text-center"></i> Compliance</a>
+        <a href="/admin/invoices" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-5 text-center"></i> Invoices</a>
+
+        <div class="pt-4 mt-4 border-t border-slate-800 text-[11px] uppercase tracking-wider text-slate-500 px-3 mb-1">Admin</div>
+        <a href="/admin/users" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-users w-5 text-center"></i> Users</a>
+        <a href="/admin/standards" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-list-check w-5 text-center"></i> Standards</a>
+        <a href="/admin/audit-log" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-scroll w-5 text-center"></i> Audit Log</a>
+        <a href="/admin/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-5 text-center"></i> Settings</a>
+      </nav>
+      <div class="p-4 border-t border-slate-800 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-primary/30 flex items-center justify-center text-white font-semibold">MB</div>
+        <div class="text-xs">
+          <div class="text-white font-medium">Matthew Brandt</div>
+          <div class="text-slate-400">Super Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 min-w-0">
+      <!-- Top bar -->
+      <header class="bg-white border-b border-border px-6 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
+        <div class="flex items-center gap-4">
+          <button class="lg:hidden text-textMuted"><i class="fa-solid fa-bars text-lg"></i></button>
+          <div>
+            <div class="text-xs text-textMuted">Bulwark Operations</div>
+            <h1 class="text-xl font-bold">Dashboard</h1>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background w-72">
+            <i class="fa-solid fa-magnifying-glass text-textMuted text-sm"></i>
+            <input class="bg-transparent outline-none text-sm w-full" placeholder="Search properties, clients, jobs…">
+          </div>
+          <button class="relative p-2 rounded-lg hover:bg-background"><i class="fa-regular fa-bell text-textMuted"></i><span class="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full"></span></button>
+          <button class="px-4 py-2 bg-primary hover:bg-primaryHover text-white text-sm font-semibold rounded-lg flex items-center gap-2"><i class="fa-solid fa-plus"></i> New Property</button>
+        </div>
+      </header>
+
+      <div class="p-6 lg:p-8 space-y-6">
+        <!-- Greeting -->
+        <div class="flex items-end justify-between flex-wrap gap-3">
+          <div>
+            <h2 class="text-2xl font-bold">Good morning, Matthew</h2>
+            <p class="text-textMuted text-sm mt-1">Here's what's happening across Brandt &amp; Co. Wildfire Retrofit today.</p>
+          </div>
+          <div class="text-sm text-textMuted">May 3, 2026 · Eastern Oregon Region</div>
+        </div>
+
+        <!-- KPI cards -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="kpi-card bg-white border border-border rounded-xl p-5 shadow-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs text-textMuted font-medium uppercase tracking-wide">Active Properties</span>
+              <span class="w-9 h-9 rounded-lg bg-blue-50 text-primary flex items-center justify-center"><i class="fa-solid fa-building"></i></span>
+            </div>
+            <div class="text-3xl font-bold">47</div>
+            <div class="text-xs text-success mt-2 font-medium"><i class="fa-solid fa-arrow-up text-[10px]"></i> 12% vs last month</div>
+          </div>
+          <div class="kpi-card bg-white border border-border rounded-xl p-5 shadow-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs text-textMuted font-medium uppercase tracking-wide">Open Quotes</span>
+              <span class="w-9 h-9 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+            </div>
+            <div class="text-3xl font-bold">14</div>
+            <div class="text-xs text-textMuted mt-2 font-medium">$284,500 in flight</div>
+          </div>
+          <div class="kpi-card bg-white border border-border rounded-xl p-5 shadow-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs text-textMuted font-medium uppercase tracking-wide">Jobs in Progress</span>
+              <span class="w-9 h-9 rounded-lg bg-amber-50 text-warning flex items-center justify-center"><i class="fa-solid fa-helmet-safety"></i></span>
+            </div>
+            <div class="text-3xl font-bold">9</div>
+            <div class="text-xs text-warning mt-2 font-medium">2 blocked · needs attention</div>
+          </div>
+          <div class="kpi-card bg-white border border-border rounded-xl p-5 shadow-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs text-textMuted font-medium uppercase tracking-wide">YTD Revenue</span>
+              <span class="w-9 h-9 rounded-lg bg-green-50 text-success flex items-center justify-center"><i class="fa-solid fa-sack-dollar"></i></span>
+            </div>
+            <div class="text-3xl font-bold">$612,400</div>
+            <div class="text-xs text-success mt-2 font-medium"><i class="fa-solid fa-arrow-up text-[10px]"></i> 38% vs 2025</div>
+          </div>
+        </section>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <!-- Pipeline preview -->
+          <section class="xl:col-span-2 bg-white border border-border rounded-xl shadow-card">
+            <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-semibold">Pipeline preview</h3>
+                <p class="text-xs text-textMuted">5 most recent properties across all stages</p>
+              </div>
+              <a href="/admin/pipeline" class="text-sm font-semibold text-primary hover:underline">View pipeline <i class="fa-solid fa-arrow-right text-xs ml-1"></i></a>
+            </div>
+            <div class="divide-y divide-border">
+              <div class="px-5 py-3 flex items-center gap-4 hover:bg-background cursor-pointer" onclick="location.href='/admin/property-detail'">
+                <div class="w-10 h-10 rounded-lg bg-blue-50 text-primary flex items-center justify-center shrink-0"><i class="fa-solid fa-house"></i></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold truncate">2845 NE Cascade Loop, Bend OR</div>
+                  <div class="text-xs text-textMuted">Anders Holm · Zone 1 · WUI High</div>
+                </div>
+                <span class="text-xs font-semibold text-primary bg-blue-50 px-2.5 py-1 rounded-full">Quoted</span>
+                <span class="text-sm font-semibold tabular-nums hidden sm:inline">$24,800</span>
+              </div>
+              <div class="px-5 py-3 flex items-center gap-4 hover:bg-background cursor-pointer" onclick="location.href='/admin/property-detail'">
+                <div class="w-10 h-10 rounded-lg bg-amber-50 text-warning flex items-center justify-center shrink-0"><i class="fa-solid fa-house"></i></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold truncate">14820 Pine Ridge Rd, Sisters OR</div>
+                  <div class="text-xs text-textMuted">Carla Mendez · Zone 2 · Active retrofit</div>
+                </div>
+                <span class="text-xs font-semibold text-warning bg-amber-50 px-2.5 py-1 rounded-full">In Progress</span>
+                <span class="text-sm font-semibold tabular-nums hidden sm:inline">$31,200</span>
+              </div>
+              <div class="px-5 py-3 flex items-center gap-4 hover:bg-background cursor-pointer" onclick="location.href='/admin/property-detail'">
+                <div class="w-10 h-10 rounded-lg bg-green-50 text-success flex items-center justify-center shrink-0"><i class="fa-solid fa-house"></i></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold truncate">7724 Tumalo Reservoir Rd, Tumalo OR</div>
+                  <div class="text-xs text-textMuted">James Whitlock · Compliance issued</div>
+                </div>
+                <span class="text-xs font-semibold text-success bg-green-50 px-2.5 py-1 rounded-full">Compliant</span>
+                <span class="text-sm font-semibold tabular-nums hidden sm:inline">$18,750</span>
+              </div>
+              <div class="px-5 py-3 flex items-center gap-4 hover:bg-background cursor-pointer" onclick="location.href='/admin/property-detail'">
+                <div class="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0"><i class="fa-solid fa-house"></i></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold truncate">381 Aspen Glen Dr, La Pine OR</div>
+                  <div class="text-xs text-textMuted">New lead · awaiting first contact</div>
+                </div>
+                <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">Lead</span>
+                <span class="text-sm font-semibold tabular-nums hidden sm:inline">—</span>
+              </div>
+              <div class="px-5 py-3 flex items-center gap-4 hover:bg-background cursor-pointer" onclick="location.href='/admin/property-detail'">
+                <div class="w-10 h-10 rounded-lg bg-red-50 text-danger flex items-center justify-center shrink-0"><i class="fa-solid fa-house"></i></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold truncate">9012 Old Mill Rd, Prineville OR</div>
+                  <div class="text-xs text-textMuted">Sub schedule conflict · Drew flagged</div>
+                </div>
+                <span class="text-xs font-semibold text-danger bg-red-50 px-2.5 py-1 rounded-full">Blocked</span>
+                <span class="text-sm font-semibold tabular-nums hidden sm:inline">$22,400</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Activity feed -->
+          <section class="bg-white border border-border rounded-xl shadow-card">
+            <div class="px-5 py-4 border-b border-border">
+              <h3 class="text-base font-semibold">Today's activity</h3>
+              <p class="text-xs text-textMuted">Live across the team</p>
+            </div>
+            <div class="p-5 space-y-4">
+              <div class="flex gap-3"><div class="w-8 h-8 rounded-full bg-green-50 text-success flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-sm"></i></div><div class="text-sm"><div><b>Drew</b> completed assessment at <b>Pine Ridge Rd</b></div><div class="text-xs text-textMuted">14 min ago</div></div></div>
+              <div class="flex gap-3"><div class="w-8 h-8 rounded-full bg-blue-50 text-primary flex items-center justify-center shrink-0"><i class="fa-solid fa-file-invoice-dollar text-sm"></i></div><div class="text-sm"><div>Quote <b>#Q-2026-041</b> sent to Anders Holm</div><div class="text-xs text-textMuted">52 min ago</div></div></div>
+              <div class="flex gap-3"><div class="w-8 h-8 rounded-full bg-purple-50 text-purple-700 flex items-center justify-center shrink-0"><i class="fa-solid fa-file-shield text-sm"></i></div><div class="text-sm"><div>Compliance doc generated for <b>Tumalo Reservoir Rd</b></div><div class="text-xs text-textMuted">2 hours ago</div></div></div>
+              <div class="flex gap-3"><div class="w-8 h-8 rounded-full bg-amber-50 text-warning flex items-center justify-center shrink-0"><i class="fa-solid fa-triangle-exclamation text-sm"></i></div><div class="text-sm"><div>Sub <b>NW Roofing</b> insurance expires in 14 days</div><div class="text-xs text-textMuted">5 hours ago</div></div></div>
+              <div class="flex gap-3"><div class="w-8 h-8 rounded-full bg-green-50 text-success flex items-center justify-center shrink-0"><i class="fa-solid fa-credit-card text-sm"></i></div><div class="text-sm"><div>Invoice <b>#INV-2026-018</b> paid by Whitlock — $18,750</div><div class="text-xs text-textMuted">Yesterday</div></div></div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Bottom row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <a href="/admin/property-new" class="group bg-white border border-border rounded-xl p-5 shadow-card hover:border-primary transition-colors">
+            <div class="w-11 h-11 rounded-lg bg-blue-50 text-primary flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors"><i class="fa-solid fa-plus"></i></div>
+            <div class="font-semibold mb-1">Intake new property</div>
+            <p class="text-sm text-textMuted">Capture address, owner, hazard zone — get a record into the pipeline.</p>
+          </a>
+          <a href="/admin/quote-builder" class="group bg-white border border-border rounded-xl p-5 shadow-card hover:border-primary transition-colors">
+            <div class="w-11 h-11 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center mb-3 group-hover:bg-purple-700 group-hover:text-white transition-colors"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <div class="font-semibold mb-1">Build a quote</div>
+            <p class="text-sm text-textMuted">Convert an assessment into an itemized estimate ready to send.</p>
+          </a>
+          <a href="/admin/compliance" class="group bg-white border border-border rounded-xl p-5 shadow-card hover:border-primary transition-colors">
+            <div class="w-11 h-11 rounded-lg bg-green-50 text-success flex items-center justify-center mb-3 group-hover:bg-success group-hover:text-white transition-colors"><i class="fa-solid fa-file-shield"></i></div>
+            <div class="font-semibold mb-1">Issue a compliance doc</div>
+            <p class="text-sm text-textMuted">Generate the insurance-grade PDF with GC signature for an issued job.</p>
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="/shared/demo.js"></script>
+</body>
+</html>

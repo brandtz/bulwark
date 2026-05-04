@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <title>Audit Log — Bulwark</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared/demo.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { font-family: 'Inter', sans-serif; background: #f8fafc; } .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }</style>
+</head>
+<body class="text-slate-900 antialiased">
+  <div class="flex min-h-screen">
+    <aside class="hidden lg:flex w-64 bg-slate-900 text-slate-300 flex-col shrink-0 sticky top-0 h-screen">
+      <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+        <div class="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-shield-halved"></i></div>
+        <span class="text-white text-lg font-bold">Bulwark</span>
+      </div>
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        <a href="/admin/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-house w-5 text-center"></i> Dashboard</a>
+        <a href="/admin/pipeline" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center"></i> Pipeline</a>
+        <a href="/admin/work-orders" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-clipboard-list w-5 text-center"></i> Work Orders</a>
+        <a href="/admin/users" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-users w-5 text-center"></i> Users</a>
+        <a href="/admin/audit-log" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-700 text-white font-medium"><i class="fa-solid fa-scroll w-5 text-center"></i> Audit Log</a>
+        <a href="/admin/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-gear w-5 text-center"></i> Settings</a>
+      </nav>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+        <div>
+          <div class="text-xs text-slate-500">Bulwark Operations</div>
+          <h1 class="text-xl font-bold">Audit Log</h1>
+          <p class="text-xs text-slate-500 mt-0.5">Immutable record of every write to tenant data. Required by CONVENTIONS.</p>
+        </div>
+        <button class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-sm font-semibold rounded-lg flex items-center gap-2"><i class="fa-solid fa-download"></i> Export CSV</button>
+      </header>
+      <div class="p-6 space-y-4">
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white w-72">
+            <i class="fa-solid fa-magnifying-glass text-slate-400 text-sm"></i>
+            <input class="bg-transparent outline-none text-sm w-full" placeholder="Search actor, entity, action…">
+          </div>
+          <button class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium">All Actions</button>
+          <button class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium">All Entities</button>
+          <button class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium">Last 24 hrs</button>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
+              <tr>
+                <th class="text-left px-5 py-3">Timestamp</th>
+                <th class="text-left px-5 py-3">Actor</th>
+                <th class="text-left px-5 py-3">Action</th>
+                <th class="text-left px-5 py-3">Entity</th>
+                <th class="text-left px-5 py-3">Entity ID</th>
+                <th class="text-left px-5 py-3">IP</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr class="hover:bg-slate-50"><td class="px-5 py-3 mono text-xs text-slate-600">2026-05-03 09:14:22</td><td class="px-5 py-3">Drew Walker</td><td class="px-5 py-3"><span class="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-semibold">CREATE</span></td><td class="px-5 py-3">assessments</td><td class="px-5 py-3 mono text-xs">a1f3·…·9c2b</td><td class="px-5 py-3 text-slate-500">73.241.18.4</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-5 py-3 mono text-xs text-slate-600">2026-05-03 08:51:09</td><td class="px-5 py-3">Matthew Brandt</td><td class="px-5 py-3"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">UPDATE</span></td><td class="px-5 py-3">quotes</td><td class="px-5 py-3 mono text-xs">e8d2·…·44a1</td><td class="px-5 py-3 text-slate-500">98.21.104.77</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-5 py-3 mono text-xs text-slate-600">2026-05-03 08:47:55</td><td class="px-5 py-3">Matthew Brandt</td><td class="px-5 py-3"><span class="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-semibold">CREATE</span></td><td class="px-5 py-3">compliance_docs</td><td class="px-5 py-3 mono text-xs">7b04·…·1de9</td><td class="px-5 py-3 text-slate-500">98.21.104.77</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-5 py-3 mono text-xs text-slate-600">2026-05-03 08:32:11</td><td class="px-5 py-3">Drew Walker</td><td class="px-5 py-3"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">UPDATE</span></td><td class="px-5 py-3">work_orders</td><td class="px-5 py-3 mono text-xs">3f91·…·b007</td><td class="px-5 py-3 text-slate-500">73.241.18.4</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-5 py-3 mono text-xs text-slate-600">2026-05-03 08:18:40</td><td class="px-5 py-3">system</td><td class="px-5 py-3"><span class="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold">SOFT_DELETE</span></td><td class="px-5 py-3">properties</td><td class="px-5 py-3 mono text-xs">c52a·…·0ff1</td><td class="px-5 py-3 text-slate-500">internal</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-5 py-3 mono text-xs text-slate-600">2026-05-03 07:55:02</td><td class="px-5 py-3">Matthew Brandt</td><td class="px-5 py-3"><span class="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-semibold">CREATE</span></td><td class="px-5 py-3">invoices</td><td class="px-5 py-3 mono text-xs">9a3e·…·ddc4</td><td class="px-5 py-3 text-slate-500">98.21.104.77</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-5 py-3 mono text-xs text-slate-600">2026-05-02 16:10:33</td><td class="px-5 py-3">Matthew Brandt</td><td class="px-5 py-3"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">UPDATE</span></td><td class="px-5 py-3">memberships</td><td class="px-5 py-3 mono text-xs">b1c0·…·e2ff</td><td class="px-5 py-3 text-slate-500">98.21.104.77</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-5 py-3 mono text-xs text-slate-600">2026-05-02 14:08:47</td><td class="px-5 py-3">Drew Walker</td><td class="px-5 py-3"><span class="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-semibold">CREATE</span></td><td class="px-5 py-3">properties</td><td class="px-5 py-3 mono text-xs">2d77·…·a900</td><td class="px-5 py-3 text-slate-500">73.241.18.4</td></tr>
+            </tbody>
+          </table>
+          <div class="px-5 py-3 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+            <div>Showing 8 of 4,217 events</div>
+            <div class="flex items-center gap-1"><button class="px-2 py-1 rounded hover:bg-slate-100"><i class="fa-solid fa-chevron-left"></i></button><button class="px-2 py-1 rounded hover:bg-slate-100"><i class="fa-solid fa-chevron-right"></i></button></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="/shared/demo.js"></script>
+</body>
+</html>

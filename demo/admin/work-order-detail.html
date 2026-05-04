@@ -1,0 +1,434 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="m-0 p-0 h-full w-full">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Order Detail - Bulwark Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.plot.ly/plotly-3.1.1.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        darkBg: '#0f172a',
+                        lightBg: '#f8fafc',
+                        amberAlert: '#f59e0b',
+                        redAlert: '#ef4444',
+                        textMain: '#111827',
+                        textMuted: '#6b7280',
+                        borderLight: '#e5e7eb'
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<link rel="stylesheet" href="/shared/demo.css">
+</head>
+<body class="m-0 p-0 h-full w-full bg-lightBg text-textMain antialiased flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex flex-col w-64 bg-darkBg text-white h-screen shrink-0 relative z-20" id="desktop-sidebar">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+            </div>
+            <span class="text-white text-xl font-bold tracking-tight">Bulwark</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                Home
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                Pipeline
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] bg-primary text-white font-medium">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                Jobs
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                Quotes
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-bars w-5 text-center"></i>
+                Menu
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative z-10" id="main-content">
+        
+        <!-- Mobile Top Bar -->
+        <header class="md:hidden bg-white border-b border-borderLight px-4 py-3 flex items-center justify-between shrink-0" id="mobile-topbar">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                    <i class="fa-solid fa-shield-halved text-sm"></i>
+                </div>
+                <span class="text-textMain text-lg font-bold tracking-tight">Bulwark</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg min-w-[48px] min-h-[48px] flex items-center justify-center">
+                    <i class="fa-regular fa-bell text-xl"></i>
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border border-borderLight">
+            </div>
+        </header>
+
+        <!-- Desktop Header (Hidden on Mobile) -->
+        <header class="hidden md:flex bg-white border-b border-borderLight px-6 py-4 items-center justify-between shrink-0" id="desktop-header">
+            <div>
+                <h1 class="text-xl font-bold text-textMain">Work Order Detail</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-borderLight">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-9 h-9 rounded-full object-cover border border-borderLight">
+                    <div class="text-sm">
+                        <div class="font-semibold text-textMain">Mike T.</div>
+                        <div class="text-xs text-textMuted">Field / GC</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Dashboard Content -->
+        <div class="flex-1 overflow-y-auto bg-lightBg pb-24 md:pb-8" id="dashboard-scroll-area">
+            
+            <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+                
+                <!-- Header Section -->
+                <section id="work-order-header" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                        <div>
+                            <a href="#" class="text-sm font-semibold text-primary hover:text-primaryHover flex items-center gap-1 mb-2">
+                                <i class="fa-solid fa-arrow-left"></i> Back to Property
+                            </a>
+                            <h1 class="text-3xl font-bold text-textMain tracking-tight">142 Oakwood Drive</h1>
+                            <div class="flex items-center gap-3 mt-2">
+                                <span class="text-lg font-medium text-textMuted">WO-23-048</span>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 text-amber-800">
+                                    In Progress
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="w-10 h-10 rounded-full bg-lightBg hover:bg-gray-100 border border-borderLight flex items-center justify-center text-textMuted transition-colors">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-borderLight">
+                        <div>
+                            <label class="block text-sm font-medium text-textMuted mb-1">Scheduled Dates</label>
+                            <div class="text-base font-semibold text-textMain">Oct 12, 2023 - Oct 15, 2023</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-textMuted mb-1">Permit Number <span class="text-redAlert">*</span></label>
+                            <div class="flex items-center gap-2 border border-borderLight rounded-[8px] px-3 py-2 bg-lightBg hover:border-primary transition-colors cursor-text">
+                                <span class="text-base font-medium text-textMain">PMT-2023-889</span>
+                                <i class="fa-solid fa-pen text-xs text-textMuted ml-auto"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-textMuted mb-1">Client</label>
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                                    <i class="fa-regular fa-user text-xs"></i>
+                                </div>
+                                <span class="text-base font-semibold text-textMain">Sarah Jenkins</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Main Left Column -->
+                    <div class="lg:col-span-2 space-y-6">
+                        
+                        <!-- Trades Management -->
+                        <section id="trades-section" class="space-y-4">
+                            <h2 class="text-xl font-bold text-textMain">Trades</h2>
+                            
+                            <!-- Trade Card 1 -->
+                            <div class="bg-white rounded-[16px] shadow-subtle border border-borderLight overflow-hidden">
+                                <div class="p-5 border-b border-borderLight flex justify-between items-center bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+                                            <i class="fa-solid fa-hammer"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-textMain">Roofing</h3>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 mt-1">
+                                                Complete
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-down text-textMuted"></i>
+                                </div>
+                                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-textMuted mb-1">Subcontractor</label>
+                                        <div class="flex items-center justify-between border border-borderLight rounded-[8px] px-3 py-2 bg-lightBg">
+                                            <span class="text-base font-medium text-textMain">Apex Roofing Co.</span>
+                                            <i class="fa-solid fa-chevron-down text-xs text-textMuted"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <a href="tel:+1234567890" class="w-full flex items-center justify-center gap-2 bg-white border border-borderLight text-primary hover:bg-blue-50 font-semibold rounded-[8px] min-h-[42px] transition-colors">
+                                            <i class="fa-solid fa-phone"></i> Call Subcontractor
+                                        </a>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-textMuted mb-1">Scheduled Date</label>
+                                        <div class="flex items-center gap-2 border border-borderLight rounded-[8px] px-3 py-2 bg-lightBg">
+                                            <i class="fa-regular fa-calendar text-textMuted"></i>
+                                            <span class="text-base font-medium text-textMain">Oct 12, 2023</span>
+                                        </div>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-textMuted mb-1">Notes</label>
+                                        <textarea class="w-full border border-borderLight rounded-[8px] p-3 bg-lightBg text-base font-medium text-textMain resize-none h-20 focus:outline-none focus:border-primary" placeholder="Add notes here...">Completed vent replacement on north side.</textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Trade Card 2 -->
+                            <div class="bg-white rounded-[16px] shadow-subtle border border-borderLight overflow-hidden">
+                                <div class="p-5 border-b border-borderLight flex justify-between items-center bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
+                                            <i class="fa-solid fa-trowel-bricks"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-textMain">Siding</h3>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 mt-1">
+                                                In Progress
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-up text-textMuted"></i>
+                                </div>
+                                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-textMuted mb-1">Subcontractor</label>
+                                        <div class="flex items-center justify-between border border-borderLight rounded-[8px] px-3 py-2 bg-white focus-within:border-primary">
+                                            <span class="text-base font-medium text-textMain">Elite Exteriors</span>
+                                            <i class="fa-solid fa-chevron-down text-xs text-textMuted"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <a href="tel:+1234567890" class="w-full flex items-center justify-center gap-2 bg-white border border-borderLight text-primary hover:bg-blue-50 font-semibold rounded-[8px] min-h-[42px] transition-colors">
+                                            <i class="fa-solid fa-phone"></i> Call Subcontractor
+                                        </a>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-textMuted mb-1">Scheduled Date</label>
+                                        <div class="flex items-center gap-2 border border-borderLight rounded-[8px] px-3 py-2 bg-white">
+                                            <i class="fa-regular fa-calendar text-textMuted"></i>
+                                            <span class="text-base font-medium text-textMain">Oct 13, 2023</span>
+                                        </div>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-textMuted mb-1">Notes</label>
+                                        <textarea class="w-full border border-borderLight rounded-[8px] p-3 bg-white text-base font-medium text-textMain resize-none h-20 focus:outline-none focus:border-primary" placeholder="Add notes here...">Waiting on material delivery for east wall.</textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="w-full bg-white hover:bg-gray-50 text-primary border-2 border-dashed border-borderLight font-semibold rounded-[12px] min-h-[56px] flex items-center justify-center gap-2 transition-colors">
+                                <i class="fa-solid fa-plus"></i>
+                                Add Trade
+                            </button>
+                        </section>
+
+                        <!-- Inspection Section -->
+                        <section id="inspection-section" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                            <h2 class="text-xl font-bold text-textMain mb-4">Inspection & Sign-off</h2>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-textMuted mb-1">Inspection Date</label>
+                                    <div class="flex items-center gap-2 border border-borderLight rounded-[8px] px-3 py-2 bg-white">
+                                        <i class="fa-regular fa-calendar text-textMuted"></i>
+                                        <input type="text" class="w-full bg-transparent text-base font-medium text-textMain focus:outline-none" placeholder="Select date">
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between bg-lightBg border border-borderLight rounded-[8px] px-4 py-2 h-[42px] mt-6">
+                                    <span class="text-sm font-medium text-textMain">Inspection Passed</span>
+                                    <button class="w-12 h-6 bg-gray-300 rounded-full relative transition-colors">
+                                        <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"></span>
+                                    </button>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-textMuted mb-1">Inspector Name (Optional)</label>
+                                    <input type="text" class="w-full border border-borderLight rounded-[8px] px-3 py-2 bg-white text-base font-medium text-textMain focus:outline-none focus:border-primary" placeholder="Enter name">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-textMuted mb-1">Permit Sign-off Date</label>
+                                    <div class="flex items-center gap-2 border border-borderLight rounded-[8px] px-3 py-2 bg-white">
+                                        <i class="fa-regular fa-calendar text-textMuted"></i>
+                                        <input type="text" class="w-full bg-transparent text-base font-medium text-textMain focus:outline-none" placeholder="Select date">
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="space-y-6">
+                        
+                        <!-- Actions -->
+                        <section id="actions-section" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6 space-y-3">
+                            <h2 class="text-lg font-bold text-textMain mb-2">Actions</h2>
+                            
+                            <button class="w-full bg-white hover:bg-gray-50 text-primary border border-borderLight font-semibold rounded-[12px] min-h-[48px] flex items-center justify-center gap-2 transition-colors">
+                                <i class="fa-solid fa-camera"></i>
+                                Update Progress
+                            </button>
+                            
+                            <button disabled class="w-full bg-gray-200 text-gray-500 font-semibold rounded-[12px] min-h-[48px] flex items-center justify-center gap-2 cursor-not-allowed">
+                                <i class="fa-solid fa-check-circle"></i>
+                                Mark Work Order Complete
+                            </button>
+                            
+                            <p class="text-xs text-textMuted text-center mt-2">
+                                All trades must be complete and inspection passed to mark as complete.
+                            </p>
+                        </section>
+
+                        <!-- Scope Summary -->
+                        <section id="scope-summary" class="bg-white rounded-[16px] shadow-subtle border border-borderLight overflow-hidden">
+                            <div class="p-5 border-b border-borderLight bg-gray-50">
+                                <h2 class="text-lg font-bold text-textMain">Scope Summary</h2>
+                            </div>
+                            <div class="p-0">
+                                <ul class="divide-y divide-borderLight">
+                                    <li class="p-4 hover:bg-lightBg transition-colors">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-sm font-bold text-textMain">Roof Vent Retrofit</span>
+                                            <span class="text-xs font-semibold text-textMuted bg-gray-100 px-2 py-0.5 rounded">Zone A</span>
+                                        </div>
+                                        <p class="text-sm text-textMuted">Replace 4 existing vents with ember-resistant mesh vents.</p>
+                                    </li>
+                                    <li class="p-4 hover:bg-lightBg transition-colors">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-sm font-bold text-textMain">Eaves Enclosure</span>
+                                            <span class="text-xs font-semibold text-textMuted bg-gray-100 px-2 py-0.5 rounded">Zone B</span>
+                                        </div>
+                                        <p class="text-sm text-textMuted">Enclose open eaves on north and east sides with non-combustible material.</p>
+                                    </li>
+                                </ul>
+                            </div>
+                        </section>
+
+                        <!-- Progress Timeline -->
+                        <section id="progress-timeline" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-lg font-bold text-textMain">Progress Timeline</h2>
+                                <a href="#" class="text-sm font-semibold text-primary hover:text-primaryHover">Show All</a>
+                            </div>
+                            
+                            <div class="relative border-l-2 border-gray-200 ml-3 space-y-6 mt-4">
+                                <!-- Timeline Item 1 -->
+                                <div class="relative pl-6">
+                                    <div class="absolute w-4 h-4 bg-primary rounded-full -left-[9px] top-1 border-2 border-white"></div>
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-sm font-bold text-textMain">Siding - 50%</span>
+                                        <span class="text-xs text-textMuted">Today, 10:30 AM</span>
+                                    </div>
+                                    <div class="text-xs text-textMuted mb-1">By Mike T.</div>
+                                    <p class="text-sm text-textMain bg-lightBg p-3 rounded-[8px] border border-borderLight mt-2">
+                                        East wall tear-off complete. Waiting on new material delivery.
+                                    </p>
+                                </div>
+                                
+                                <!-- Timeline Item 2 -->
+                                <div class="relative pl-6">
+                                    <div class="absolute w-4 h-4 bg-green-500 rounded-full -left-[9px] top-1 border-2 border-white"></div>
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-sm font-bold text-textMain">Roofing - 100%</span>
+                                        <span class="text-xs text-textMuted">Oct 12, 4:15 PM</span>
+                                    </div>
+                                    <div class="text-xs text-textMuted mb-1">By Sarah Jenkins</div>
+                                    <p class="text-sm text-textMain bg-lightBg p-3 rounded-[8px] border border-borderLight mt-2">
+                                        All vents replaced and sealed. Photos uploaded to main file.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation (Visible only on mobile) -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-borderLight flex justify-around items-center h-16 px-2 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" id="mobile-bottom-nav">
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-house mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-layer-group mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <!-- Floating FAB Center -->
+        <div class="relative w-full flex justify-center h-full">
+            <button class="absolute -top-5 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-lightBg hover:bg-primaryHover transition-colors">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-primary min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-clipboard-list mb-1 text-lg"></i>
+            <span class="text-[10px] font-bold">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-bars mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Menu</span>
+        </a>
+    </nav>
+
+    <script src="/shared/demo.js"></script>
+</body>
+</html>

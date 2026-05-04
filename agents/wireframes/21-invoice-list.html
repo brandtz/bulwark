@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en" class="m-0 p-0 h-full w-full">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice List - Bulwark Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        darkBg: '#0f172a',
+                        lightBg: '#f8fafc',
+                        amberAlert: '#f59e0b',
+                        redAlert: '#ef4444',
+                        textMain: '#111827',
+                        textMuted: '#6b7280',
+                        borderLight: '#e5e7eb',
+                        greenAlert: '#16a34a',
+                        grayStatus: '#6b7280',
+                        blueStatus: '#3b82f6',
+                        greenStatus: '#15803d',
+                        redStatus: '#ef4444'
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Custom Checkbox */
+        .custom-checkbox {
+            appearance: none;
+            background-color: #fff;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25em;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+        }
+
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            background-color: white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        .custom-checkbox:checked {
+            background-color: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="m-0 p-0 h-full w-full bg-lightBg text-textMain antialiased flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex flex-col w-64 bg-darkBg text-white h-screen shrink-0 relative z-20" id="desktop-sidebar">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+            </div>
+            <span class="text-white text-xl font-bold tracking-tight">Bulwark</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                Home
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                Pipeline
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                Jobs
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                Quotes
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] bg-primary text-white font-medium mt-4">
+                <i class="fa-solid fa-file-invoice w-5 text-center"></i>
+                Invoices
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                Compliance Docs
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-bars w-5 text-center"></i>
+                Menu
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative z-10" id="main-content">
+        
+        <!-- Mobile Top Bar -->
+        <header class="md:hidden bg-white border-b border-borderLight px-4 py-3 flex items-center justify-between shrink-0" id="mobile-topbar">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                    <i class="fa-solid fa-shield-halved text-sm"></i>
+                </div>
+                <span class="text-textMain text-lg font-bold tracking-tight">Bulwark</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg min-w-[48px] min-h-[48px] flex items-center justify-center">
+                    <i class="fa-regular fa-bell text-xl"></i>
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border border-borderLight">
+            </div>
+        </header>
+
+        <!-- Desktop Header -->
+        <header class="hidden md:flex bg-white border-b border-borderLight px-6 py-4 items-center justify-between shrink-0" id="desktop-header">
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-bold text-textMain">Invoices</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-textMuted"></i>
+                    <input type="text" placeholder="Search invoices..." class="pl-10 pr-4 py-2 border border-borderLight rounded-[8px] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64">
+                </div>
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-borderLight">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-9 h-9 rounded-full object-cover border border-borderLight">
+                    <div class="text-sm">
+                        <div class="font-semibold text-textMain">Mike T.</div>
+                        <div class="text-xs text-textMuted">Admin</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8 pb-32" id="invoice-scroll-area">
+            
+            <div class="max-w-7xl mx-auto space-y-6">
+                
+                <!-- Action Header (Mobile & Desktop) -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" id="action-header">
+                    <h2 class="text-2xl font-bold text-textMain hidden sm:block">Financial Overview</h2>
+                    <div class="w-full sm:w-auto flex justify-between sm:justify-end items-center gap-3">
+                        <div class="relative sm:hidden flex-1">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-textMuted"></i>
+                            <input type="text" placeholder="Search..." class="w-full pl-10 pr-4 py-2.5 border border-borderLight rounded-[8px] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                        </div>
+                        <button class="px-4 py-2.5 bg-primary text-white font-medium rounded-[8px] hover:bg-primaryHover transition-colors shadow-subtle flex items-center justify-center gap-2 whitespace-nowrap shrink-0">
+                            <i class="fa-solid fa-plus"></i> Create Invoice
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Financial Summary Strip -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="financial-summary">
+                    <!-- Total Outstanding -->
+                    <div class="bg-white rounded-[1rem] p-5 shadow-card border border-borderLight flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-textMuted">Total Outstanding</span>
+                            <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-primary">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-textMain">$124,500.00</div>
+                            <div class="text-sm text-textMuted mt-1">Across 42 invoices</div>
+                        </div>
+                    </div>
+
+                    <!-- Total Overdue -->
+                    <div class="bg-white rounded-[1rem] p-5 shadow-card border border-borderLight flex flex-col justify-between relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-redAlert"></div>
+                        <div class="flex items-center justify-between mb-2 pl-2">
+                            <span class="text-sm font-medium text-textMuted">Total Overdue</span>
+                            <div class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-redAlert">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                        </div>
+                        <div class="pl-2">
+                            <div class="text-2xl font-bold text-redAlert">$18,250.00</div>
+                            <div class="text-sm text-textMuted mt-1">Across 8 invoices</div>
+                        </div>
+                    </div>
+
+                    <!-- Total Paid This Month -->
+                    <div class="bg-white rounded-[1rem] p-5 shadow-card border border-borderLight flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-textMuted">Paid This Month</span>
+                            <div class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-greenAlert">
+                                <i class="fa-solid fa-check-double"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-textMain">$86,420.00</div>
+                            <div class="text-sm text-textMuted mt-1">Across 24 invoices</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="bg-white rounded-[1rem] shadow-card border border-borderLight overflow-hidden" id="invoice-main-content">
+                    
+                    <!-- Filter Tabs -->
+                    <div class="border-b border-borderLight overflow-x-auto hide-scrollbar">
+                        <div class="flex w-max min-w-full px-2 sm:px-6">
+                            <button class="px-4 py-4 text-sm font-medium text-primary border-b-2 border-primary whitespace-nowrap flex items-center gap-2">
+                                All Invoices <span class="bg-blue-100 text-primary py-0.5 px-2 rounded-full text-xs">156</span>
+                            </button>
+                            <button class="px-4 py-4 text-sm font-medium text-textMuted hover:text-textMain border-b-2 border-transparent hover:border-gray-300 whitespace-nowrap flex items-center gap-2 transition-colors">
+                                Draft <span class="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">12</span>
+                            </button>
+                            <button class="px-4 py-4 text-sm font-medium text-textMuted hover:text-textMain border-b-2 border-transparent hover:border-gray-300 whitespace-nowrap flex items-center gap-2 transition-colors">
+                                Sent <span class="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">34</span>
+                            </button>
+                            <button class="px-4 py-4 text-sm font-medium text-textMuted hover:text-textMain border-b-2 border-transparent hover:border-gray-300 whitespace-nowrap flex items-center gap-2 transition-colors">
+                                Overdue <span class="bg-red-50 text-redAlert py-0.5 px-2 rounded-full text-xs">8</span>
+                            </button>
+                            <button class="px-4 py-4 text-sm font-medium text-textMuted hover:text-textMain border-b-2 border-transparent hover:border-gray-300 whitespace-nowrap flex items-center gap-2 transition-colors">
+                                Paid <span class="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">102</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table View -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-borderLight text-xs uppercase tracking-wider text-textMuted font-semibold">
+                                    <th class="px-6 py-4 w-12"><input type="checkbox" class="custom-checkbox"></th>
+                                    <th class="px-6 py-4">Invoice Details</th>
+                                    <th class="px-6 py-4">Property / Owner</th>
+                                    <th class="px-6 py-4">Amount</th>
+                                    <th class="px-6 py-4">Status</th>
+                                    <th class="px-6 py-4">Due Date</th>
+                                    <th class="px-6 py-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-borderLight text-sm">
+                                
+                                <!-- Row 1: Overdue -->
+                                <tr class="hover:bg-slate-50 transition-colors relative group cursor-pointer">
+                                    <td class="absolute left-0 top-0 bottom-0 w-1 bg-redAlert"></td>
+                                    <td class="px-6 py-4"><input type="checkbox" class="custom-checkbox"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">INV-2023-089</div>
+                                        <div class="text-textMuted text-xs mt-0.5">WO-2023-089</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-textMain">123 Pine Ridge Rd.</div>
+                                        <div class="text-textMuted text-xs mt-0.5">Sarah Jenkins</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">$4,250.00</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-redAlert border border-red-100">
+                                            Overdue (15 Days)
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-textMain">
+                                        Oct 09, 2023
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-textMuted hover:text-textMain p-2 rounded-full hover:bg-gray-100 transition-colors">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 2: Sent -->
+                                <tr class="hover:bg-slate-50 transition-colors group cursor-pointer">
+                                    <td class="px-6 py-4"><input type="checkbox" class="custom-checkbox"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">INV-2023-090</div>
+                                        <div class="text-textMuted text-xs mt-0.5">WO-2023-092</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-textMain">844 Summit Blvd.</div>
+                                        <div class="text-textMuted text-xs mt-0.5">Michael Chang</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">$12,800.50</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blueStatus border border-blue-100">
+                                            Sent
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-textMain">
+                                        Oct 30, 2023
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-textMuted hover:text-textMain p-2 rounded-full hover:bg-gray-100 transition-colors">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 3: Paid -->
+                                <tr class="hover:bg-slate-50 transition-colors group cursor-pointer">
+                                    <td class="px-6 py-4"><input type="checkbox" class="custom-checkbox"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">INV-2023-085</div>
+                                        <div class="text-textMuted text-xs mt-0.5">WO-2023-080</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-textMain">220 Forest Ave.</div>
+                                        <div class="text-textMuted text-xs mt-0.5">Elena Rodriguez</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">$8,450.00</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-greenStatus border border-green-100">
+                                            Paid
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-textMuted">
+                                        Oct 15, 2023
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-textMuted hover:text-textMain p-2 rounded-full hover:bg-gray-100 transition-colors">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 4: Draft -->
+                                <tr class="hover:bg-slate-50 transition-colors group cursor-pointer">
+                                    <td class="px-6 py-4"><input type="checkbox" class="custom-checkbox"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">INV-2023-093</div>
+                                        <div class="text-textMuted text-xs mt-0.5">WO-2023-095</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-textMain">550 River Run</div>
+                                        <div class="text-textMuted text-xs mt-0.5">David Kim</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">$3,200.00</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-grayStatus border border-gray-200">
+                                            Draft
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-textMuted">
+                                        --
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-textMuted hover:text-textMain p-2 rounded-full hover:bg-gray-100 transition-colors">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                 <!-- Row 5: Sent -->
+                                 <tr class="hover:bg-slate-50 transition-colors group cursor-pointer">
+                                    <td class="px-6 py-4"><input type="checkbox" class="custom-checkbox"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">INV-2023-091</div>
+                                        <div class="text-textMuted text-xs mt-0.5">WO-2023-093</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-textMain">1024 Alpine Way</div>
+                                        <div class="text-textMuted text-xs mt-0.5">Sarah Jenkins</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-textMain">$15,400.00</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blueStatus border border-blue-100">
+                                            Sent
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-textMain">
+                                        Nov 05, 2023
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-textMuted hover:text-textMain p-2 rounded-full hover:bg-gray-100 transition-colors">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Card View -->
+                    <div class="md:hidden divide-y divide-borderLight">
+                        
+                        <!-- Mobile Card 1: Overdue -->
+                        <div class="p-4 relative bg-white hover:bg-slate-50 cursor-pointer">
+                            <div class="absolute left-0 top-0 bottom-0 w-1 bg-redAlert"></div>
+                            <div class="pl-2">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div class="font-bold text-textMain text-lg">INV-2023-089</div>
+                                        <div class="text-sm text-textMuted">Sarah Jenkins</div>
+                                    </div>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-redAlert border border-red-100">
+                                        Overdue
+                                    </span>
+                                </div>
+                                <div class="text-sm font-medium text-textMain mb-3">123 Pine Ridge Rd.</div>
+                                <div class="flex justify-between items-end">
+                                    <div>
+                                        <div class="text-xs text-textMuted mb-0.5">Amount Due</div>
+                                        <div class="font-bold text-textMain text-xl">$4,250.00</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs text-textMuted mb-0.5">Due Date</div>
+                                        <div class="text-sm text-redAlert font-medium">Oct 09, 2023</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Card 2: Sent -->
+                        <div class="p-4 bg-white hover:bg-slate-50 cursor-pointer">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-bold text-textMain text-lg">INV-2023-090</div>
+                                    <div class="text-sm text-textMuted">Michael Chang</div>
+                                </div>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blueStatus border border-blue-100">
+                                    Sent
+                                </span>
+                            </div>
+                            <div class="text-sm font-medium text-textMain mb-3">844 Summit Blvd.</div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <div class="text-xs text-textMuted mb-0.5">Amount Due</div>
+                                    <div class="font-bold text-textMain text-xl">$12,800.50</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xs text-textMuted mb-0.5">Due Date</div>
+                                    <div class="text-sm text-textMain font-medium">Oct 30, 2023</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Card 3: Paid -->
+                        <div class="p-4 bg-white hover:bg-slate-50 cursor-pointer">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-bold text-textMain text-lg">INV-2023-085</div>
+                                    <div class="text-sm text-textMuted">Elena Rodriguez</div>
+                                </div>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-greenStatus border border-green-100">
+                                    Paid
+                                </span>
+                            </div>
+                            <div class="text-sm font-medium text-textMain mb-3">220 Forest Ave.</div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <div class="text-xs text-textMuted mb-0.5">Total Paid</div>
+                                    <div class="font-bold text-textMain text-xl">$8,450.00</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xs text-textMuted mb-0.5">Paid On</div>
+                                    <div class="text-sm text-textMuted font-medium">Oct 15, 2023</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="bg-white border-t border-borderLight px-4 py-3 flex items-center justify-between sm:px-6">
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-textMuted">
+                                    Showing <span class="font-medium text-textMain">1</span> to <span class="font-medium text-textMain">5</span> of <span class="font-medium text-textMain">156</span> invoices
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-borderLight bg-white text-sm font-medium text-textMuted hover:bg-slate-50">
+                                        <span class="sr-only">Previous</span>
+                                        <i class="fa-solid fa-chevron-left w-5 h-5 flex items-center justify-center"></i>
+                                    </a>
+                                    <a href="#" aria-current="page" class="z-10 bg-blue-50 border-primary text-primary relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        1
+                                    </a>
+                                    <a href="#" class="bg-white border-borderLight text-textMuted hover:bg-slate-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        2
+                                    </a>
+                                    <a href="#" class="bg-white border-borderLight text-textMuted hover:bg-slate-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium">
+                                        3
+                                    </a>
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-borderLight bg-white text-sm font-medium text-textMuted">
+                                        ...
+                                    </span>
+                                    <a href="#" class="bg-white border-borderLight text-textMuted hover:bg-slate-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        16
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-borderLight bg-white text-sm font-medium text-textMuted hover:bg-slate-50">
+                                        <span class="sr-only">Next</span>
+                                        <i class="fa-solid fa-chevron-right w-5 h-5 flex items-center justify-center"></i>
+                                    </a>
+                                </nav>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between w-full sm:hidden">
+                            <a href="#" class="relative inline-flex items-center px-4 py-2 border border-borderLight text-sm font-medium rounded-md text-textMain bg-white hover:bg-slate-50">
+                                Previous
+                            </a>
+                            <span class="text-sm text-textMuted">Page 1 of 16</span>
+                            <a href="#" class="relative inline-flex items-center px-4 py-2 border border-borderLight text-sm font-medium rounded-md text-textMain bg-white hover:bg-slate-50">
+                                Next
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-borderLight flex justify-around items-center h-16 px-2 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" id="mobile-bottom-nav">
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-house mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-layer-group mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <div class="relative w-full flex justify-center h-full">
+            <button class="absolute -top-5 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-lightBg hover:bg-primaryHover transition-colors">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-clipboard-list mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-primary min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-file-invoice mb-1 text-lg"></i>
+            <span class="text-[10px] font-bold">Invoices</span>
+        </a>
+    </nav>
+
+</body>
+</html>

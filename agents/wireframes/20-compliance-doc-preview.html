@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en" class="m-0 p-0 h-full w-full">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Document Preview - Bulwark Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        darkBg: '#0f172a',
+                        lightBg: '#f8fafc',
+                        amberAlert: '#f59e0b',
+                        redAlert: '#ef4444',
+                        textMain: '#111827',
+                        textMuted: '#6b7280',
+                        borderLight: '#e5e7eb'
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Document Print Styling */
+        @media print {
+            body * { visibility: hidden; }
+            #compliance-document, #compliance-document * { visibility: visible; }
+            #compliance-document { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; margin: 0; padding: 0; }
+        }
+    </style>
+</head>
+<body class="m-0 p-0 h-full w-full bg-lightBg text-textMain antialiased flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex flex-col w-64 bg-darkBg text-white h-screen shrink-0 relative z-20" id="desktop-sidebar">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+            </div>
+            <span class="text-white text-xl font-bold tracking-tight">Bulwark</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                Home
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                Pipeline
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                Jobs
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                Quotes
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] bg-primary text-white font-medium mt-4">
+                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                Compliance Docs
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-bars w-5 text-center"></i>
+                Menu
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative z-10" id="main-content">
+        
+        <!-- Mobile Top Bar -->
+        <header class="md:hidden bg-white border-b border-borderLight px-4 py-3 flex items-center justify-between shrink-0" id="mobile-topbar">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                    <i class="fa-solid fa-shield-halved text-sm"></i>
+                </div>
+                <span class="text-textMain text-lg font-bold tracking-tight">Bulwark</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg min-w-[48px] min-h-[48px] flex items-center justify-center">
+                    <i class="fa-regular fa-bell text-xl"></i>
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border border-borderLight">
+            </div>
+        </header>
+
+        <!-- Desktop Header -->
+        <header class="hidden md:flex bg-white border-b border-borderLight px-6 py-4 items-center justify-between shrink-0" id="desktop-header">
+            <div class="flex items-center gap-4">
+                <a href="#" class="text-textMuted hover:text-textMain transition-colors flex items-center gap-2 text-sm font-medium">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Property
+                </a>
+                <div class="h-6 w-px bg-borderLight"></div>
+                <h1 class="text-xl font-bold text-textMain">Compliance Document Preview</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-borderLight">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-9 h-9 rounded-full object-cover border border-borderLight">
+                    <div class="text-sm">
+                        <div class="font-semibold text-textMain">Mike T.</div>
+                        <div class="text-xs text-textMuted">Admin</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Status Banner -->
+        <div class="bg-gray-50 border-b border-borderLight px-4 py-3 sm:px-6 lg:px-8 shrink-0 flex items-center justify-between" id="status-banner">
+            <div class="flex items-center gap-3">
+                <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-textMuted">
+                    <i class="fa-solid fa-pen-ruler text-xs"></i>
+                </div>
+                <span class="text-sm font-medium text-textMain">Document Status: <span class="font-bold text-gray-700">Draft Preview</span></span>
+            </div>
+            <button type="button" class="text-sm font-medium text-primary hover:text-primaryHover transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-pen"></i> Edit Document
+            </button>
+        </div>
+
+        <!-- Scrollable Document Area -->
+        <div class="flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-8 flex justify-center pb-32" id="document-scroll-area">
+            
+            <!-- Document Container (Letterhead Styling) -->
+            <div id="compliance-document" class="bg-white w-full max-w-[8.5in] min-h-[11in] shadow-[0_10px_25px_rgba(0,0,0,0.1)] rounded-[8px] p-8 sm:p-12 relative overflow-hidden">
+                
+                <!-- Draft Watermark Overlay -->
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-5">
+                    <span class="text-[12rem] font-bold text-slate-900 transform -rotate-45 select-none">DRAFT</span>
+                </div>
+
+                <!-- Document Content (z-10 for text selection above watermark) -->
+                <div class="relative z-10 space-y-10">
+                    
+                    <!-- Header: Company Info -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start border-b-2 border-slate-800 pb-8 gap-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-blue-800 rounded-[8px] flex items-center justify-center text-white shrink-0">
+                                <i class="fa-solid fa-shield-halved text-3xl"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Bulwark Construction LLC</h1>
+                                <p class="text-sm text-slate-600 mt-1">CCB License #229485</p>
+                            </div>
+                        </div>
+                        <div class="text-left sm:text-right text-sm text-slate-600 space-y-1">
+                            <p><i class="fa-solid fa-phone w-4 text-center mr-1"></i> (555) 123-4567</p>
+                            <p><i class="fa-solid fa-envelope w-4 text-center mr-1"></i> compliance@bulwark.build</p>
+                            <p><i class="fa-solid fa-location-dot w-4 text-center mr-1"></i> 100 Builder Way, Bend, OR 97702</p>
+                        </div>
+                    </div>
+
+                    <!-- Title & Meta Information -->
+                    <div class="text-center space-y-6">
+                        <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">WILDFIRE RETROFIT<br>COMPLIANCE CERTIFICATE</h2>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-left border border-borderLight rounded-[8px] p-6 bg-slate-50">
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Property Information</h3>
+                                <p class="text-base font-semibold text-slate-900">123 Pine Ridge Rd.</p>
+                                <p class="text-sm text-slate-600">Bend, OR 97702</p>
+                                <p class="text-sm text-slate-600 mt-2"><span class="font-medium text-slate-700">Owner:</span> Sarah Jenkins</p>
+                            </div>
+                            <div class="sm:text-right">
+                                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Document Details</h3>
+                                <p class="text-sm text-slate-600"><span class="font-medium text-slate-700">Issue Date:</span> October 24, 2023</p>
+                                <p class="text-sm text-slate-600 mt-1"><span class="font-medium text-slate-700">Ref Number:</span> CERT-2023-089</p>
+                                <p class="text-sm text-slate-600 mt-1"><span class="font-medium text-slate-700">Work Order:</span> WO-2023-089</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section A: Scope of Work -->
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 border-b border-slate-300 pb-2 mb-4 flex items-center gap-2">
+                            <span class="text-primary">A.</span> Scope of Work
+                        </h3>
+                        <ul class="list-disc pl-5 text-sm text-slate-700 space-y-2 leading-relaxed">
+                            <li>Remove existing roofing materials down to decking. (Zone 1)</li>
+                            <li>Install Class A fire-rated architectural shingles. (Zone 1)</li>
+                            <li>Install ember-resistant roof vents (1/8 inch mesh). (Zone 1)</li>
+                            <li>Clear combustible vegetation within 5 feet of structure. (Zone 0)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Section B: Materials Table -->
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 border-b border-slate-300 pb-2 mb-4 flex items-center gap-2">
+                            <span class="text-primary">B.</span> Materials Utilized
+                        </h3>
+                        <div class="border border-borderLight rounded-[8px] overflow-hidden">
+                            <table class="w-full text-left text-sm border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 border-b border-borderLight">
+                                        <th class="px-4 py-3 font-semibold text-slate-700">Product/Material</th>
+                                        <th class="px-4 py-3 font-semibold text-slate-700">Manufacturer</th>
+                                        <th class="px-4 py-3 font-semibold text-slate-700">Fire Rating/Spec</th>
+                                        <th class="px-4 py-3 font-semibold text-slate-700">Qty Installed</th>
+                                        <th class="px-4 py-3 font-semibold text-slate-700">OAR Ref.</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-borderLight">
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-700">Timberline HDZ</td>
+                                        <td class="px-4 py-3 text-slate-700">GAF</td>
+                                        <td class="px-4 py-3 text-slate-700">Class A</td>
+                                        <td class="px-4 py-3 text-slate-700">30 Sq</td>
+                                        <td class="px-4 py-3 text-slate-500 font-mono text-xs">837-114</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-700">Ember Shield Vents</td>
+                                        <td class="px-4 py-3 text-slate-700">Vulcan</td>
+                                        <td class="px-4 py-3 text-slate-700">1/8'' Mesh</td>
+                                        <td class="px-4 py-3 text-slate-700">12 Ea</td>
+                                        <td class="px-4 py-3 text-slate-500 font-mono text-xs">837-115</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Section C: Permit and Inspection -->
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 border-b border-slate-300 pb-2 mb-4 flex items-center gap-2">
+                            <span class="text-primary">C.</span> Permit & Inspection
+                        </h3>
+                        <div class="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                            <div class="flex justify-between border-b border-dashed border-borderLight pb-1">
+                                <span class="text-slate-500">Permit Number:</span>
+                                <span class="font-medium text-slate-900">PRMT-2023-0892</span>
+                            </div>
+                            <div class="flex justify-between border-b border-dashed border-borderLight pb-1">
+                                <span class="text-slate-500">Inspection Date:</span>
+                                <span class="font-medium text-slate-900">Oct 18, 2023</span>
+                            </div>
+                            <div class="flex justify-between border-b border-dashed border-borderLight pb-1">
+                                <span class="text-slate-500">Permit Issue Date:</span>
+                                <span class="font-medium text-slate-900">Sep 05, 2023</span>
+                            </div>
+                            <div class="flex justify-between border-b border-dashed border-borderLight pb-1">
+                                <span class="text-slate-500">Inspection Result:</span>
+                                <span class="font-medium text-green-600"><i class="fa-solid fa-check-circle mr-1"></i> Passed</span>
+                            </div>
+                            <div class="flex justify-between border-b border-dashed border-borderLight pb-1 col-span-2 sm:col-span-1">
+                                <span class="text-slate-500">Inspector Name:</span>
+                                <span class="font-medium text-slate-900">John Smith</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section D: GC Certification -->
+                    <div class="pt-8">
+                        <h3 class="text-lg font-bold text-slate-900 border-b border-slate-300 pb-2 mb-4 flex items-center gap-2">
+                            <span class="text-primary">D.</span> Contractor Certification
+                        </h3>
+                        <p class="text-sm text-slate-700 leading-relaxed mb-8 italic bg-slate-50 p-4 rounded-[8px] border border-borderLight">
+                            "I certify under penalty of perjury that the materials and methods used in this retrofit project comply with the Oregon Administrative Rules (OAR) standards for wildfire risk reduction. The information provided in this document is true and accurate to the best of my knowledge. I understand that this document will be used to verify compliance for property insurance and state grant purposes."
+                        </p>
+                        
+                        <div class="flex flex-col sm:flex-row justify-between items-end gap-8 mt-12">
+                            <div class="w-full sm:w-72">
+                                <!-- Captured Signature Image Mock -->
+                                <div class="h-16 mb-2 flex items-center justify-center border-b border-slate-800 relative">
+                                     <span class="font-[cursive] text-3xl text-slate-800 opacity-80 transform -rotate-2">Bulwark Construction</span>
+                                </div>
+                                <div class="text-sm font-bold text-slate-900">Authorized Signature</div>
+                                <div class="text-sm text-slate-600">Bulwark Construction LLC</div>
+                                <div class="text-xs text-slate-500 mt-1">CCB #229485</div>
+                            </div>
+                            <div class="w-full sm:w-48">
+                                <div class="h-16 mb-2 flex items-end justify-center border-b border-slate-800 pb-2">
+                                    <span class="text-lg text-slate-800 font-medium">10/24/2023</span>
+                                </div>
+                                <div class="text-sm font-bold text-slate-900">Date Signed</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="pt-12 mt-12 border-t border-slate-300 text-center">
+                        <p class="text-xs text-slate-500 leading-relaxed max-w-2xl mx-auto">
+                            This document certifies that the above work was completed in compliance with Oregon OAR wildfire hardening standards by a licensed Oregon contractor. For verification, please contact Bulwark Construction LLC.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Action Footer (Desktop & Mobile) -->
+        <div id="sticky-action-footer" class="absolute bottom-0 left-0 w-full bg-white border-t border-borderLight p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-30 md:bottom-0 bottom-16">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="hidden md:block">
+                    <a href="#" class="text-sm font-medium text-textMuted hover:text-textMain transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Property
+                    </a>
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                    <!-- Mobile Share Button -->
+                    <button type="button" class="md:hidden px-4 py-2.5 bg-white border border-borderLight text-textMain font-medium rounded-[8px] hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-subtle">
+                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    </button>
+                    
+                    <!-- Edit Button (Only shown in Draft state per context) -->
+                    <button type="button" class="px-6 py-2.5 bg-white border border-borderLight text-textMain font-medium rounded-[8px] hover:bg-gray-50 transition-colors shadow-subtle hidden sm:flex items-center gap-2">
+                        <i class="fa-solid fa-pen"></i> Edit Document
+                    </button>
+                    
+                    <button type="button" id="download-pdf-btn" class="px-6 py-2.5 bg-primary text-white font-medium rounded-[8px] hover:bg-primaryHover transition-colors shadow-subtle flex-1 md:flex-none flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-pdf"></i> Download PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-borderLight flex justify-around items-center h-16 px-2 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" id="mobile-bottom-nav">
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-house mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-layer-group mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <div class="relative w-full flex justify-center h-full">
+            <button class="absolute -top-5 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-lightBg hover:bg-primaryHover transition-colors">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-clipboard-list mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-primary min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-file-shield mb-1 text-lg"></i>
+            <span class="text-[10px] font-bold">Docs</span>
+        </a>
+    </nav>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Download PDF simulation with audit log note
+            const downloadBtn = document.getElementById('download-pdf-btn');
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', () => {
+                    const originalText = downloadBtn.innerHTML;
+                    downloadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
+                    downloadBtn.disabled = true;
+                    
+                    setTimeout(() => {
+                        downloadBtn.innerHTML = '<i class="fa-solid fa-check"></i> Downloaded';
+                        downloadBtn.classList.remove('bg-primary', 'hover:bg-primaryHover');
+                        downloadBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                        
+                        // Simulate audit log entry
+                        console.log('Audit Log: Document 123 Pine Ridge Rd-ComplianceDoc-20231024.pdf downloaded by Mike T.');
+                        
+                        setTimeout(() => {
+                            downloadBtn.innerHTML = originalText;
+                            downloadBtn.disabled = false;
+                            downloadBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                            downloadBtn.classList.add('bg-primary', 'hover:bg-primaryHover');
+                        }, 3000);
+                    }, 1500);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

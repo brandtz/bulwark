@@ -1,0 +1,588 @@
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Dashboard (Home) - Bulwark</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      window.FontAwesomeConfig = {
+        autoReplaceSvg: 'nest'
+      };
+    </script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"
+      crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+      rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-3.1.1.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme:
+        {
+          extend:
+          {
+            fontFamily:
+            {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors:
+            {
+              primary: '#1d4ed8', // Blue
+              primaryHover: '#1e40af',
+              danger: '#ef4444', // Red
+              warning: '#f59e0b', // Amber
+              success: '#10b981', // Green
+              surface: '#ffffff',
+              background: '#f8fafc', // Light gray background
+              textMain: '#0f172a',
+              textMuted: '#64748b',
+              border: '#e2e8f0',
+              sidebar: '#0f172a',
+              sidebarText: '#cbd5e1',
+              sidebarHover: '#1e293b',
+              sidebarActive: '#1d4ed8'
+            },
+            boxShadow:
+            {
+              'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      ::-webkit-scrollbar
+      {
+        display: none;
+      }
+
+      body
+      {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+      }
+
+      .status-badge
+      {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        items-center;
+        gap: 0.375rem;
+      }
+
+      .status-draft
+      {
+        background-color: #f1f5f9;
+        color: #475569;
+      }
+
+      .status-pending
+      {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+      }
+
+      .status-progress
+      {
+        background-color: #fffbeb;
+        color: #d97706;
+      }
+
+      .status-complete
+      {
+        background-color: #ecfdf5;
+        color: #059669;
+      }
+
+      .status-blocked
+      {
+        background-color: #fef2f2;
+        color: #dc2626;
+      }
+
+      .btn-action
+      {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+
+      .btn-primary
+      {
+        background-color: #1d4ed8;
+        color: white;
+      }
+
+      .btn-primary:hover
+      {
+        background-color: #1e40af;
+      }
+
+      .btn-secondary
+      {
+        background-color: white;
+        color: #0f172a;
+        border-color: #e2e8f0;
+      }
+
+      .btn-secondary:hover
+      {
+        background-color: #f8fafc;
+      }
+
+      .card
+      {
+        background: white;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .card:hover
+      {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+      }
+
+      /* Mobile Bottom Nav */
+      @media (max-width: 1279px)
+      {
+        .mobile-nav-padding
+        {
+          padding-bottom: 5rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body
+    class="w-full min-h-screen m-0 p-0 flex bg-background text-textMain overflow-x-hidden">
+    <!-- Desktop Sidebar (Hidden on mobile/tablet) -->
+    <aside id="desktop-sidebar"
+      class="hidden xl:flex w-64 flex-col bg-sidebar text-sidebarText h-screen sticky top-0 flex-shrink-0 z-40 transition-all duration-300">
+      <div class="h-16 flex items-center px-6 border-b border-gray-800"><i
+          class="fa-solid fa-shield-halved text-2xl text-blue-500 mr-3"></i><span
+          class="text-xl font-bold text-white tracking-tight">Bulwark</span>
+      </div>
+      <div class="p-4">
+        <div
+          class="flex items-center gap-3 px-3 py-2 bg-gray-800 rounded-lg mb-6">
+          <img
+            src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg"
+            alt="User Avatar"
+            class="w-10 h-10 rounded-full border-2 border-gray-700">
+          <div>
+            <p class="text-sm font-semibold text-white">John Doe</p>
+            <p class="text-xs text-gray-400">Field Technician</p>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 px-4 space-y-1 overflow-y-auto"><a href="#"
+          class="flex items-center gap-3 px-3 py-2.5 bg-sidebarActive text-white rounded-lg font-medium"><i
+            class="fa-solid fa-house w-5 text-center"></i>
+          Field Dashboard
+        </a><a href="#"
+          class="flex items-center gap-3 px-3 py-2.5 hover:bg-sidebarHover hover:text-white rounded-lg transition-colors"><i
+            class="fa-solid fa-map-location-dot w-5 text-center"></i>
+          Property Pipeline
+        </a><a href="#"
+          class="flex items-center gap-3 px-3 py-2.5 hover:bg-sidebarHover hover:text-white rounded-lg transition-colors"><i
+            class="fa-solid fa-clipboard-list w-5 text-center"></i>
+          Work Orders (Jobs)
+        </a><a href="#"
+          class="flex items-center gap-3 px-3 py-2.5 hover:bg-sidebarHover hover:text-white rounded-lg transition-colors"><i
+            class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+          Quotes
+        </a><a href="#"
+          class="flex items-center gap-3 px-3 py-2.5 hover:bg-sidebarHover hover:text-white rounded-lg transition-colors"><i
+            class="fa-solid fa-file-shield w-5 text-center"></i>
+          Compliance Docs
+        </a><a href="#"
+          class="flex items-center gap-3 px-3 py-2.5 hover:bg-sidebarHover hover:text-white rounded-lg transition-colors"><i
+            class="fa-solid fa-users-gear w-5 text-center"></i>
+          Subcontractors
+        </a></nav>
+      <div class="p-4 border-t border-gray-800">
+        <div
+          class="flex items-center justify-between px-3 py-2 text-sm text-gray-400">
+          <span class="flex items-center gap-2"><i
+              class="fa-solid fa-wifi text-green-500"></i> Online &amp;
+            Synced</span></div><a href="#"
+          class="flex items-center gap-3 px-3 py-2.5 mt-2 hover:bg-sidebarHover hover:text-white rounded-lg transition-colors"><i
+            class="fa-solid fa-gear w-5 text-center"></i>
+          Settings
+        </a>
+      </div>
+    </aside><!-- Main Content Area -->
+    <main id="main-content"
+      class="flex-1 flex flex-col min-h-screen w-full mobile-nav-padding xl:pb-0 relative">
+      <!-- Top Header (Mobile & Desktop) -->
+      <header id="top-header"
+        class="h-16 bg-white border-b border-border flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-30">
+        <div class="flex items-center gap-4 xl:hidden"><i
+            class="fa-solid fa-shield-halved text-2xl text-primary"></i><span
+            class="text-xl font-bold text-textMain tracking-tight">Bulwark</span>
+        </div>
+        <div class="hidden xl:flex items-center gap-2 text-sm text-textMuted"><a
+            href="#" class="hover:text-primary transition-colors">Home</a><i
+            class="fa-solid fa-chevron-right text-xs"></i><span
+            class="text-textMain font-medium">Field Dashboard</span></div>
+        <div class="flex items-center gap-4">
+          <!-- Sync Status Indicator -->
+          <div
+            class="hidden sm:flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-medium border border-green-200">
+            <i class="fa-solid fa-cloud-arrow-up"></i><span>Synced Just
+              Now</span></div><button
+            class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-gray-100"><i
+              class="fa-regular fa-bell text-xl"></i><span
+              class="absolute top-1 right-1 w-2.5 h-2.5 bg-danger rounded-full border-2 border-white"></span></button>
+          <div class="xl:hidden"><img
+              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg"
+              alt="User Avatar"
+              class="w-8 h-8 rounded-full border border-border"></div>
+        </div>
+      </header><!-- Page Content Wrapper -->
+      <div class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <!-- Welcome & Quick Actions Section -->
+        <section id="welcome-section" class="mb-8">
+          <div
+            class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+            <div>
+              <h1 class="text-2xl sm:text-3xl font-bold text-textMain mb-1">Good
+                morning, John!</h1>
+              <p class="text-textMuted text-sm sm:text-base">You have 4 jobs
+                scheduled for today.</p>
+            </div>
+            <div class="flex flex-wrap gap-3"><button
+                class="btn-action btn-primary flex-1 md:flex-none"><i
+                  class="fa-solid fa-plus"></i>
+                New Intake
+              </button><button
+                class="btn-action btn-secondary flex-1 md:flex-none"><i
+                  class="fa-solid fa-clipboard-check"></i>
+                Start Assessment
+              </button></div>
+          </div><!-- Alerts / Notifications -->
+          <div
+            class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm flex items-start gap-3 mb-6">
+            <i
+              class="fa-solid fa-triangle-exclamation text-red-500 mt-0.5 text-lg"></i>
+            <div>
+              <h3 class="text-red-800 font-semibold text-sm">Blocked Job Alert
+              </h3>
+              <p class="text-red-700 text-sm mt-0.5">Property at 1422 Sycamore
+                Ln has a compliance issue blocking progress. <a href="#"
+                  class="font-bold underline">Review details</a>.</p>
+            </div>
+          </div>
+        </section><!-- Two Column Layout for Desktop -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+          <!-- Left Column: Today's Jobs (Wider) -->
+          <div class="xl:col-span-2 space-y-6">
+            <div class="flex items-center justify-between mb-2">
+              <h2
+                class="text-lg font-bold text-textMain flex items-center gap-2">
+                <i class="fa-solid fa-calendar-day text-primary"></i>
+                Today's Schedule
+              </h2><a href="#"
+                class="text-sm font-medium text-primary hover:text-primaryHover">View
+                Map</a>
+            </div><!-- Job Card 1 (In Progress) -->
+            <div
+              class="card p-5 relative overflow-hidden border-l-4 border-l-warning">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <div class="flex items-center gap-2 mb-1"><span
+                      class="status-badge status-progress"><i
+                        class="fa-solid fa-spinner fa-spin-pulse"></i> In
+                      Progress</span><span
+                      class="text-xs text-textMuted font-medium bg-gray-100 px-2 py-0.5 rounded">WO-2023-089</span>
+                  </div>
+                  <h3 class="text-lg font-bold text-textMain">845 Timberline Rd
+                  </h3>
+                  <p
+                    class="text-sm text-textMuted flex items-center gap-1 mt-1">
+                    <i class="fa-regular fa-clock"></i> 08:00 AM - 11:30 AM
+                  </p>
+                </div><button
+                  class="p-2 text-gray-400 hover:text-primary rounded-full hover:bg-blue-50 transition-colors"><i
+                    class="fa-solid fa-ellipsis-vertical"></i></button>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
+                <div class="flex items-center justify-between mb-2"><span
+                    class="text-textMuted font-medium">Task:</span><span
+                    class="text-textMain font-semibold">Vent Retrofit &amp; Eave
+                    Enclosure</span></div>
+                <div class="flex items-center justify-between"><span
+                    class="text-textMuted font-medium">Contact:</span><span
+                    class="text-textMain flex items-center gap-2">
+                    Sarah Jenkins
+                    <a href="tel:+15551234567"
+                      class="text-primary hover:bg-blue-100 p-1 rounded-full"><i
+                        class="fa-solid fa-phone"></i></a></span></div>
+              </div>
+              <div class="flex gap-3"><button
+                  class="btn-action bg-warning text-white hover:bg-amber-600 flex-1 py-2 text-sm"><i
+                    class="fa-solid fa-pen-to-square"></i> Update Job
+                </button><button
+                  class="btn-action btn-secondary flex-1 py-2 text-sm"><i
+                    class="fa-solid fa-camera"></i> Capture Photo
+                </button></div>
+            </div><!-- Job Card 2 (Pending) -->
+            <div
+              class="card p-5 relative overflow-hidden border-l-4 border-l-primary">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <div class="flex items-center gap-2 mb-1"><span
+                      class="status-badge status-pending"><i
+                        class="fa-regular fa-clock"></i> Scheduled</span><span
+                      class="text-xs text-textMuted font-medium bg-gray-100 px-2 py-0.5 rounded">WO-2023-092</span>
+                  </div>
+                  <h3 class="text-lg font-bold text-textMain">1204 Pinecone Way
+                  </h3>
+                  <p
+                    class="text-sm text-textMuted flex items-center gap-1 mt-1">
+                    <i class="fa-regular fa-clock"></i> 12:30 PM - 03:00 PM
+                  </p>
+                </div><button
+                  class="p-2 text-gray-400 hover:text-primary rounded-full hover:bg-blue-50 transition-colors"><i
+                    class="fa-solid fa-ellipsis-vertical"></i></button>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
+                <div class="flex items-center justify-between mb-2"><span
+                    class="text-textMuted font-medium">Task:</span><span
+                    class="text-textMain font-semibold">Initial Assessment &amp;
+                    Quote</span></div>
+                <div class="flex items-center justify-between"><span
+                    class="text-textMuted font-medium">Contact:</span><span
+                    class="text-textMain flex items-center gap-2">
+                    Michael Chang
+                    <a href="tel:+15559876543"
+                      class="text-primary hover:bg-blue-100 p-1 rounded-full"><i
+                        class="fa-solid fa-phone"></i></a></span></div>
+              </div>
+              <div class="flex gap-3"><button
+                  class="btn-action btn-primary flex-1 py-2 text-sm"><i
+                    class="fa-solid fa-play"></i> Start Job
+                </button><button
+                  class="btn-action btn-secondary flex-1 py-2 text-sm"><i
+                    class="fa-solid fa-location-arrow"></i> Navigate
+                </button></div>
+            </div><!-- Job Card 3 (Blocked) -->
+            <div
+              class="card p-5 relative overflow-hidden border-l-4 border-l-danger opacity-90">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <div class="flex items-center gap-2 mb-1"><span
+                      class="status-badge status-blocked"><i
+                        class="fa-solid fa-ban"></i> Blocked</span><span
+                      class="text-xs text-textMuted font-medium bg-gray-100 px-2 py-0.5 rounded">WO-2023-085</span>
+                  </div>
+                  <h3 class="text-lg font-bold text-textMain">1422 Sycamore Ln
+                  </h3>
+                  <p
+                    class="text-sm text-textMuted flex items-center gap-1 mt-1">
+                    <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                    Requires permit approval
+                  </p>
+                </div><button
+                  class="p-2 text-gray-400 hover:text-primary rounded-full hover:bg-blue-50 transition-colors"><i
+                    class="fa-solid fa-ellipsis-vertical"></i></button>
+              </div><button
+                class="w-full btn-action btn-secondary py-2 text-sm border-danger text-danger hover:bg-red-50">
+                View Issue Details
+              </button>
+            </div>
+          </div><!-- Right Column: Pipeline Snapshot & KPIs -->
+          <div class="space-y-6">
+            <!-- Pipeline Snapshot -->
+            <section id="pipeline-snapshot" class="card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-textMain">Pipeline Snapshot
+                </h2><a href="#"
+                  class="text-sm font-medium text-primary hover:text-primaryHover">View
+                  All</a>
+              </div>
+              <div class="space-y-4">
+                <div
+                  class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                      <i class="fa-solid fa-clipboard-question"></i></div>
+                    <div>
+                      <p class="font-semibold text-textMain">Assessments</p>
+                      <p class="text-xs text-textMuted">Pending review</p>
+                    </div>
+                  </div><span class="text-xl font-bold text-textMain">12</span>
+                </div>
+                <div
+                  class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                      <i class="fa-solid fa-file-invoice-dollar"></i></div>
+                    <div>
+                      <p class="font-semibold text-textMain">Quotes</p>
+                      <p class="text-xs text-textMuted">Awaiting approval</p>
+                    </div>
+                  </div><span class="text-xl font-bold text-textMain">8</span>
+                </div>
+                <div
+                  class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                      <i class="fa-solid fa-person-digging"></i></div>
+                    <div>
+                      <p class="font-semibold text-textMain">Active Jobs</p>
+                      <p class="text-xs text-textMuted">In progress</p>
+                    </div>
+                  </div><span class="text-xl font-bold text-textMain">24</span>
+                </div>
+                <div
+                  class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                      <i class="fa-solid fa-file-shield"></i></div>
+                    <div>
+                      <p class="font-semibold text-textMain">Compliance Docs</p>
+                      <p class="text-xs text-textMuted">Ready to generate</p>
+                    </div>
+                  </div><span class="text-xl font-bold text-textMain">5</span>
+                </div>
+              </div>
+            </section><!-- Quick Sync Status Card (Mobile/Tablet focus) -->
+            <section class="card p-5 xl:hidden">
+              <h2
+                class="text-sm font-bold text-textMuted uppercase tracking-wider mb-3">
+                System Status</h2>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <i class="fa-solid fa-wifi"></i></div>
+                  <div>
+                    <p class="font-semibold text-textMain">Online</p>
+                    <p class="text-xs text-textMuted">Last synced: 2 min ago</p>
+                  </div>
+                </div><button
+                  class="p-2 text-primary hover:bg-blue-50 rounded-full transition-colors"><i
+                    class="fa-solid fa-rotate"></i></button>
+              </div>
+            </section>
+          </div>
+        </div><!-- Dashboard Chart Section (Admin/KPI focus) -->
+        <section id="kpi-chart-section" class="mt-8 mb-8"></section>
+      </div>
+    </main><!-- Mobile Bottom Navigation Bar (Fixed) -->
+    <nav id="mobile-bottom-nav"
+      class="xl:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border flex justify-around items-center h-20 pb-safe z-50 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <a href="#"
+        class="flex flex-col items-center justify-center w-16 h-full text-primary"><i
+          class="fa-solid fa-house text-xl mb-1"></i><span
+          class="text-[10px] font-medium">Home</span></a><a href="#"
+        class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors"><i
+          class="fa-solid fa-map-location-dot text-xl mb-1"></i><span
+          class="text-[10px] font-medium">Pipeline</span></a>
+      <!-- Center Floating Action Button -->
+      <div class="relative -top-5"><button
+          class="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primaryHover transition-transform hover:scale-105 border-4 border-white"><i
+            class="fa-solid fa-plus text-xl"></i></button></div><a href="#"
+        class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors"><i
+          class="fa-solid fa-clipboard-list text-xl mb-1"></i><span
+          class="text-[10px] font-medium">Jobs</span></a><a href="#"
+        class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors"><i
+          class="fa-solid fa-bars text-xl mb-1"></i><span
+          class="text-[10px] font-medium">Menu</span></a>
+    </nav><!-- Plotly Chart Script -->
+    <script>
+      window.addEventListener('load', function()
+      {
+        try
+        {
+          var trace1 = {
+            x: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            y: [4, 6, 3, 7, 5, 2],
+            name: 'Completed',
+            type: 'bar',
+            marker:
+            {
+              color: '#10b981'
+            }
+          };
+
+          var trace2 = {
+            x: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            y: [1, 2, 0, 1, 3, 0],
+            name: 'Pending/Blocked',
+            type: 'bar',
+            marker:
+            {
+              color: '#f59e0b'
+            }
+          };
+
+          var data = [trace1, trace2];
+
+          var layout = {
+            barmode: 'stack',
+            margin:
+            {
+              t: 10,
+              r: 10,
+              b: 40,
+              l: 40
+            },
+            plot_bgcolor: '#ffffff',
+            paper_bgcolor: '#ffffff',
+            showlegend: true,
+            legend:
+            {
+              orientation: 'h',
+              y: -0.2
+            },
+            xaxis:
+            {
+              fixedrange: true
+            },
+            yaxis:
+            {
+              fixedrange: true,
+              gridcolor: '#e2e8f0'
+            }
+          };
+
+          var config = {
+            responsive: true,
+            displayModeBar: false,
+            displaylogo: false
+          };
+
+          Plotly.newPlot('performance-chart', data, layout, config);
+        }
+        catch (e)
+        {
+          console.error("Chart rendering error:", e);
+          document.getElementById('performance-chart').innerHTML =
+            '<div class="w-full h-full flex items-center justify-center bg-gray-50 text-gray-400 rounded-lg">Chart data unavailable</div>';
+        }
+      });
+    </script>
+  </body>
+
+</html>

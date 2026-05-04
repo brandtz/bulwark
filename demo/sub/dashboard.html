@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <title>My Jobs — Bulwark Subcontractor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared/demo.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { font-family: 'Inter', sans-serif; background: #f8fafc; }</style>
+</head>
+<body class="text-slate-900 antialiased">
+  <div class="flex min-h-screen flex-col md:flex-row">
+    <aside class="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-col shrink-0 sticky top-0 h-screen">
+      <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+        <div class="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+        <div><div class="text-white text-lg font-bold leading-tight">Bulwark</div><div class="text-[11px] text-purple-400 uppercase tracking-wider">Sub Portal</div></div>
+      </div>
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        <a href="/sub/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-purple-600 text-white font-medium"><i class="fa-solid fa-clipboard-list w-5 text-center"></i> My Jobs</a>
+        <a href="/sub/profile" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-user w-5 text-center"></i> Profile</a>
+      </nav>
+      <div class="p-4 border-t border-slate-800 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-purple-600/40 flex items-center justify-center text-white font-semibold">NW</div>
+        <div class="text-xs">
+          <div class="text-white font-medium">NW Roofing Co.</div>
+          <div class="text-slate-400">Subcontractor</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0 pb-20 md:pb-0">
+      <header class="bg-white border-b border-slate-200 px-4 md:px-6 py-4 sticky top-0 z-30">
+        <div class="text-xs text-slate-500">NW Roofing Co. · Subcontractor</div>
+        <h1 class="text-xl font-bold">My Assigned Jobs</h1>
+      </header>
+
+      <div class="p-4 md:p-6 max-w-3xl space-y-4">
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-white border border-slate-200 rounded-xl p-4"><div class="text-xs text-slate-500 uppercase tracking-wider">Active</div><div class="text-2xl font-bold mt-1">4</div></div>
+          <div class="bg-white border border-slate-200 rounded-xl p-4"><div class="text-xs text-slate-500 uppercase tracking-wider">This week</div><div class="text-2xl font-bold mt-1">7</div></div>
+          <div class="bg-white border border-slate-200 rounded-xl p-4"><div class="text-xs text-slate-500 uppercase tracking-wider">Completed</div><div class="text-2xl font-bold mt-1">128</div></div>
+        </div>
+
+        <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold pt-2">Today's schedule</div>
+
+        <a href="/sub/job-detail" class="block bg-white border border-slate-200 rounded-xl p-5 hover:border-purple-600 transition-colors active:scale-[.99]">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Assignment SUB-2026-051 · Roofing</div>
+              <div class="font-semibold">Class A roof replacement</div>
+              <div class="text-sm text-slate-600 mt-0.5">14820 Pine Ridge Rd, Sisters OR</div>
+            </div>
+            <span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded-full">In Progress</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-500"><span><i class="fa-solid fa-calendar mr-1"></i>May 3 · 8:30 AM</span><span><i class="fa-solid fa-clock mr-1"></i>Est. 2 days</span><span><i class="fa-solid fa-user mr-1"></i>GC: Drew W.</span></div>
+        </a>
+
+        <a href="/sub/job-detail" class="block bg-white border border-slate-200 rounded-xl p-5 hover:border-purple-600 transition-colors active:scale-[.99]">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Assignment SUB-2026-049 · Roofing</div>
+              <div class="font-semibold">Ember-resistant vent install</div>
+              <div class="text-sm text-slate-600 mt-0.5">2845 NE Cascade Loop, Bend OR</div>
+            </div>
+            <span class="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-full">Scheduled</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-500"><span><i class="fa-solid fa-calendar mr-1"></i>May 5 · 9:00 AM</span><span><i class="fa-solid fa-clock mr-1"></i>Est. 4 hrs</span></div>
+        </a>
+
+        <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold pt-3">Upcoming</div>
+
+        <a href="/sub/job-detail" class="block bg-white border border-slate-200 rounded-xl p-5 hover:border-purple-600 transition-colors">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Assignment SUB-2026-053 · Roofing</div>
+              <div class="font-semibold">Gutter screen install</div>
+              <div class="text-sm text-slate-600 mt-0.5">381 Aspen Glen Dr, La Pine OR</div>
+            </div>
+            <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-1 rounded-full">Pending</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-500 mt-3"><span><i class="fa-solid fa-calendar mr-1"></i>May 9 · TBD</span></div>
+        </a>
+
+        <a href="/sub/job-detail" class="block bg-white border border-slate-200 rounded-xl p-5 hover:border-purple-600 transition-colors">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Assignment SUB-2026-054 · Roofing</div>
+              <div class="font-semibold">Class A reroof + soffit retrofit</div>
+              <div class="text-sm text-slate-600 mt-0.5">412 Crooked River Way, Madras OR</div>
+            </div>
+            <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-1 rounded-full">Pending</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-500 mt-3"><span><i class="fa-solid fa-calendar mr-1"></i>May 12 · 8:00 AM</span><span><i class="fa-solid fa-clock mr-1"></i>Est. 3 days</span></div>
+        </a>
+
+        <div class="text-xs text-slate-500 italic pt-2">Note: Subcontractors see assignment scope and schedule only — pricing and homeowner financials are hidden by design.</div>
+      </div>
+    </main>
+
+    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 grid grid-cols-2 z-40">
+      <a href="/sub/dashboard" class="py-3 flex flex-col items-center text-purple-600"><i class="fa-solid fa-clipboard-list"></i><span class="text-[10px] mt-1 font-semibold">Jobs</span></a>
+      <a href="/sub/profile" class="py-3 flex flex-col items-center text-slate-500"><i class="fa-solid fa-user"></i><span class="text-[10px] mt-1">Profile</span></a>
+    </nav>
+  </div>
+  <script src="/shared/demo.js"></script>
+</body>
+</html>

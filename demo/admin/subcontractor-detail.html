@@ -1,0 +1,506 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="m-0 p-0 h-full w-full">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subcontractor Detail - Bulwark Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        darkBg: '#0f172a',
+                        lightBg: '#f8fafc',
+                        amberAlert: '#f59e0b',
+                        redAlert: '#ef4444',
+                        textMain: '#111827',
+                        textMuted: '#6b7280',
+                        borderLight: '#e5e7eb'
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<link rel="stylesheet" href="/shared/demo.css">
+</head>
+<body class="m-0 p-0 h-full w-full bg-lightBg text-textMain antialiased flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex flex-col w-64 bg-darkBg text-white h-screen shrink-0 relative z-20" id="desktop-sidebar">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+            </div>
+            <span class="text-white text-xl font-bold tracking-tight">Bulwark</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                Home
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                Pipeline
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                Jobs
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                Quotes
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] bg-primary text-white font-medium mt-4">
+                <i class="fa-solid fa-users-gear w-5 text-center"></i>
+                Subcontractors
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-bars w-5 text-center"></i>
+                Menu
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative z-10" id="main-content">
+        
+        <!-- Mobile Top Bar -->
+        <header class="md:hidden bg-white border-b border-borderLight px-4 py-3 flex items-center justify-between shrink-0" id="mobile-topbar">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                    <i class="fa-solid fa-shield-halved text-sm"></i>
+                </div>
+                <span class="text-textMain text-lg font-bold tracking-tight">Bulwark</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg min-w-[48px] min-h-[48px] flex items-center justify-center">
+                    <i class="fa-regular fa-bell text-xl"></i>
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border border-borderLight">
+            </div>
+        </header>
+
+        <!-- Desktop Header -->
+        <header class="hidden md:flex bg-white border-b border-borderLight px-6 py-4 items-center justify-between shrink-0" id="desktop-header">
+            <div class="flex items-center gap-4">
+                <a href="#" class="text-textMuted hover:text-textMain transition-colors flex items-center gap-2 text-sm font-medium">
+                    <i class="fa-solid fa-arrow-left"></i> Back to List
+                </a>
+                <div class="h-6 w-px bg-borderLight"></div>
+                <h1 class="text-xl font-bold text-textMain">Subcontractor Detail</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="edit-toggle-btn" class="bg-white border border-borderLight hover:bg-gray-50 text-textMain px-4 py-2 rounded-[8px] font-medium text-sm flex items-center gap-2 transition-colors shadow-subtle">
+                    <i class="fa-solid fa-pen"></i> Edit Mode
+                </button>
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-borderLight">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-9 h-9 rounded-full object-cover border border-borderLight">
+                    <div class="text-sm">
+                        <div class="font-semibold text-textMain">Mike T.</div>
+                        <div class="text-xs text-textMuted">Field / GC</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto bg-lightBg pb-24 md:pb-8 relative" id="dashboard-scroll-area">
+            
+            <!-- Mobile Breadcrumb -->
+            <div class="md:hidden px-4 py-3 bg-white border-b border-borderLight flex items-center">
+                <a href="#" class="text-textMuted hover:text-textMain transition-colors flex items-center gap-2 text-sm font-medium">
+                    <i class="fa-solid fa-arrow-left"></i> Subcontractor List
+                </a>
+            </div>
+
+            <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+                <!-- Profile Header Section -->
+                <section id="profile-header" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6 md:p-8 relative">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                        <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
+                            <div class="relative">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" class="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-subtle" alt="Avatar">
+                                <button class="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full border border-borderLight shadow-sm flex items-center justify-center text-textMuted hover:text-primary transition-colors hidden edit-mode-only">
+                                    <i class="fa-solid fa-camera text-sm"></i>
+                                </button>
+                            </div>
+                            <div class="text-center md:text-left space-y-3">
+                                <div>
+                                    <h2 class="text-2xl md:text-3xl font-bold text-textMain">Apex Roofing Co.</h2>
+                                    <div class="text-lg text-textMuted mt-1">James Brown</div>
+                                </div>
+                                <div class="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                                    <span class="px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-md border border-blue-100">Roofing</span>
+                                    <span class="px-3 py-1 bg-gray-50 text-gray-600 text-sm font-medium rounded-md border border-gray-200">General</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col items-center md:items-end gap-4">
+                            <div class="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-[8px] border border-borderLight">
+                                <span class="text-sm font-medium text-textMain">Status:</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" value="" class="sr-only peer" checked disabled id="status-toggle">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                    <span class="ml-3 text-sm font-semibold text-green-700" id="status-text">Active</span>
+                                </label>
+                            </div>
+                            <button class="text-redAlert hover:text-red-700 text-sm font-medium transition-colors hidden md:block">
+                                <i class="fa-solid fa-ban mr-1"></i> Deactivate Subcontractor
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Action Buttons -->
+                    <div class="md:hidden mt-6 grid grid-cols-2 gap-4">
+                        <a href="tel:+15551234567" class="flex flex-col items-center justify-center gap-2 bg-primary text-white font-medium rounded-[12px] p-4 shadow-subtle">
+                            <i class="fa-solid fa-phone text-xl"></i>
+                            <span>Call</span>
+                        </a>
+                        <a href="mailto:james@apexroof.com" class="flex flex-col items-center justify-center gap-2 bg-white border border-borderLight text-textMain font-medium rounded-[12px] p-4 shadow-subtle">
+                            <i class="fa-solid fa-envelope text-xl"></i>
+                            <span>Email</span>
+                        </a>
+                    </div>
+                </section>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Contact & Compliance Details -->
+                    <section id="contact-details-grid" class="lg:col-span-1 space-y-6">
+                        <div class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                            <h3 class="text-lg font-bold text-textMain border-b border-borderLight pb-4 mb-4">Contact Information</h3>
+                            <div class="space-y-4">
+                                <div class="form-group">
+                                    <label class="block text-xs font-semibold text-textMuted uppercase tracking-wider mb-1">Business Name <span class="text-gray-400 font-normal lowercase">(Optional)</span></label>
+                                    <input type="text" class="w-full text-sm text-textMain bg-transparent border-0 p-0 focus:ring-0 read-only-input" value="Apex Roofing Co." readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label class="block text-xs font-semibold text-textMuted uppercase tracking-wider mb-1">Primary Contact <span class="text-redAlert">*</span></label>
+                                    <input type="text" class="w-full text-sm text-textMain bg-transparent border-0 p-0 focus:ring-0 read-only-input" value="James Brown" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label class="block text-xs font-semibold text-textMuted uppercase tracking-wider mb-1">Phone <span class="text-redAlert">*</span></label>
+                                    <input type="tel" class="w-full text-sm text-textMain bg-transparent border-0 p-0 focus:ring-0 read-only-input" value="(555) 123-4567" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label class="block text-xs font-semibold text-textMuted uppercase tracking-wider mb-1">Email <span class="text-gray-400 font-normal lowercase">(Optional)</span></label>
+                                    <input type="email" class="w-full text-sm text-textMain bg-transparent border-0 p-0 focus:ring-0 read-only-input" value="james@apexroof.com" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                            <h3 class="text-lg font-bold text-textMain border-b border-borderLight pb-4 mb-4">Compliance & Licensing</h3>
+                            <div class="space-y-5">
+                                <div class="form-group">
+                                    <label class="block text-xs font-semibold text-textMuted uppercase tracking-wider mb-1">CCB License Number <span class="text-redAlert">*</span></label>
+                                    <input type="text" class="w-full text-sm font-medium text-textMain bg-transparent border-0 p-0 focus:ring-0 read-only-input" value="#889234" readonly>
+                                </div>
+                                
+                                <div class="form-group p-3 bg-amber-50 border border-amber-200 rounded-[8px]">
+                                    <div class="flex items-start justify-between">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-amber-800 uppercase tracking-wider mb-1">License Expiry</label>
+                                            <input type="date" class="w-full text-sm font-medium text-amber-900 bg-transparent border-0 p-0 focus:ring-0 read-only-input" value="2024-11-12" readonly>
+                                        </div>
+                                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-amberAlert text-white" title="Expires in < 60 days">
+                                            <i class="fa-solid fa-exclamation text-xs"></i>
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-amber-700 mt-2 font-medium">Expires in 45 days</div>
+                                </div>
+
+                                <div class="form-group p-3 bg-gray-50 border border-borderLight rounded-[8px]">
+                                    <label class="block text-xs font-semibold text-textMuted uppercase tracking-wider mb-1">Insurance Cert. Expiry</label>
+                                    <input type="date" class="w-full text-sm font-medium text-textMain bg-transparent border-0 p-0 focus:ring-0 read-only-input" value="2025-06-15" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Main Content Area -->
+                    <div class="lg:col-span-2 space-y-6">
+                        
+                        <!-- Specialties & Notes -->
+                        <section id="trade-specialties-management" class="bg-white rounded-[16px] shadow-subtle border border-borderLight p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h3 class="text-lg font-bold text-textMain mb-4">Trade Specialties</h3>
+                                    <div class="flex flex-wrap gap-2" id="specialty-chips">
+                                        <span class="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-medium rounded-md border border-blue-100 flex items-center gap-2">
+                                            Roofing <button class="text-blue-400 hover:text-blue-700 hidden edit-mode-only"><i class="fa-solid fa-xmark"></i></button>
+                                        </span>
+                                        <span class="px-3 py-1.5 bg-gray-50 text-gray-600 text-sm font-medium rounded-md border border-gray-200 flex items-center gap-2">
+                                            General <button class="text-gray-400 hover:text-gray-700 hidden edit-mode-only"><i class="fa-solid fa-xmark"></i></button>
+                                        </span>
+                                        <button class="px-3 py-1.5 border border-dashed border-borderLight text-textMuted text-sm font-medium rounded-md hover:bg-gray-50 hidden edit-mode-only transition-colors">
+                                            <i class="fa-solid fa-plus mr-1"></i> Add Trade
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-textMain mb-4">Internal Notes</h3>
+                                    <textarea class="w-full h-32 p-3 text-sm text-textMain bg-gray-50 border border-transparent rounded-[8px] focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary read-only-textarea resize-none" readonly>Reliable sub. Prefers morning jobs. Has a crew of 4. Good communication on site. Need to verify updated insurance cert before end of year.</textarea>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Job History Table -->
+                        <section id="job-history-table" class="bg-white rounded-[16px] shadow-subtle border border-borderLight overflow-hidden">
+                            <div class="p-6 border-b border-borderLight flex items-center justify-between">
+                                <h3 class="text-lg font-bold text-textMain">Job History</h3>
+                                <button class="text-sm font-medium text-primary hover:text-primaryHover transition-colors">View All</button>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50 border-b border-borderLight">
+                                            <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Property Address</th>
+                                            <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Trade</th>
+                                            <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Scheduled Date</th>
+                                            <th class="px-6 py-4 text-xs font-semibold text-textMuted uppercase tracking-wider">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-borderLight">
+                                        <tr class="hover:bg-lightBg transition-colors">
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-semibold text-textMain">123 Pine Ridge Rd.</div>
+                                                <div class="text-xs text-textMuted">WO-2023-089</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="text-sm text-textMain">Roofing</span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm text-textMain">Oct 15, 2023</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">In Progress</span>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-lightBg transition-colors">
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-semibold text-textMain">874 Oak St.</div>
+                                                <div class="text-xs text-textMuted">WO-2023-072</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="text-sm text-textMain">Roofing</span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm text-textMain">Sep 28, 2023</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Complete</span>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-lightBg transition-colors">
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-semibold text-textMain">55 Maple Ave.</div>
+                                                <div class="text-xs text-textMuted">WO-2023-041</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="text-sm text-textMain">General</span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm text-textMain">Aug 12, 2023</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Complete</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination Footer -->
+                            <div class="p-4 border-t border-borderLight flex items-center justify-between bg-gray-50">
+                                <span class="text-sm text-textMuted">Showing 1 to 3 of 12 jobs</span>
+                                <div class="flex items-center gap-2">
+                                    <button disabled class="w-8 h-8 rounded border border-borderLight flex items-center justify-center text-gray-400 bg-white cursor-not-allowed">
+                                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                                    </button>
+                                    <button class="w-8 h-8 rounded border border-borderLight flex items-center justify-center text-textMain bg-white hover:bg-gray-50">
+                                        1
+                                    </button>
+                                    <button class="w-8 h-8 rounded border border-borderLight flex items-center justify-center text-textMain bg-white hover:bg-gray-50">
+                                        2
+                                    </button>
+                                    <button class="w-8 h-8 rounded border border-borderLight flex items-center justify-center text-textMain bg-white hover:bg-gray-50">
+                                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                    </div>
+                </div>
+
+                <!-- Deactivate Button Mobile -->
+                <div class="md:hidden pt-4 pb-8">
+                    <button class="w-full py-3 border border-redAlert text-redAlert font-medium rounded-[12px] hover:bg-red-50 transition-colors bg-white">
+                        Deactivate Subcontractor
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Sticky Action Footer (Hidden by default, shown in edit mode) -->
+        <div id="sticky-action-footer" class="hidden absolute bottom-0 left-0 w-full bg-white border-t border-borderLight p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-30 md:bottom-0 bottom-16">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="text-sm text-textMuted hidden md:block">
+                    <i class="fa-solid fa-circle-info mr-1"></i> You are in edit mode. Changes auto-save.
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                    <button id="cancel-edit-btn" class="px-6 py-2.5 bg-white border border-borderLight text-textMain font-medium rounded-[8px] hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="save-edit-btn" class="px-6 py-2.5 bg-primary text-white font-medium rounded-[8px] hover:bg-primaryHover transition-colors shadow-subtle flex-1 md:flex-none">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-borderLight flex justify-around items-center h-16 px-2 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" id="mobile-bottom-nav">
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-house mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-layer-group mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <div class="relative w-full flex justify-center h-full">
+            <button class="absolute -top-5 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-lightBg hover:bg-primaryHover transition-colors">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-clipboard-list mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-primary min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-bars mb-1 text-lg"></i>
+            <span class="text-[10px] font-bold">Menu</span>
+        </a>
+    </nav>
+
+    <script>
+        // Simple script to demonstrate edit mode toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const editBtn = document.getElementById('edit-toggle-btn');
+            const cancelBtn = document.getElementById('cancel-edit-btn');
+            const saveBtn = document.getElementById('save-edit-btn');
+            const stickyFooter = document.getElementById('sticky-action-footer');
+            const inputs = document.querySelectorAll('.read-only-input');
+            const textareas = document.querySelectorAll('.read-only-textarea');
+            const editOnlyElements = document.querySelectorAll('.edit-mode-only');
+            const statusToggle = document.getElementById('status-toggle');
+            
+            function toggleEditMode(enable) {
+                if (enable) {
+                    stickyFooter.classList.remove('hidden');
+                    editBtn.classList.add('bg-primary', 'text-white');
+                    editBtn.classList.remove('bg-white', 'text-textMain');
+                    
+                    inputs.forEach(input => {
+                        input.removeAttribute('readonly');
+                        input.classList.remove('bg-transparent', 'border-0', 'p-0');
+                        input.classList.add('bg-white', 'border', 'border-borderLight', 'rounded-[6px]', 'px-3', 'py-2');
+                    });
+                    
+                    textareas.forEach(ta => {
+                        ta.removeAttribute('readonly');
+                        ta.classList.add('bg-white', 'border-borderLight');
+                        ta.classList.remove('bg-gray-50', 'border-transparent');
+                    });
+                    
+                    editOnlyElements.forEach(el => el.classList.remove('hidden'));
+                    statusToggle.removeAttribute('disabled');
+                    
+                } else {
+                    stickyFooter.classList.add('hidden');
+                    editBtn.classList.remove('bg-primary', 'text-white');
+                    editBtn.classList.add('bg-white', 'text-textMain');
+                    
+                    inputs.forEach(input => {
+                        input.setAttribute('readonly', true);
+                        input.classList.add('bg-transparent', 'border-0', 'p-0');
+                        input.classList.remove('bg-white', 'border', 'border-borderLight', 'rounded-[6px]', 'px-3', 'py-2');
+                    });
+                    
+                    textareas.forEach(ta => {
+                        ta.setAttribute('readonly', true);
+                        ta.classList.remove('bg-white', 'border-borderLight');
+                        ta.classList.add('bg-gray-50', 'border-transparent');
+                    });
+                    
+                    editOnlyElements.forEach(el => el.classList.add('hidden'));
+                    statusToggle.setAttribute('disabled', true);
+                }
+            }
+            
+            if(editBtn) editBtn.addEventListener('click', () => toggleEditMode(true));
+            if(cancelBtn) cancelBtn.addEventListener('click', () => toggleEditMode(false));
+            if(saveBtn) saveBtn.addEventListener('click', () => toggleEditMode(false));
+            
+            // Status toggle logic
+            if(statusToggle) {
+                statusToggle.addEventListener('change', function() {
+                    const text = document.getElementById('status-text');
+                    if(this.checked) {
+                        text.textContent = 'Active';
+                        text.classList.remove('text-gray-500');
+                        text.classList.add('text-green-700');
+                    } else {
+                        text.textContent = 'Inactive';
+                        text.classList.remove('text-green-700');
+                        text.classList.add('text-gray-500');
+                    }
+                });
+            }
+        });
+    </script>
+    <script src="/shared/demo.js"></script>
+</body>
+</html>

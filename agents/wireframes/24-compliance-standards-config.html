@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en" class="m-0 p-0 h-full w-full">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Standards Config - Bulwark Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        darkBg: '#0f172a',
+                        lightBg: '#f8fafc',
+                        amberAlert: '#f59e0b',
+                        redAlert: '#ef4444',
+                        textMain: '#111827',
+                        textMuted: '#6b7280',
+                        borderLight: '#e5e7eb',
+                        greenAlert: '#16a34a',
+                        grayStatus: '#6b7280',
+                        blueStatus: '#3b82f6',
+                        greenStatus: '#15803d',
+                        redStatus: '#ef4444',
+                        sidebarSecondary: '#f8fafc'
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        'accordion': '0 2px 8px -2px rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #22c55e;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #22c55e;
+        }
+        .toggle-checkbox:not(:checked) {
+            border-color: #ef4444;
+        }
+        .toggle-checkbox:not(:checked) + .toggle-label {
+            background-color: #ef4444;
+        }
+        
+        .accordion-content {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .accordion-content.expanded {
+            max-height: 1000px; /* Arbitrary large number */
+            opacity: 1;
+        }
+        .chevron {
+            transition: transform 0.3s ease;
+        }
+        .chevron.expanded {
+            transform: rotate(180deg);
+        }
+        
+        /* Drag handle cursor */
+        .drag-handle {
+            cursor: grab;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="m-0 p-0 h-full w-full bg-lightBg text-textMain antialiased flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Desktop Sidebar (Primary) -->
+    <aside class="hidden md:flex flex-col w-64 bg-darkBg text-white h-screen shrink-0 relative z-20" id="desktop-sidebar">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+            </div>
+            <span class="text-white text-xl font-bold tracking-tight">Bulwark</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                Home
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                Pipeline
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                Jobs
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                Quotes
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-invoice w-5 text-center"></i>
+                Invoices
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                Compliance Docs
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] bg-primary text-white font-medium">
+                <i class="fa-solid fa-bars w-5 text-center"></i>
+                Menu
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative z-10" id="main-content">
+        
+        <!-- Mobile Top Bar -->
+        <header class="md:hidden bg-white border-b border-borderLight px-4 py-3 flex items-center justify-between shrink-0" id="mobile-topbar">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center text-white">
+                    <i class="fa-solid fa-shield-halved text-sm"></i>
+                </div>
+                <span class="text-textMain text-lg font-bold tracking-tight">Bulwark</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg min-w-[48px] min-h-[48px] flex items-center justify-center">
+                    <i class="fa-regular fa-bell text-xl"></i>
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border border-borderLight">
+            </div>
+        </header>
+
+        <!-- Desktop Header -->
+        <header class="hidden md:flex bg-white border-b border-borderLight px-6 py-4 items-center justify-between shrink-0" id="desktop-header">
+            <div class="flex items-center gap-4">
+                <nav class="flex text-sm text-textMuted font-medium" aria-label="Breadcrumb">
+                    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                        <li class="inline-flex items-center">
+                            <a href="#" class="hover:text-textMain transition-colors">Menu</a>
+                        </li>
+                        <li>
+                            <div class="flex items-center">
+                                <i class="fa-solid fa-chevron-right text-xs mx-2"></i>
+                                <span class="text-textMain">Settings & Administration</span>
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-textMuted"></i>
+                    <input type="text" placeholder="Search..." class="pl-10 pr-4 py-2 border border-borderLight rounded-[8px] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64">
+                </div>
+                <button class="relative p-2 text-textMuted hover:text-textMain transition-colors rounded-full hover:bg-lightBg">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-redAlert rounded-full border-2 border-white"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-borderLight">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User Avatar" class="w-9 h-9 rounded-full object-cover border border-borderLight">
+                    <div class="text-sm">
+                        <div class="font-semibold text-textMain">Mike T.</div>
+                        <div class="text-xs text-textMuted">Admin</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Three-Panel Settings Layout -->
+        <div class="flex-1 flex overflow-hidden bg-white">
+            
+            <!-- Secondary Sidebar (Settings Nav) -->
+            <aside class="hidden md:flex flex-col w-64 bg-sidebarSecondary border-r border-borderLight shrink-0 overflow-y-auto" id="settings-sidebar">
+                <div class="p-6">
+                    <h2 class="text-2xl font-bold text-textMain mb-6">Settings</h2>
+                    
+                    <div class="space-y-6">
+                        <!-- Organization Section -->
+                        <div>
+                            <h3 class="text-xs font-bold text-textMuted uppercase tracking-wider mb-3 px-3">Organization</h3>
+                            <nav class="space-y-1">
+                                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-textMuted hover:bg-gray-100 transition-colors">
+                                    <i class="fa-solid fa-building w-5 text-center"></i>
+                                    <span class="text-sm font-medium">Company & GC Info</span>
+                                </a>
+                                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-textMuted hover:bg-gray-100 transition-colors">
+                                    <i class="fa-solid fa-users w-5 text-center"></i>
+                                    <span class="text-sm font-medium">User Management</span>
+                                </a>
+                                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] bg-blue-50 text-primary transition-colors">
+                                    <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                                    <span class="text-sm font-medium">Compliance Config</span>
+                                </a>
+                            </nav>
+                        </div>
+
+                        <!-- Account Section -->
+                        <div>
+                            <h3 class="text-xs font-bold text-textMuted uppercase tracking-wider mb-3 px-3">Account</h3>
+                            <nav class="space-y-1">
+                                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-textMuted hover:bg-gray-100 transition-colors">
+                                    <i class="fa-solid fa-user w-5 text-center"></i>
+                                    <span class="text-sm font-medium">My Profile</span>
+                                </a>
+                                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-textMuted hover:bg-gray-100 transition-colors">
+                                    <i class="fa-solid fa-bell w-5 text-center"></i>
+                                    <span class="text-sm font-medium">Notifications</span>
+                                </a>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Panel (Compliance Config) -->
+            <div class="flex-1 flex flex-col overflow-hidden relative" id="settings-main-content">
+                
+                <!-- Warning Banner (Active state) -->
+                <div class="bg-red-50 border-b border-red-200 p-4 flex items-start sm:items-center gap-3 shrink-0" id="warning-banner">
+                    <i class="fa-solid fa-triangle-exclamation text-redAlert mt-0.5 sm:mt-0"></i>
+                    <div class="flex-1">
+                        <p class="text-sm text-red-800 font-medium">Changing this will flag 12 active properties as non-compliant. Continue?</p>
+                    </div>
+                    <button class="text-red-800 hover:text-red-900 text-sm font-medium underline">Review Impact</button>
+                    <button class="p-1 text-red-400 hover:text-red-600 rounded-full hover:bg-red-100 transition-colors" onclick="document.getElementById('warning-banner').style.display='none'">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto pb-32 md:pb-24 px-4 sm:px-6 md:px-8 pt-8">
+                    <div class="max-w-4xl mx-auto w-full space-y-8">
+                        
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h1 class="text-2xl font-bold text-textMain">Compliance Standards Config</h1>
+                                <p class="text-sm text-textMuted mt-1">Configure wildfire material compliance rules and standards.</p>
+                            </div>
+                            <div class="hidden md:flex items-center gap-3">
+                                <button class="px-4 py-2 bg-primary text-white font-medium rounded-[8px] hover:bg-primaryHover transition-colors shadow-subtle flex items-center justify-center gap-2">
+                                    Save Changes
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Accordion Group -->
+                        <div class="space-y-4">
+                            
+                            <!-- Roof Section -->
+                            <div class="bg-white rounded-[1rem] shadow-accordion border border-borderLight overflow-hidden">
+                                <button class="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors focus:outline-none" onclick="toggleAccordion('roof-content', 'roof-chevron')">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                                            <i class="fa-solid fa-house-chimney"></i>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="flex items-center gap-2">
+                                                <h3 class="text-base font-bold text-textMain">Roof</h3>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-textMuted">OAR 629-044-1030</span>
+                                            </div>
+                                            <p class="text-sm text-textMuted mt-0.5">Roof covering materials and assemblies</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-xs font-bold text-textMuted">4</span>
+                                        <i class="fa-solid fa-chevron-down text-textMuted chevron" id="roof-chevron"></i>
+                                    </div>
+                                </button>
+                                
+                                <div id="roof-content" class="accordion-content border-t border-borderLight bg-gray-50/50">
+                                    <div class="p-6 space-y-3">
+                                        <!-- Item 1 -->
+                                        <div class="flex items-center gap-3 bg-white p-3 rounded-[8px] border border-borderLight shadow-sm group">
+                                            <div class="drag-handle text-textMuted hover:text-textMain px-2">
+                                                <i class="fa-solid fa-grip-vertical"></i>
+                                            </div>
+                                            <input type="text" value="Class A Fire-Retardant Shingles" class="flex-1 px-3 py-2 border border-transparent hover:border-borderLight focus:border-primary focus:ring-1 focus:ring-primary rounded-[6px] text-sm text-textMain bg-transparent focus:bg-white transition-colors">
+                                            
+                                            <div class="flex items-center gap-4 border-l border-borderLight pl-4 ml-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-medium text-greenStatus">Pass</span>
+                                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                                        <input type="checkbox" name="toggle" id="toggle1" checked class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10"/>
+                                                        <label for="toggle1" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                                                    </div>
+                                                </div>
+                                                <button class="text-textMuted hover:text-textMain p-1" onclick="openDeleteModal()">
+                                                    <i class="fa-regular fa-trash-can"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Item 2 -->
+                                        <div class="flex items-center gap-3 bg-white p-3 rounded-[8px] border border-borderLight shadow-sm group">
+                                            <div class="drag-handle text-textMuted hover:text-textMain px-2">
+                                                <i class="fa-solid fa-grip-vertical"></i>
+                                            </div>
+                                            <input type="text" value="Metal Roofing (Steel, Copper, Aluminum)" class="flex-1 px-3 py-2 border border-transparent hover:border-borderLight focus:border-primary focus:ring-1 focus:ring-primary rounded-[6px] text-sm text-textMain bg-transparent focus:bg-white transition-colors">
+                                            
+                                            <div class="flex items-center gap-4 border-l border-borderLight pl-4 ml-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-medium text-greenStatus">Pass</span>
+                                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                                        <input type="checkbox" name="toggle" id="toggle2" checked class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10"/>
+                                                        <label for="toggle2" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                                                    </div>
+                                                </div>
+                                                <button class="text-textMuted hover:text-textMain p-1" onclick="openDeleteModal()">
+                                                    <i class="fa-regular fa-trash-can"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Item 3 -->
+                                        <div class="flex items-center gap-3 bg-white p-3 rounded-[8px] border border-borderLight shadow-sm group">
+                                            <div class="drag-handle text-textMuted hover:text-textMain px-2">
+                                                <i class="fa-solid fa-grip-vertical"></i>
+                                            </div>
+                                            <input type="text" value="Untreated Wood Shakes" class="flex-1 px-3 py-2 border border-transparent hover:border-borderLight focus:border-primary focus:ring-1 focus:ring-primary rounded-[6px] text-sm text-textMain bg-transparent focus:bg-white transition-colors">
+                                            
+                                            <div class="flex items-center gap-4 border-l border-borderLight pl-4 ml-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-medium text-redStatus">Fail</span>
+                                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                                        <input type="checkbox" name="toggle" id="toggle3" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10"/>
+                                                        <label for="toggle3" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                                                    </div>
+                                                </div>
+                                                <button class="text-textMuted hover:text-textMain p-1" onclick="openDeleteModal()">
+                                                    <i class="fa-regular fa-trash-can"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Add Button -->
+                                        <button class="mt-4 flex items-center gap-2 text-primary hover:text-primaryHover text-sm font-medium px-2 py-1 transition-colors">
+                                            <i class="fa-solid fa-plus"></i> Add Option
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Siding Section -->
+                            <div class="bg-white rounded-[1rem] shadow-accordion border border-borderLight overflow-hidden">
+                                <button class="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors focus:outline-none" onclick="toggleAccordion('siding-content', 'siding-chevron')">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                                            <i class="fa-solid fa-layer-group"></i>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="flex items-center gap-2">
+                                                <h3 class="text-base font-bold text-textMain">Siding</h3>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-textMuted">OAR 629-044-1040</span>
+                                            </div>
+                                            <p class="text-sm text-textMuted mt-0.5">Exterior wall covering materials</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-xs font-bold text-textMuted">3</span>
+                                        <i class="fa-solid fa-chevron-down text-textMuted chevron" id="siding-chevron"></i>
+                                    </div>
+                                </button>
+                                
+                                <div id="siding-content" class="accordion-content border-t border-borderLight bg-gray-50/50">
+                                    <div class="p-6 space-y-3">
+                                        <!-- Content similar to Roof -->
+                                        <button class="mt-4 flex items-center gap-2 text-primary hover:text-primaryHover text-sm font-medium px-2 py-1 transition-colors">
+                                            <i class="fa-solid fa-plus"></i> Add Option
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Eaves Section -->
+                            <div class="bg-white rounded-[1rem] shadow-accordion border border-borderLight overflow-hidden">
+                                <button class="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors focus:outline-none" onclick="toggleAccordion('eaves-content', 'eaves-chevron')">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                                            <i class="fa-solid fa-arrow-down-up-across-line"></i>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="flex items-center gap-2">
+                                                <h3 class="text-base font-bold text-textMain">Eaves & Soffits</h3>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-textMuted">OAR 629-044-1050</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-xs font-bold text-textMuted">2</span>
+                                        <i class="fa-solid fa-chevron-down text-textMuted chevron" id="eaves-chevron"></i>
+                                    </div>
+                                </button>
+                                <div id="eaves-content" class="accordion-content border-t border-borderLight bg-gray-50/50">
+                                    <div class="p-6"></div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Sticky Footer -->
+                <div class="absolute bottom-0 left-0 w-full bg-white/80 backdrop-blur-md border-t border-borderLight p-4 md:p-6 flex justify-end gap-3 z-20 pb-safe">
+                    <button class="px-6 py-2.5 border border-borderLight bg-white text-textMain font-medium rounded-[8px] hover:bg-gray-50 transition-colors shadow-subtle">
+                        Discard Changes
+                    </button>
+                    <button class="px-6 py-2.5 bg-primary text-white font-medium rounded-[8px] hover:bg-primaryHover transition-colors shadow-subtle">
+                        Save All Changes
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-[1rem] shadow-2xl w-full max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-200" id="delete-modal-content">
+            <div class="p-6">
+                <div class="w-12 h-12 rounded-full bg-red-100 text-redAlert flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-textMain mb-2">Delete Option?</h3>
+                <p class="text-sm text-textMuted mb-4">This option is currently in use on <span class="font-bold text-textMain">3 active assessments</span>. Deleting it will mark those assessments as incomplete. Are you sure you want to continue?</p>
+                
+                <div class="bg-gray-50 p-3 rounded-[8px] border border-borderLight mb-6">
+                    <p class="text-sm font-medium text-textMain">Untreated Wood Shakes</p>
+                </div>
+
+                <div class="flex gap-3 justify-end">
+                    <button onclick="closeDeleteModal()" class="px-4 py-2 border border-borderLight bg-white text-textMain font-medium rounded-[8px] hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="closeDeleteModal()" class="px-4 py-2 bg-redAlert text-white font-medium rounded-[8px] hover:bg-red-600 transition-colors">
+                        Delete Option
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-borderLight flex justify-around items-center h-16 px-2 z-30 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" id="mobile-bottom-nav">
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-house mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-layer-group mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <div class="relative w-full flex justify-center h-full">
+            <button class="absolute -top-5 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-lightBg hover:bg-primaryHover transition-colors">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-textMuted hover:text-textMain min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-clipboard-list mb-1 text-lg"></i>
+            <span class="text-[10px] font-medium">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-full h-full text-primary min-w-[48px] min-h-[48px]">
+            <i class="fa-solid fa-bars mb-1 text-lg"></i>
+            <span class="text-[10px] font-bold">Menu</span>
+        </a>
+    </nav>
+
+    <script>
+        // Accordion Logic
+        function toggleAccordion(contentId, chevronId) {
+            const content = document.getElementById(contentId);
+            const chevron = document.getElementById(chevronId);
+            
+            content.classList.toggle('expanded');
+            chevron.classList.toggle('expanded');
+        }
+
+        // Initialize first accordion as expanded
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleAccordion('roof-content', 'roof-chevron');
+        });
+
+        // Modal Logic
+        function openDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            const content = document.getElementById('delete-modal-content');
+            
+            modal.classList.remove('hidden');
+            // Small delay to allow display:block to apply before animating opacity/transform
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            const content = document.getElementById('delete-modal-content');
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+    </script>
+</body>
+</html>

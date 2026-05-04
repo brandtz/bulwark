@@ -1,0 +1,511 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Orders (Jobs) - Bulwark</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#5D5FEF',
+                        primaryHover: '#4B4DDF',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        success: '#10b981',
+                        surface: '#ffffff',
+                        background: '#f8fafc',
+                        textMain: '#111827',
+                        textMuted: '#6B7280',
+                        border: '#E5E7EB',
+                        sidebar: '#111827',
+                        sidebarText: '#D1D5DB',
+                        sidebarHover: '#1F2937',
+                        sidebarActive: '#5D5FEF',
+                        // Status Colors
+                        statusDraftBg: '#F3F4F6', statusDraftText: '#4B5563',
+                        statusPendingBg: '#EEF2FF', statusPendingText: '#4F46E5',
+                        statusProgressBg: '#FEF3C7', statusProgressText: '#D97706',
+                        statusQuotedBg: '#F3E8FF', statusQuotedText: '#7E22CE',
+                        statusCompleteBg: '#D1FAE5', statusCompleteText: '#059669',
+                        statusBlockedBg: '#FEE2E2', statusBlockedText: '#DC2626',
+                        statusAcceptedBg: '#D1FAE5', statusAcceptedText: '#059669',
+                        statusDeclinedBg: '#FEE2E2', statusDeclinedText: '#DC2626',
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+                        'soft': '0 4px 20px 0 rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+            min-height: 40px;
+        }
+        .btn-primary { background-color: #5D5FEF; color: white; }
+        .btn-primary:hover { background-color: #4B4DDF; transform: translateY(-1px); }
+        .btn-secondary { background-color: white; color: #111827; border-color: #E5E7EB; }
+        .btn-secondary:hover { background-color: #F3F4F6; }
+        .btn-outline { background-color: transparent; color: #111827; border-color: #E5E7EB; }
+        .btn-outline:hover { background-color: #F3F4F6; }
+        .btn-icon { width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.75rem; border: 1px solid #E5E7EB; background: white; color: #6B7280; transition: all 0.2s; }
+        .btn-icon:hover { background: #F3F4F6; color: #111827; }
+
+        .card {
+            background: white;
+            border-radius: 1.25rem;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        /* Mobile Bottom Nav */
+        @media (max-width: 1279px) {
+            .mobile-nav-padding { padding-bottom: 6rem; }
+        }
+        
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            background-color: #f8fafc;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #5D5FEF;
+            box-shadow: 0 0 0 3px rgba(93, 95, 239, 0.1);
+            background-color: white;
+        }
+
+        .filter-chip {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .filter-chip.active {
+            background-color: #111827;
+            color: white;
+        }
+        .filter-chip.inactive {
+            background-color: white;
+            color: #6B7280;
+            border: 1px solid #E5E7EB;
+        }
+        .filter-chip.inactive:hover {
+            background-color: #F3F4F6;
+            color: #111827;
+        }
+        
+        /* Custom map placeholder styles */
+        .map-placeholder {
+            background-image: url('https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .map-pin {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .map-pin:hover {
+            transform: translate(-50%, -100%) scale(1.1);
+            z-index: 10;
+        }
+    </style>
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<link rel="stylesheet" href="/shared/demo.css">
+</head>
+<body class="w-full min-h-screen m-0 p-0 flex bg-background text-textMain overflow-x-hidden">
+
+    <!-- Desktop Sidebar -->
+    <aside id="desktop-sidebar" class="hidden xl:flex w-64 flex-col bg-white border-r border-border text-textMain h-screen sticky top-0 flex-shrink-0 z-50 transition-all duration-300">
+        <div class="h-16 flex items-center px-6 border-b border-border">
+            <i class="fa-solid fa-shield-halved text-2xl text-primary mr-3"></i>
+            <span class="text-xl font-bold text-textMain tracking-tight">Bulwark</span>
+        </div>
+        
+        <div class="p-4">
+            <div class="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl mb-6 border border-gray-100">
+                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" alt="User Avatar" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
+                <div>
+                    <p class="text-sm font-semibold text-textMain">John Doe</p>
+                    <p class="text-xs text-textMuted">Field Technician</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-1 overflow-y-auto">
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-house w-5 text-center"></i>
+                <span class="font-medium">Field Dashboard</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-map-location-dot w-5 text-center"></i>
+                <span class="font-medium">Property Pipeline</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 bg-primary/10 text-primary rounded-xl font-medium">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                <span>Work Orders (Jobs)</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                <span class="font-medium">Quotes</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                <span class="font-medium">Compliance Docs</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-users-gear w-5 text-center"></i>
+                <span class="font-medium">Subcontractors</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center justify-between px-3 py-2 text-sm text-textMuted">
+                <span class="flex items-center gap-2"><i class="fa-solid fa-wifi text-green-500"></i> Online & Synced</span>
+            </div>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 mt-2 text-textMuted hover:bg-gray-50 hover:text-textMain rounded-xl transition-colors">
+                <i class="fa-solid fa-gear w-5 text-center"></i>
+                <span class="font-medium">Settings</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 flex flex-col min-h-screen w-full mobile-nav-padding xl:pb-0 relative h-screen overflow-hidden bg-background">
+        
+        <!-- Top Header -->
+        <header id="jobs-header" class="sticky-header h-16 border-b border-border flex items-center justify-between px-4 sm:px-6 lg:px-8 flex-shrink-0">
+            <div class="flex items-center gap-3 xl:hidden">
+                <button class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-textMain hover:bg-gray-200">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <span class="text-lg font-bold text-textMain tracking-tight">Work Orders</span>
+            </div>
+            
+            <div class="hidden xl:flex items-center gap-4">
+                <div>
+                    <h1 class="text-xl font-bold text-textMain">Work Orders (Jobs)</h1>
+                    <p class="text-sm text-textMuted">Manage and track all assigned field jobs</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="hidden lg:flex items-center bg-gray-100 rounded-lg p-1 mr-4">
+                    <button class="px-3 py-1.5 text-sm font-medium rounded-md bg-white shadow-sm text-textMain">List View</button>
+                    <button class="px-3 py-1.5 text-sm font-medium rounded-md text-textMuted hover:text-textMain">Map View</button>
+                    <button class="px-3 py-1.5 text-sm font-medium rounded-md text-textMuted hover:text-textMain">Split View</button>
+                </div>
+                <button class="btn-action btn-primary hidden sm:flex">
+                    <i class="fa-solid fa-plus"></i> New Job
+                </button>
+                <div class="hidden md:flex items-center gap-4 border-l border-border pl-4">
+                    <button class="relative p-2 text-textMuted hover:text-textMain transition-colors">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Container (Split View Layout for Desktop) -->
+        <div class="flex-1 flex flex-col lg:flex-row w-full h-[calc(100vh-4rem)] overflow-hidden">
+            
+            <!-- List Section -->
+            <div class="flex-1 flex flex-col w-full lg:w-1/2 xl:w-3/5 border-r border-border bg-background overflow-hidden">
+                
+                <!-- Filters Bar -->
+                <div class="p-4 sm:p-6 border-b border-border bg-white flex-shrink-0">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 no-scrollbar">
+                            <button class="filter-chip active">All Jobs</button>
+                            <button class="filter-chip inactive">Assigned <span class="ml-1 bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">5</span></button>
+                            <button class="filter-chip inactive">In Progress <span class="ml-1 bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full text-xs">2</span></button>
+                            <button class="filter-chip inactive">Blocked <span class="ml-1 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">1</span></button>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <div class="relative flex-1 sm:w-48">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" placeholder="Search jobs..." class="input-field pl-10 h-10">
+                            </div>
+                            <button class="btn-icon h-10 w-10"><i class="fa-solid fa-filter"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scrollable Job List -->
+                <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8">
+                    
+                    <!-- Overdue Group -->
+                    <section id="group-overdue">
+                        <h2 class="text-sm font-bold text-danger uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-exclamation"></i> Overdue (1)
+                        </h2>
+                        <div class="space-y-4">
+                            <!-- Job Card -->
+                            <div class="card p-4 border-l-4 border-l-danger hover:shadow-card-hover cursor-pointer">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <span class="text-xs font-bold text-textMuted">WO-23-045</span>
+                                        <h3 class="font-bold text-textMain mt-1 text-lg">789 Pine Ln, Capital City</h3>
+                                    </div>
+                                    <span class="bg-statusBlockedBg text-statusBlockedText px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-red-100">Blocked</span>
+                                </div>
+                                <p class="text-sm text-textMuted mb-4">Vent Replacement • Due: Yesterday</p>
+                                <div class="bg-red-50 p-3 rounded-lg mb-4 text-sm text-danger border border-red-100">
+                                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> Waiting on materials delivery from supplier.
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="btn-action btn-secondary flex-1 text-sm"><i class="fa-solid fa-plus"></i> Add Update</button>
+                                    <button class="btn-action btn-outline flex-1 text-sm"><i class="fa-solid fa-phone"></i> Contact</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Today Group -->
+                    <section id="group-today">
+                        <h2 class="text-sm font-bold text-textMain uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-day text-primary"></i> Today (2)
+                        </h2>
+                        <div class="space-y-4">
+                            <!-- Job Card -->
+                            <div class="card p-4 border-l-4 border-l-warning hover:shadow-card-hover cursor-pointer ring-2 ring-primary ring-offset-2">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <span class="text-xs font-bold text-textMuted">WO-23-048</span>
+                                        <h3 class="font-bold text-textMain mt-1 text-lg">123 Main St, Springfield</h3>
+                                    </div>
+                                    <span class="bg-statusProgressBg text-statusProgressText px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-amber-100">In Progress</span>
+                                </div>
+                                <p class="text-sm text-textMuted mb-4">Zone 0 Clearance • 08:00 AM - 12:00 PM</p>
+                                <div class="flex items-center gap-4 mb-4 text-sm">
+                                    <div class="flex -space-x-2">
+                                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" class="w-8 h-8 rounded-full border-2 border-white">
+                                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" class="w-8 h-8 rounded-full border-2 border-white">
+                                    </div>
+                                    <span class="text-textMuted">2 Techs Assigned</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="btn-action btn-secondary flex-1 text-sm text-warning border-warning/30 bg-warning/5 hover:bg-warning/10"><i class="fa-solid fa-pause"></i> Pause Job</button>
+                                    <button class="btn-action btn-primary flex-1 text-sm"><i class="fa-solid fa-plus"></i> Add Update</button>
+                                </div>
+                            </div>
+
+                            <!-- Job Card -->
+                            <div class="card p-4 border-l-4 border-l-primary hover:shadow-card-hover cursor-pointer">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <span class="text-xs font-bold text-textMuted">WO-23-049</span>
+                                        <h3 class="font-bold text-textMain mt-1 text-lg">456 Oak Ave, Shelbyville</h3>
+                                    </div>
+                                    <span class="bg-statusPendingBg text-statusPendingText px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-blue-100">Assigned</span>
+                                </div>
+                                <p class="text-sm text-textMuted mb-4">Full Retrofit Package • 01:00 PM - 05:00 PM</p>
+                                <div class="flex gap-2">
+                                    <button class="btn-action btn-primary flex-1 text-sm bg-success hover:bg-success/90"><i class="fa-solid fa-play"></i> Start Job</button>
+                                    <button class="btn-icon w-auto px-4"><i class="fa-solid fa-location-dot"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Upcoming Group -->
+                    <section id="group-upcoming">
+                        <h2 class="text-sm font-bold text-textMuted uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <i class="fa-regular fa-calendar"></i> Upcoming (3)
+                        </h2>
+                        
+                        <!-- Desktop Table View for Upcoming (Hidden on mobile) -->
+                        <div class="hidden md:block card overflow-hidden">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b border-border text-xs font-semibold text-textMuted uppercase tracking-wider">
+                                        <th class="p-3">Job / Address</th>
+                                        <th class="p-3">Type</th>
+                                        <th class="p-3">Scheduled</th>
+                                        <th class="p-3">Status</th>
+                                        <th class="p-3 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+                                    <tr class="hover:bg-gray-50 cursor-pointer">
+                                        <td class="p-3">
+                                            <div class="font-semibold text-textMain">WO-23-050</div>
+                                            <div class="text-xs text-textMuted mt-1">321 Elm St, Ogdenville</div>
+                                        </td>
+                                        <td class="p-3 text-sm">Tree Removal</td>
+                                        <td class="p-3 text-sm">Tomorrow, 9 AM</td>
+                                        <td class="p-3">
+                                            <span class="bg-statusPendingBg text-statusPendingText px-2 py-1 rounded text-[10px] font-bold uppercase border border-blue-100">Assigned</span>
+                                        </td>
+                                        <td class="p-3 text-right">
+                                            <button class="btn-icon w-8 h-8 text-sm"><i class="fa-solid fa-chevron-right"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 cursor-pointer">
+                                        <td class="p-3">
+                                            <div class="font-semibold text-textMain">WO-23-051</div>
+                                            <div class="text-xs text-textMuted mt-1">555 Cedar Blvd, North Haverbrook</div>
+                                        </td>
+                                        <td class="p-3 text-sm">Gutter Guards</td>
+                                        <td class="p-3 text-sm">Oct 28, 10 AM</td>
+                                        <td class="p-3">
+                                            <span class="bg-statusPendingBg text-statusPendingText px-2 py-1 rounded text-[10px] font-bold uppercase border border-blue-100">Assigned</span>
+                                        </td>
+                                        <td class="p-3 text-right">
+                                            <button class="btn-icon w-8 h-8 text-sm"><i class="fa-solid fa-chevron-right"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Mobile Card View for Upcoming -->
+                        <div class="space-y-4 md:hidden">
+                            <div class="card p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="text-xs font-bold text-textMuted">WO-23-050</span>
+                                    <span class="text-xs font-medium text-textMain">Tomorrow, 9 AM</span>
+                                </div>
+                                <h3 class="font-bold text-textMain text-md">321 Elm St, Ogdenville</h3>
+                                <p class="text-sm text-textMuted mb-3">Tree Removal</p>
+                                <button class="btn-action btn-secondary w-full text-sm">View Details</button>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+
+            <!-- Map/Detail Section (Desktop Split View) -->
+            <div class="hidden lg:flex lg:w-1/2 xl:w-2/5 flex-col bg-gray-100 relative">
+                <!-- Map Placeholder -->
+                <div class="absolute inset-0 map-placeholder">
+                    <!-- Map Controls -->
+                    <div class="absolute top-4 right-4 flex flex-col gap-2 z-10">
+                        <button class="btn-icon bg-white shadow-md"><i class="fa-solid fa-plus"></i></button>
+                        <button class="btn-icon bg-white shadow-md"><i class="fa-solid fa-minus"></i></button>
+                        <button class="btn-icon bg-white shadow-md mt-2"><i class="fa-solid fa-location-crosshairs"></i></button>
+                    </div>
+
+                    <!-- Map Pins -->
+                    <div class="map-pin text-danger" style="top: 30%; left: 40%;">
+                        <i class="fa-solid fa-location-dot text-3xl drop-shadow-md"></i>
+                    </div>
+                    <div class="map-pin text-warning" style="top: 50%; left: 60%;">
+                        <i class="fa-solid fa-location-dot text-4xl drop-shadow-lg z-10"></i>
+                        <div class="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-white px-2 py-1 rounded shadow text-xs font-bold whitespace-nowrap">123 Main St</div>
+                    </div>
+                    <div class="map-pin text-primary" style="top: 60%; left: 30%;">
+                        <i class="fa-solid fa-location-dot text-3xl drop-shadow-md"></i>
+                    </div>
+                </div>
+
+                <!-- Selected Job Drawer/Overlay (Simulated) -->
+                <div class="absolute bottom-4 left-4 right-4 bg-white rounded-xl shadow-xl border border-border p-4 z-20 transform transition-transform">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="bg-statusProgressBg text-statusProgressText px-2 py-1 rounded text-[10px] font-bold uppercase border border-amber-100">In Progress</span>
+                        <button class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <h3 class="font-bold text-textMain text-lg">123 Main St, Springfield</h3>
+                    <p class="text-sm text-textMuted mb-4">WO-23-048 • Zone 0 Clearance</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <p class="text-xs text-textMuted mb-1">Schedule</p>
+                            <p class="text-sm font-semibold text-textMain">Today, 08:00 AM</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <p class="text-xs text-textMuted mb-1">Contact</p>
+                            <p class="text-sm font-semibold text-textMain">Sarah J. <i class="fa-solid fa-phone text-primary ml-1"></i></p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button class="btn-action btn-primary flex-1 text-sm">Open Full Details</button>
+                        <button class="btn-icon w-auto px-4 bg-blue-50 text-blue-600 border-blue-200"><i class="fa-solid fa-directions"></i></button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar (Fixed) -->
+    <nav id="mobile-bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border flex justify-around items-center h-20 pb-safe z-50 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <a href="#" class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors">
+            <i class="fa-solid fa-house text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors">
+            <i class="fa-solid fa-map-location-dot text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Pipeline</span>
+        </a>
+        
+        <!-- Center Floating Action Button Placeholder for spacing -->
+        <div class="w-14 h-14 invisible"></div>
+
+        <a href="#" class="flex flex-col items-center justify-center w-16 h-full text-primary">
+            <i class="fa-solid fa-clipboard-list text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Jobs</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center w-16 h-full text-textMuted hover:text-primary transition-colors">
+            <i class="fa-solid fa-file-invoice-dollar text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Quotes</span>
+        </a>
+        
+        <!-- Actual Center Floating Action Button (Overlaying) -->
+        <div class="absolute left-1/2 transform -translate-x-1/2 -top-5">
+            <button class="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-[0_10px_20px_rgba(93,95,239,0.3)] hover:bg-primaryHover transition-transform hover:scale-105 border-4 border-white">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+    </nav>
+
+    <script src="/shared/demo.js"></script>
+</body>
+</html>

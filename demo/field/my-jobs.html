@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <title>My Jobs — Bulwark</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared/demo.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { font-family: 'Inter', sans-serif; background: #f8fafc; }</style>
+</head>
+<body class="text-slate-900 antialiased">
+  <div class="flex min-h-screen flex-col md:flex-row">
+    <!-- Sidebar (desktop) -->
+    <aside class="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-col shrink-0 sticky top-0 h-screen">
+      <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+        <div class="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-shield-halved"></i></div>
+        <span class="text-white text-lg font-bold">Bulwark</span>
+      </div>
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        <a href="/field/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-house w-5 text-center"></i> Home</a>
+        <a href="/field/my-jobs" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-700 text-white font-medium"><i class="fa-solid fa-clipboard-list w-5 text-center"></i> My Jobs</a>
+        <a href="/admin/pipeline" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-layer-group w-5 text-center"></i> Pipeline</a>
+        <a href="/field/profile" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white"><i class="fa-solid fa-user w-5 text-center"></i> Profile</a>
+      </nav>
+    </aside>
+
+    <main class="flex-1 min-w-0 pb-20 md:pb-0">
+      <header class="bg-white border-b border-slate-200 px-4 md:px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+        <div>
+          <div class="text-xs text-slate-500">Field Operations</div>
+          <h1 class="text-xl font-bold">My Jobs</h1>
+        </div>
+        <button class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium flex items-center gap-2"><i class="fa-solid fa-filter"></i> Filter</button>
+      </header>
+      <div class="p-4 md:p-6 space-y-3 max-w-3xl">
+        <div class="flex gap-2 text-sm font-medium">
+          <button class="px-4 py-2 rounded-full bg-blue-700 text-white">Today (3)</button>
+          <button class="px-4 py-2 rounded-full bg-white border border-slate-200">This week (8)</button>
+          <button class="px-4 py-2 rounded-full bg-white border border-slate-200">Upcoming</button>
+        </div>
+
+        <a href="/admin/work-order-detail" class="block bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-700 transition-colors active:scale-[.99]">
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div>
+              <div class="text-xs text-slate-500 mb-0.5">WO-2026-091 · 8:30 AM</div>
+              <div class="font-semibold">Pine Ridge Rd Assessment</div>
+              <div class="text-sm text-slate-600 mt-0.5">14820 Pine Ridge Rd, Sisters OR</div>
+            </div>
+            <span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded-full">In Progress</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100"><span><i class="fa-solid fa-user mr-1"></i>Carla Mendez</span><span><i class="fa-solid fa-route mr-1"></i>22 mi</span><span><i class="fa-solid fa-clock mr-1"></i>~3 hrs</span></div>
+        </a>
+
+        <a href="/admin/work-order-detail" class="block bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-700 transition-colors active:scale-[.99]">
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div>
+              <div class="text-xs text-slate-500 mb-0.5">WO-2026-088 · 1:00 PM</div>
+              <div class="font-semibold">Cascade Loop — Roof Inspection</div>
+              <div class="text-sm text-slate-600 mt-0.5">2845 NE Cascade Loop, Bend OR</div>
+            </div>
+            <span class="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-full">Scheduled</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100"><span><i class="fa-solid fa-user mr-1"></i>Anders Holm</span><span><i class="fa-solid fa-route mr-1"></i>18 mi</span><span><i class="fa-solid fa-clock mr-1"></i>~2 hrs</span></div>
+        </a>
+
+        <a href="/admin/work-order-detail" class="block bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-700 transition-colors active:scale-[.99]">
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div>
+              <div class="text-xs text-slate-500 mb-0.5">WO-2026-079 · 4:00 PM</div>
+              <div class="font-semibold">Old Mill Rd — Final Walkthrough</div>
+              <div class="text-sm text-slate-600 mt-0.5">9012 Old Mill Rd, Prineville OR</div>
+            </div>
+            <span class="text-xs font-semibold text-red-700 bg-red-50 px-2 py-1 rounded-full">Blocked</span>
+          </div>
+          <div class="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg p-2 mb-2 mt-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sub schedule conflict — needs rebook</div>
+          <div class="flex items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100"><span><i class="fa-solid fa-user mr-1"></i>R. Patel</span><span><i class="fa-solid fa-route mr-1"></i>34 mi</span></div>
+        </a>
+
+        <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold pt-4">Tomorrow</div>
+
+        <a href="/admin/work-order-detail" class="block bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-700 transition-colors">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-xs text-slate-500 mb-0.5">WO-2026-094 · 9:00 AM</div>
+              <div class="font-semibold">Aspen Glen — Initial Assessment</div>
+              <div class="text-sm text-slate-600 mt-0.5">381 Aspen Glen Dr, La Pine OR</div>
+            </div>
+            <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-1 rounded-full">Scheduled</span>
+          </div>
+        </a>
+      </div>
+    </main>
+
+    <!-- Mobile bottom nav -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 grid grid-cols-4 z-40">
+      <a href="/field/dashboard" class="py-3 flex flex-col items-center text-slate-500"><i class="fa-solid fa-house"></i><span class="text-[10px] mt-1">Home</span></a>
+      <a href="/field/my-jobs" class="py-3 flex flex-col items-center text-blue-700"><i class="fa-solid fa-clipboard-list"></i><span class="text-[10px] mt-1 font-semibold">Jobs</span></a>
+      <a href="/admin/pipeline" class="py-3 flex flex-col items-center text-slate-500"><i class="fa-solid fa-layer-group"></i><span class="text-[10px] mt-1">Pipeline</span></a>
+      <a href="/field/profile" class="py-3 flex flex-col items-center text-slate-500"><i class="fa-solid fa-user"></i><span class="text-[10px] mt-1">Profile</span></a>
+    </nav>
+  </div>
+  <script src="/shared/demo.js"></script>
+</body>
+</html>
