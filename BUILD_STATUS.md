@@ -15,14 +15,15 @@
 
 ## Active Story
 
-E3-S6 — Client detail page at `/admin/clients/[id]` (Screen 07), linked from property detail Overview tab.
+E3-S3 — Drag-drop status change (returning to it now that S5/S6 are closed). Likely substituting an inline status menu on each card to keep Playwright deterministic.
 
-E3-S5 closed: property detail hub at `/admin/properties/[id]` with eight tabs (Overview, Assessment, Quotes, Work orders, Compliance, Invoices, Photos, Notes). Overview is populated from `property.get()` + `client.get()` (joined via `useAsyncData`); the seven downstream tabs render `<EmptyState>` placeholders pointing to their owning epic. Active tab is reflected in the `?tab=` query for shareable deep-links (PropertyCard already navigates to `/admin/properties/{id}`). 404-style "Property not found" empty state for unknown ids. New `tests/e2e/property-detail.spec.ts` (4 tests: open via card click, overview default, tab switching + URL sync, 404 fallback). **63 chromium tests passing** (2 skipped) + 6 unit tests.
+E3-S6 closed: clients list + detail. New `app/pages/admin/clients/index.vue` (table-style list of all clients in the active org — wires up the previously-404'ing sidebar link) and `app/pages/admin/clients/[id].vue` (single-page detail showing contact info, notes, and the client's linked properties). Property hub Overview already deep-links here via `View client profile →`. Linked properties are computed by listing all properties (pageSize 200) and filtering by `clientId` — fixture-scale only; we'll add a contract-level `clientId` filter when scale demands. New `tests/e2e/client-detail.spec.ts` (4 tests). **67 chromium tests passing** (2 skipped) + 6 unit tests.
 
 ## Recent Completions
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E3-S6 | Clients list at `/admin/clients` (closes the sidebar's previously-404 link) and client detail at `/admin/clients/[id]`. Detail shows contact, notes, and the client's linked properties (filtered client-side from a pageSize-200 list call — fixture-scale only). 404 empty state on unknown ids. Property hub Overview already deep-links here. New `tests/e2e/client-detail.spec.ts` (4 tests). **67 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-04 | E3-S5 | Property detail hub at `/admin/properties/[id]`. Eight tabs via `BulwarkTabs`; Overview pulls property + linked client through a single `useAsyncData` join. Other tabs are `EmptyState` placeholders pointing at their owning epic (E4 assessment/photos, E5 quotes, E6 work orders, E8 compliance, E9 invoices, E10 notes). `?tab=` query is the source of truth (deep-link friendly). 404 empty state for unknown ids. New `tests/e2e/property-detail.spec.ts` (4 tests). **63 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-04 | E3-S4 | Property intake form. New `app/pages/admin/properties/new.vue` (the kanban moved into `properties/index.vue` so the folder can host the new route). Form uses `BulwarkInput` / `BulwarkSelect` / `BulwarkTextarea`; validates with `PropertyCreateInputSchema.omit({ organizationId: true })` (org id is injected from session, not user-controlled — fixture orgIds are intentionally non-RFC-4122). On success: `property.create()` → `refreshNuxtData('properties-${orgId}')` → `router.push('/admin/properties')`. New `tests/e2e/property-intake.spec.ts` (3 tests — render, empty-form validation, valid submission lands on pipeline). Cold-start fixes: added `waitForLoadState('networkidle')` to auth persona quick-pick, both list-toggle tests, and the intake submit tests. **E3-S3 deferred** (drag-drop is risky; will return after E3-S5/S6). **59 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-03 | (planning) | BUILD_PLAN.md, all 14 epic files, 11 ADRs, BUILD_STATUS.md created. Demo frozen. |
@@ -49,9 +50,8 @@ E3-S5 closed: property detail hub at `/admin/properties/[id]` with eight tabs (O
 
 ## Next Up
 
-1. **E3-S6** — Client detail page (`/admin/clients/[id]`).
-2. E3-S3 — Drag-drop status change (deferred from E3 — risky, return after S6).
-3. E3-S7 — Full happy-path Playwright (login → intake → pipeline → detail).
+1. **E3-S3** — Status-change menu on property cards (substituting the original drag-drop — deterministic to test).
+2. E3-S7 — Full happy-path Playwright (login → intake → pipeline → detail).
 
 ## Verified locally
 
