@@ -26,6 +26,7 @@ const props = defineProps<{
   groupedByStatus: Record<PropertyStatus, Property[]>
   columnOrder: PropertyStatus[]
 }>()
+defineEmits<{ 'change-status': [propertyId: string, status: PropertyStatus] }>()
 
 const visibleSections = computed(() =>
   props.columnOrder
@@ -61,6 +62,7 @@ const visibleSections = computed(() =>
           v-for="row in section.rows"
           :key="row.id"
           :property="row"
+          @change-status="(id, s) => $emit('change-status', id, s)"
         />
       </div>
     </section>

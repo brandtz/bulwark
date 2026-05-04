@@ -106,6 +106,16 @@ onMounted(() => {
     view.value = 'list'
   }
 })
+
+// E3-S3: inline status change. We swap drag-drop for an explicit menu so
+// the path is the same for keyboard, mouse, and touch — the field team
+// re-stages without two-handed gestures and Playwright stays
+// deterministic. Drag-drop sugar can be layered later without changing
+// the data path because both surfaces emit `change-status`.
+async function onChangeStatus(propertyId: string, status: PropertyStatus) {
+  await property.updateStatus(propertyId, status, orgId.value)
+  await refreshNuxtData(`properties-${orgId.value}`)
+}
 </script>
 
 <template>
@@ -148,6 +158,7 @@ onMounted(() => {
             v-for="row in groupedByStatus[status]"
             :key="row.id"
             :property="row"
+            @change-status="onChangeStatus"
           />
         </PipelineColumn>
       </div>
@@ -157,6 +168,7 @@ onMounted(() => {
       <PipelineList
         :grouped-by-status="groupedByStatus"
         :column-order="COLUMN_ORDER"
+        @change-status="onChangeStatus"
       />
     </div>
   </div>

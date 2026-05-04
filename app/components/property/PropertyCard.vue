@@ -1,23 +1,29 @@
 <!--
-  app/components/property/PropertyCard.vue — pipeline kanban card (E3-S1).
+  app/components/property/PropertyCard.vue — pipeline kanban card (E3-S1, E3-S3).
 
   # Decisions (ADR-0008)
-    - One card = one Property. Renders address line 1, city/state, and the
-      canonical `<StatusBadge>`. Clickable wrapper navigates to the detail
-      hub at `/admin/properties/{id}` (the page itself ships in E3-S5).
+    - One card = one Property. Renders address line 1, city/state, the
+      canonical `<StatusBadge>`, and a `<PropertyStatusMenu>` for inline
+      status changes (E3-S3). Clickable wrapper navigates to the detail
+      hub at `/admin/properties/{id}`.
     - We expose `data-testid="property-card"` and `:data-property-id` on
       the root so the kanban Playwright spec can pick a card by id without
-      matching against display text (which changes as fixtures evolve).
+      matching against display text.
 
   # Decision cast down
     - Rejected: rolling a custom card surface. `BulwarkCard` already owns
       the radius / shadow tokens (STYLE_GUIDE §6.3); duplicating them here
       drifts.
+    - Rejected: emitting clicks from inside the menu up through the
+      `<NuxtLink>`. Menu interactions live entirely on the card; the link
+      navigation is reserved for the body of the card (the menu's button
+      stops propagation).
 -->
 <script setup lang="ts">
-import type { Property } from '~~/shared/contracts/property'
+import type { Property, PropertyStatus } from '~~/shared/contracts/property'
 
-const props = defineProps<{ property: Property }>()
+defineProps<{ property: Property }>()
+defineEmits<{ 'change-status': [propertyId: string, status: PropertyStatus] }>()
 </script>
 
 <template>
@@ -37,7 +43,13 @@ const props = defineProps<{ property: Property }>()
             {{ property.city }}, {{ property.state }} {{ property.postalCode }}
           </p>
         </div>
-        <StatusBadge :status="property.status" />
+        <div class="flex items-start gap-1 shrink-0">
+          <StatusBadge :status="property.status" />
+          <PropertyStatusMenu
+            :property="property"
+            @change-status="(s) => $emit('change-status', property.id, s)"
+          />
+        </div>
       </div>
     </BulwarkCard>
   </NuxtLink>
