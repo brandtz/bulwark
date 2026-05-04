@@ -133,3 +133,15 @@ export const ComplianceStandardsSchema = z.object({
   requireDefensibleSpace: z.boolean(),
 })
 export type ComplianceStandards = z.infer<typeof ComplianceStandardsSchema>
+
+// ----------------------------------------------------------------------------
+// Service interface. Implementations: MockAssessmentService (E4-S2), real
+// AssessmentService against Drizzle (E11). UI never imports either; calls
+// `useService('assessment')`.
+// ----------------------------------------------------------------------------
+export interface IAssessmentService {
+  /** Latest assessment for a property, or null if none yet. */
+  getLatestForProperty(propertyId: string, organizationId: string): Promise<Assessment | null>
+  list(input: AssessmentListInput): Promise<AssessmentListOutput>
+  create(input: AssessmentCreateInput): Promise<Assessment>
+}
