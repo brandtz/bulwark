@@ -16,8 +16,10 @@
       hides the entire end-of-pipeline (paid / cancelled), which would mask
       bugs in the status-update flow.
     - Mobile list view is E3-S2, drag-drop is E3-S3, search is later. This
-      page is desktop-only kanban for S1; mobile users see the columns
-      stacked vertically (browser default flex behavior on small screens).
+      page offers a `kanban` ↔ `list` segmented toggle (FT-12). Default
+      view is `kanban` server-side; on mount, narrow viewports flip to
+      `list`. The chosen view is preserved across client navigations via
+      `useState('properties.view')`.
 
   # Decision cast down
     - Rejected: a Pinia store for the property list. We removed `@pinia/nuxt`
@@ -87,29 +89,54 @@ const groupedByStatus = computed<Record<PropertyStatus, Property[]>>(() => {
   }
   return empty
 })
+
+// E3-S2: kanban ↔ list segmented toggle. State lives in useState so a
+// nav back to the page preserves the user's choice. SSR default = kanban;
+// onMounted we flip to list for narrow viewports so the first paint on a
+// phone is the right shape after hydration.
+type PipelineView = 'kanban' | 'list'
+const view = useState<PipelineView>('properties.view', () => 'kanban')
+const VIEW_OPTIONS = [
+  { value: 'kanban', label: 'Kanban' },
+  { value: 'list', label: 'List' },
+]
+
+onMounted(() => {
+  if (typeof window !== 'undefined' && window.innerWidth < 768 && view.value === 'kanban') {
+    view.value = 'list'
+  }
+})
 </script>
 
 <template>
   <div class="flex flex-col h-full" data-testid="properties-pipeline">
     <header
-      class="flex items-center justify-between px-4 md:px-6 py-3 border-b border-border bg-surface"
+      class="flex items-center justify-between gap-3 px-4 md:px-6 py-3 border-b border-border bg-surface"
     >
-      <div>
+      <div class="min-w-0">
         <h1 class="text-display">Properties</h1>
         <p class="text-caption text-text-secondary">
           {{ list?.total ?? 0 }} in pipeline
         </p>
       </div>
-      <NuxtLink
-        to="/admin/properties/new"
-        data-testid="new-property-button"
-        class="inline-flex items-center justify-center rounded-input bg-primary text-white text-body font-medium px-4 h-input hover:bg-primary-hover transition-colors"
-      >
-        New property
-      </NuxtLink>
+      <div class="flex items-center gap-3 shrink-0">
+        <BulwarkSegmentedControl
+          v-model="view"
+          :options="VIEW_OPTIONS"
+          aria-label="Pipeline view"
+          data-testid="pipeline-view-toggle"
+        />
+        <NuxtLink
+          to="/admin/properties/new"
+          data-testid="new-property-button"
+          class="inline-flex items-center justify-center rounded-input bg-primary text-white text-body font-medium px-4 h-input hover:bg-primary-hover transition-colors"
+        >
+          New property
+        </NuxtLink>
+      </div>
     </header>
 
-    <div class="flex-1 overflow-x-auto">
+    <div v-if="view === 'kanban'" class="flex-1 overflow-x-auto">
       <div class="flex gap-3 p-4 md:p-6 min-w-max">
         <PipelineColumn
           v-for="status in COLUMN_ORDER"
@@ -124,6 +151,13 @@ const groupedByStatus = computed<Record<PropertyStatus, Property[]>>(() => {
           />
         </PipelineColumn>
       </div>
+    </div>
+
+    <div v-else class="flex-1 overflow-y-auto">
+      <PipelineList
+        :grouped-by-status="groupedByStatus"
+        :column-order="COLUMN_ORDER"
+      />
     </div>
   </div>
 </template>
