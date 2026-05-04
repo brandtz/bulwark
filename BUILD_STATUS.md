@@ -15,14 +15,15 @@
 
 ## Active Story
 
-E4-S3 — Assessment summary page rendering compliance result.
+E4-S4 — Hook into property detail hub Assessment tab (replace placeholder with current assessment summary card or "Start assessment" CTA).
 
-E4-S2 closed: mobile-first assessment form. New `IAssessmentService` contract + `MockAssessmentService` (state in module-level array, tenant-firewalled, `getLatestForProperty` returns the most-recent row). Factory wires it as a singleton alongside property/client. Routing: converted `app/pages/admin/properties/[id].vue` → `[id]/index.vue` so we can nest `[id]/assessment.vue` without conflict. Form uses `BulwarkSelect` for the four material enums + `BulwarkToggle` for defensible space; validates user-controlled fields via `AssessmentCreateInputSchema.omit({ organizationId, propertyId, assessedById, assessedAt })`. On success routes back to `/admin/properties/[id]?tab=assessment`. New `tests/e2e/property-assessment-form.spec.ts` (3 tests). **74 chromium tests passing** (2 skipped) + 15 unit tests.
+E4-S3 closed: assessment summary page. New `app/pages/admin/properties/[id]/assessment-summary.vue` calls `evaluateCompliance(latest, OREGON_DEFAULT_STANDARDS)` client-side and renders a banner (✓ compliant / ! non-compliant) plus a one-row-per-flagged-field upgrades card with current value, required value, and ORS/OAR reference. Empty state deep-links to the form. **Important fix to E4-S2**: form's success redirect now goes to `/assessment-summary` via `router.push` (client navigation) instead of `?tab=assessment` because a full goto would hit a different SSR module instance with empty `rows[]`. Lesson logged in session memory: client-side mock mutations only survive client-side navigations — design redirects accordingly. New `tests/e2e/assessment-summary.spec.ts` (3 tests). **77 chromium tests passing** (2 skipped) + 15 unit tests.
 
 ## Recent Completions
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E4-S3 | Assessment summary page. New `[id]/assessment-summary.vue` calls the pure evaluator + renders banner + upgrades table with ORS/OAR refs. Form redirect changed to client-side `router.push('/assessment-summary')` so the mock service singleton survives navigation. New `tests/e2e/assessment-summary.spec.ts` (3 tests — empty-state CTA, compliant green banner, non-compliant flag with correct standard ref). **77 chromium tests passing** (2 skipped). |
 | 2026-05-04 | E4-S2 | Assessment form + mock service. New `IAssessmentService` + `MockAssessmentService` (singleton via factory, tenant-firewalled). New nested route `app/pages/admin/properties/[id]/assessment.vue` (BulwarkSelect material pickers + BulwarkToggle defensible-space). Restructured `[id].vue` → `[id]/index.vue` to support the nested page. New `tests/e2e/property-assessment-form.spec.ts` (3 tests — renders, blocks-empty-submit, saves+routes-back). **74 chromium tests passing** (2 skipped). |
 | 2026-05-04 | E4-S1 | Pure-function compliance evaluator + Vitest unit tests. New `shared/contracts/assessment.ts` (Assessment, ComplianceResult, ComplianceStandards). New `shared/utils/compliance.ts` exports `evaluateCompliance(input, standards)` and `OREGON_DEFAULT_STANDARDS` (BULWARK_TECH §8). 9-case unit suite covers every failure mode, multi-fail aggregation, tenant override (E9 wiring), and optional defensible-space. **15 unit tests passing**. |
 | 2026-05-04 | E3-S7 | Happy-path Playwright closing Epic E3. One long integration test threads intake → pipeline → status menu → detail hub → tab switch → breadcrumb back. New `tests/e2e/happy-path-property.spec.ts`. **Epic E3 complete** (S1–S7). **71 chromium tests passing** (2 skipped) + 6 unit tests. |
@@ -54,9 +55,9 @@ E4-S2 closed: mobile-first assessment form. New `IAssessmentService` contract + 
 
 ## Next Up
 
-1. **E4-S3** — Assessment summary page rendering compliance result.
-2. E4-S4 — Hook into property detail hub Assessment tab.
-3. E4-S5 — Playwright: non-compliant roof → summary flag.
+1. **E4-S4** — Hook into property detail hub Assessment tab.
+2. E4-S5 — Playwright: full happy-path closing Epic E4.
+3. E5 — Quote builder + acceptance.
 
 ## Verified locally
 

@@ -79,6 +79,6 @@ test.describe('Property assessment form (E4-S2)', () => {
     await page.getByTestId('field-notes').locator('textarea').fill('Looks good. Cleared brush 50ft.')
 
     await page.getByTestId('submit-button').click()
-    await expect(page).toHaveURL(/\/admin\/properties\/[\w-]+\?tab=assessment$/, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/admin\/properties\/[\w-]+\/assessment-summary$/, { timeout: 10000 })
   })
 })

@@ -17,10 +17,12 @@
       because each enum has 4\u20138 options \u2014 a segmented row would wrap
       ugly on mobile and a Select handles it cleanly. Defensible space
       is the only true boolean and uses BulwarkToggle.
-    - On success we navigate to the summary page (E4-S3 ships next; for
-      now the redirect target is the same property's detail Assessment
-      tab) with the freshly-created assessment id in the URL so the
-      summary doesn't have to re-query.
+    - On success we navigate to the freshly-rendered summary page (E4-S3).
+      We use `router.push` (client navigation) instead of a full goto so the
+      mock service's in-memory store \u2014 mutated client-side by `create()`
+      \u2014 is the same module instance the summary fetch reads. Triggering
+      a full SSR navigation here would hit a different process module
+      with empty rows.
     - We default `assessedAt` to "now" and `assessedById` to the current
       session user. Both are server-trustworthy for mocks; the real
       implementation (E11) re-derives them server-side.
@@ -179,11 +181,10 @@ async function onSubmit() {
   submitting.value = true
   try {
     await assessment.create(buildInput())
-    // E4-S3 will introduce the dedicated summary route; until then we
-    // route back to the property detail's Assessment tab so the user sees
-    // the new state. The query param is forward-compatible: the summary
-    // route can read `?assessmentId=` if/when we want to deep-link.
-    await router.push(`/admin/properties/${propertyId.value}?tab=assessment`)
+    // Stay client-side so the mock service's in-memory store survives the
+    // navigation. A full goto would hit the SSR process whose module has
+    // never seen the just-created row.
+    await router.push(`/admin/properties/${propertyId.value}/assessment-summary`)
   } catch (err: unknown) {
     serverError.value = err instanceof Error ? err.message : 'Could not save assessment.'
   } finally {
