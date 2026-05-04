@@ -77,7 +77,9 @@ test.describe('Quote preview + send (E5-S3)', () => {
       'sent',
     )
     await expect(page.getByTestId('send-button')).toHaveCount(0)
-    await expect(page.getByTestId('already-sent-note')).toBeVisible()
+    // After send, the Mark-accepted CTA appears (E6-S2 wired the
+    // accept transition into the same surface).
+    await expect(page.getByTestId('accept-button')).toBeVisible()
     // Toast surfaced.
     await expect(page.getByText('Quote sent')).toBeVisible()
   })

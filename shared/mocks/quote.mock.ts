@@ -120,4 +120,24 @@ export class MockQuoteService implements IQuoteService {
     row.updatedAt = row.sentAt
     return row
   }
+
+  async markAccepted(id: string, organizationId: string): Promise<Quote> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const row = rows.find(
+      (r) => r.id === id && r.organizationId === organizationId && !r.deletedAt,
+    )
+    if (!row) {
+      throw new Error(`Quote ${id} not found in org ${organizationId}`)
+    }
+    if (row.status === 'accepted') return row
+    if (row.status !== 'sent') {
+      throw new Error(
+        `Cannot accept quote ${id} from status \"${row.status}\" (must be sent)`,
+      )
+    }
+    row.status = 'accepted'
+    row.acceptedAt = nowIso()
+    row.updatedAt = row.acceptedAt
+    return row
+  }
 }

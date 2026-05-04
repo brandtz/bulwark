@@ -142,4 +142,10 @@ export interface IQuoteService {
    * second call returns the same row unchanged.
    */
   markSent(id: string, organizationId: string): Promise<Quote>
+  /**
+   * Transition a `sent` quote to `accepted` — stamps `acceptedAt`.
+   * Idempotent: a second call returns the same row unchanged. Throws
+   * if called on a draft (must be sent first).
+   */
+  markAccepted(id: string, organizationId: string): Promise<Quote>
 }

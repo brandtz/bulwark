@@ -85,6 +85,7 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
 }
 
 const sending = ref(false)
+const accepting = ref(false)
 const serverError = ref('')
 
 async function onSend() {
@@ -101,6 +102,22 @@ async function onSend() {
       err instanceof Error ? err.message : 'Could not send quote.'
   } finally {
     sending.value = false
+  }
+}
+
+async function onAccept() {
+  if (!bundle.value?.quote) return
+  serverError.value = ''
+  accepting.value = true
+  try {
+    await quote.markAccepted(bundle.value.quote.id, orgId.value)
+    await refresh()
+    toastSuccess('Quote accepted', 'You can now create a work order.')
+  } catch (err: unknown) {
+    serverError.value =
+      err instanceof Error ? err.message : 'Could not accept quote.'
+  } finally {
+    accepting.value = false
   }
 }
 </script>
@@ -239,12 +256,30 @@ async function onSend() {
         >
           {{ sending ? 'Sending…' : 'Send quote' }}
         </BulwarkButton>
+        <BulwarkButton
+          v-else-if="bundle.quote.status === 'sent'"
+          type="button"
+          variant="primary"
+          :disabled="accepting"
+          data-testid="accept-button"
+          @click="onAccept"
+        >
+          {{ accepting ? 'Accepting…' : 'Mark accepted' }}
+        </BulwarkButton>
+        <NuxtLink
+          v-else-if="bundle.quote.status === 'accepted'"
+          :to="`/admin/properties/${propertyId}/work-orders/new?quoteId=${bundle.quote.id}`"
+          class="inline-flex items-center justify-center rounded-input bg-primary-700 hover:bg-primary text-white px-4 py-2 text-body font-medium"
+          data-testid="create-work-order-cta"
+        >
+          Create work order
+        </NuxtLink>
         <p
           v-else
           class="text-body text-text-secondary"
           data-testid="already-sent-note"
         >
-          Quote already sent.
+          Quote {{ STATUS_LABEL[bundle.quote.status].toLowerCase() }}.
         </p>
       </div>
 
