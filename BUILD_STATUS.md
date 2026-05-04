@@ -15,14 +15,15 @@
 
 ## Active Story
 
-E4-S1 — Field assessment surfaces (Screen 06: Property Assessment Form). Epic E4 begins after closing Epic E3.
+E4-S2 — Mobile-first assessment form (Screen 06) backed by `MockAssessmentService`.
 
-Epic E3 closed. E3-S7 final happy-path spec exercises the full property domain end-to-end: intake → pipeline → status menu → detail → tab switch → breadcrumb back. New `tests/e2e/happy-path-property.spec.ts` (1 long integration test, chromium-only). All seven E3 stories landed: kanban (S1), list view + toggle (S2), inline status menu (S3 substituted), intake form (S4), detail hub (S5), client list + detail (S6), happy-path (S7). **71 chromium tests passing** (2 skipped) + 6 unit tests.
+E4-S1 closed: pure-function compliance evaluator. New `shared/contracts/assessment.ts` (Assessment + ComplianceResult + ComplianceStandards Zod schemas; roof/siding/eave/vent enums). New `shared/utils/compliance.ts` exports `evaluateCompliance(input, standards = OREGON_DEFAULT_STANDARDS)` — deterministic, no I/O, no clock. Defaults match BULWARK_TECH §8 verbatim and tenant overrides (E9) plug straight in via the second arg. New `tests/unit/compliance.test.ts` with 9 cases (one per failure mode + all-pass + multi-fail + per-tenant override + optional defensible-space). **15 unit tests passing**, **71 chromium e2e passing** (2 skipped).
 
 ## Recent Completions
 
 | Date | Story | Notes |
 |---|---|---|
+| 2026-05-04 | E4-S1 | Pure-function compliance evaluator + Vitest unit tests. New `shared/contracts/assessment.ts` (Assessment, ComplianceResult, ComplianceStandards). New `shared/utils/compliance.ts` exports `evaluateCompliance(input, standards)` and `OREGON_DEFAULT_STANDARDS` (BULWARK_TECH §8). 9-case unit suite covers every failure mode, multi-fail aggregation, tenant override (E9 wiring), and optional defensible-space. **15 unit tests passing**. |
 | 2026-05-04 | E3-S7 | Happy-path Playwright closing Epic E3. One long integration test threads intake → pipeline → status menu → detail hub → tab switch → breadcrumb back. New `tests/e2e/happy-path-property.spec.ts`. **Epic E3 complete** (S1–S7). **71 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-04 | E3-S3 | Inline status-change menu (substituted for original drag-drop). New `PropertyStatusMenu.vue` (kebab button → 13-item menu with current marker, click-outside + Escape close). Card + list forward `change-status` up to the page, which calls `property.updateStatus()` + `refreshNuxtData()`. Drag-drop sugar can layer on later without changing the data path. New `tests/e2e/property-status-menu.spec.ts` (3 tests). **70 chromium tests passing** (2 skipped) + 6 unit tests. |
 | 2026-05-04 | E3-S6 | Clients list at `/admin/clients` (closes the sidebar's previously-404 link) and client detail at `/admin/clients/[id]`. Detail shows contact, notes, and the client's linked properties (filtered client-side from a pageSize-200 list call — fixture-scale only). 404 empty state on unknown ids. Property hub Overview already deep-links here. New `tests/e2e/client-detail.spec.ts` (4 tests). **67 chromium tests passing** (2 skipped) + 6 unit tests. |
@@ -52,9 +53,10 @@ Epic E3 closed. E3-S7 final happy-path spec exercises the full property domain e
 
 ## Next Up
 
-1. **E4-S1** — Field assessment intake (Screen 06).
-2. E4 remaining — photo capture + summary view.
-3. E5 — Quote builder + acceptance.
+1. **E4-S2** — Assessment form (mobile-first) backed by MockAssessmentService.
+2. E4-S3 — Assessment summary page rendering compliance result.
+3. E4-S4 — Hook into property detail hub Assessment tab.
+4. E4-S5 — Playwright: non-compliant roof → summary flag.
 
 ## Verified locally
 
