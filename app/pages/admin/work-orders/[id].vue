@@ -229,16 +229,26 @@ async function onProgressUpdate(slotId: string, next: TradeSlotStatus) {
             {{ propertyAddress }}
           </p>
         </div>
-        <span
-          :class="[
-            'inline-flex items-center rounded-pill px-3 py-1 text-small font-medium whitespace-nowrap',
-            STATUS_TONE[bundle.workOrder.status],
-          ]"
-          data-testid="work-order-status"
-          :data-status="bundle.workOrder.status"
-        >
-          {{ STATUS_LABEL[bundle.workOrder.status] }}
-        </span>
+        <div class="flex items-center gap-3">
+          <NuxtLink
+            v-if="bundle.workOrder.status !== 'cancelled'"
+            :to="`/admin/properties/${bundle.workOrder.propertyId}/invoices/new?workOrderId=${bundle.workOrder.id}`"
+            class="text-small text-primary-700 hover:text-primary underline"
+            data-testid="create-invoice-cta"
+          >
+            Create invoice
+          </NuxtLink>
+          <span
+            :class="[
+              'inline-flex items-center rounded-pill px-3 py-1 text-small font-medium whitespace-nowrap',
+              STATUS_TONE[bundle.workOrder.status],
+            ]"
+            data-testid="work-order-status"
+            :data-status="bundle.workOrder.status"
+          >
+            {{ STATUS_LABEL[bundle.workOrder.status] }}
+          </span>
+        </div>
       </header>
 
       <!-- Schedule window ---------------------------------------- -->
