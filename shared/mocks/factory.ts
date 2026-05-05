@@ -28,6 +28,7 @@ import { MockAssessmentService } from './assessment.mock'
 import { MockQuoteService } from './quote.mock'
 import { MockSubcontractorService } from './subcontractor.mock'
 import { MockWorkOrderService } from './work-order.mock'
+import { MockJobService } from './job.mock'
 import type { TenantResolver } from './tenant'
 
 let cachedServices: BulwarkServices | null = null
@@ -49,6 +50,7 @@ export function createMockServices(
       quote: new MockQuoteService(resolver),
       subcontractor: new MockSubcontractorService(resolver),
       workOrder: new MockWorkOrderService(resolver),
+      job: new MockJobService(resolver),
     }
   }
   return cachedServices
