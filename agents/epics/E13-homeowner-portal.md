@@ -22,4 +22,4 @@ read-only progress, document downloads, and online invoice payment (Stripe).
 
 ## Approval Status
 
-Proposed (Phase 2).
+⏸️ **Deferred — gated on E11.** Magic-link auth (E13-S3) requires real auth (E11-S3); the Stripe pay-link (E13-S7) requires the real Invoice service (E11-S11). Marketing landing + lead intake (E13-S1, E13-S2) could ship in parallel with E11 if the sponsor wants an early public surface — flag separately if so.

@@ -23,4 +23,4 @@ from contracts at the API boundary (not just hidden in UI).
 
 ## Approval Status
 
-Proposed (Phase 2).
+⏸️ **Deferred — gated on E11.** Real auth (E11-S3) is required for the cross-tenant `sub_contractor` login, and the real WorkOrder service (E11-S8) is required for assignment delivery. Mock-layer prototypes can begin once E11 is in flight; cannot ship before E11-S3 + E11-S8 land.

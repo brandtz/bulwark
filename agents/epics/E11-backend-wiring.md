@@ -48,4 +48,17 @@ before marking complete. CI gains a `BACKEND=real` job alongside `BACKEND=mock`.
 
 ## Approval Status
 
-Proposed.
+⏸️ **Deferred (gating: infrastructure)** — All twelve stories are coding-ready (contracts + mock services already pin every method signature, and the suite at sha `387f3bc` covers 128 chromium + 35 unit paths against the mock layer). E11 cannot start until the sponsor provisions:
+
+1. **Postgres**: a Neon project (or equivalent managed Postgres) with a staging database URL exposed as `DATABASE_URL`.
+2. **Drizzle migration target**: connection string for local + staging so `drizzle-kit push` has somewhere to land.
+3. **Auth backing store**: confirmation of password storage (bcrypt rounds), session strategy (cookie vs JWT vs `nuxt-auth-utils`), and any IdP integration (Microsoft Entra? Google Workspace? local-only?).
+4. **R2 / object storage**: AWS S3 or Cloudflare R2 bucket for compliance-doc PDFs (+ signed-URL signer key).
+5. **Background-runner host**: decision on inline jobs (same Nuxt server) vs a dedicated worker process for E11-S9.
+
+When those land, E11-S1 (migrations) is the kickoff story — every subsequent story is one service swap behind a `BULWARK_BACKEND=real` env flag, with the full Playwright suite re-run against the real backend before merge. Until then the mock services keep the UX honest and unblock E12 / E13 design conversations.
+
+## Downstream Impact
+
+- **E12 (Subcontractor Portal)** depends on real auth (E11-S3) for sub login + on the real WorkOrder service (E11-S8) for cross-tenant assignment delivery. Cannot start before E11 is in flight.
+- **E13 (Homeowner Portal)** depends on real auth + real Invoice service (E11-S11) for the homeowner pay-link. Cannot start before E11 is in flight.
