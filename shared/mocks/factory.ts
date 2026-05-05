@@ -31,6 +31,8 @@ import { MockWorkOrderService } from './work-order.mock'
 import { MockJobService } from './job.mock'
 import { MockComplianceDocService } from './compliance.mock'
 import { MockInvoiceService } from './invoice.mock'
+import { MockStandardsService } from './standards.mock'
+import { MockApiKeyService } from './api-key.mock'
 import type { TenantResolver } from './tenant'
 
 let cachedServices: BulwarkServices | null = null
@@ -56,6 +58,8 @@ export function createMockServices(
       job,
       complianceDoc: new MockComplianceDocService(resolver, () => job),
       invoice: new MockInvoiceService(resolver),
+      standards: new MockStandardsService(resolver),
+      apiKey: new MockApiKeyService(resolver),
     }
   }
   return cachedServices

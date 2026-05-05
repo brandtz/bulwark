@@ -11,13 +11,15 @@
 
 ## Active Epic
 
-[E9 — Admin Configuration Hub](agents/epics/E09-admin-config.md)
+[E10 — Contractor Mobile](agents/epics/E10-contractor-mobile.md)
 
 ## Active Story
 
-E9-S1 — first admin configuration story (kickoff).
+E10-S1 — field dashboard kickoff.
 
-**Epic E8 closed.** All four stories landed: invoice list (S1) → invoice detail with mark-sent / mark-paid (S2) → create-from-WO (S3) → closing happy-path Playwright spec (S4).
+**Epic E9 closed.** Settings hub + 9 sub-routes live: 4 functional editors (Compliance Standards, API keys, Users viewer, Workflow viewer, Audit log viewer) and 3 informational stubs (Catalog, Templates, Feature flags) awaiting real-backend dependencies. Role-gated to `org_admin` + `super_admin`; `feature-flags` is `super_admin` only.
+
+E9 closed: Settings hub + sub-pages. New contracts `shared/contracts/standards.ts` (`IStandardsService.get/save`, full-replace shape) and `shared/contracts/api-key.ts` (issue-once: `create()` returns `{ row, secret }`, `revoke()` is soft, prefix-only display). New `MockStandardsService` (synthesizes Oregon defaults until customised) and `MockApiKeyService` (`bw_sk_…` 32-char hex secret via `crypto.getRandomValues`, prefix = first 10 chars + ellipsis); both tenant-firewalled and skipping `Schema.parse` per the E3-S4 fixture-id lesson; both wired into `MockServiceFactory.cachedServices`. New pages: `/settings` (hub with 8 cards for `org_admin`, 9 for `super_admin`), `/settings/standards` (pill-style multi-select for compliant roof/siding/eaves/vents + defensible-space toggle, save calls full-replace), `/settings/api-keys` (issue-once banner with copy + dismiss, list with active/revoked pills, soft revoke), `/settings/company` (org summary card; full edit deferred to E11), `/settings/users` (membership viewer derived from fixture roster), `/settings/workflow` (read-only pipeline statuses + trades), `/settings/catalog` + `/settings/templates` (informational stubs), `/settings/audit-log` (read-only feed derived from row history across properties/quotes/work-orders/invoices), `/settings/feature-flags` (super_admin-only static list). New `tests/e2e/settings-matrix.spec.ts` (12 tests: hub-card count for org_admin and super_admin, role redirect for `field`, each stub page resolves with its testid, standards toggle+save without error, api-keys issue/dismiss/revoke flow, feature-flags 403 for org_admin). **127 chromium tests passing** (2 skipped) + 35 unit tests.
 
 E8-S4 closed: Epic E8 closer. New `tests/e2e/happy-path-invoice.spec.ts` (single serial test) walks the full sponsor journey: open a WO → click Create invoice → land on the create flow with WO-derived line items pre-filled → set a unit cost → submit → land on the new invoice in `draft` → click Send (flips to `sent`) → click Mark paid (flips to `paid`) → navigate via the back-link (NOT `page.goto`, mock-state nav rule) to the list → click the Paid filter tab → assert the new invoice number is present. **115 chromium tests passing** (2 skipped) + 35 unit tests.
 

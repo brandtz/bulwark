@@ -31,6 +31,14 @@ export async function signInAsAdmin(page: Page): Promise<void> {
   await signIn(page.context(), 'drew@bulwark.demo')
 }
 
+export async function signInAsField(page: Page): Promise<void> {
+  await signIn(page.context(), 'matthew@bulwark.demo')
+}
+
+export async function signInAsSuper(page: Page): Promise<void> {
+  await signIn(page.context(), 'sasha@bulwark.platform')
+}
+
 export async function signOut(context: BrowserContext): Promise<void> {
   await context.clearCookies({ name: PERSONA_COOKIE })
 }
