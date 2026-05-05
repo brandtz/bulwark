@@ -18,8 +18,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/unit/**/*.test.ts', 'shared/**/*.test.ts', 'server/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts', 'shared/**/*.test.ts', 'server/**/*.test.ts'],
     exclude: ['node_modules', 'tests/e2e/**', '.nuxt', '.output'],
+    setupFiles: ['./tests/setup/env.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
