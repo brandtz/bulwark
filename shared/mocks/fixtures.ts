@@ -18,7 +18,7 @@ import type { Client } from '../contracts/client'
 import type { SessionUser } from '../contracts/auth'
 import type { Subcontractor } from '../contracts/subcontractor'
 import type { WorkOrder } from '../contracts/work-order'
-
+import type { Invoice } from '../contracts/invoice'
 /** Build a deterministic UUID from a slug. */
 const mk = (slug: string): string => {
   // Pad/truncate the slug to 32 hex-ish chars and shape into UUID form.
@@ -244,6 +244,156 @@ export const FIXTURE_WORK_ORDERS: WorkOrder[] = [
     ],
     notes: 'Customer requested early-morning starts; access via side gate.',
     createdById: FIXTURE_USER_ADMIN.userId,
+    createdAt: NOW,
+    updatedAt: NOW,
+    deletedAt: null,
+  },
+]
+
+// ----------------------------------------------------------------------------
+// Invoices (E8). One per persisted status + one overdue (sent + dueAt past).
+// ----------------------------------------------------------------------------
+const SEED_WO_ID = FIXTURE_WORK_ORDERS[0]!.id
+const PAST_ISO = '2026-04-15T17:00:00.000Z'    // before NOW
+const NEAR_FUTURE_ISO = '2026-05-30T17:00:00.000Z'
+
+export const FIXTURE_INVOICES: Invoice[] = [
+  {
+    id: mk('invoice-seed-draft'),
+    organizationId: FIXTURE_ORG_ID,
+    propertyId: SEED_PROPERTY.id,
+    workOrderId: SEED_WO_ID,
+    quoteId: SEED_QUOTE_ID,
+    invoiceNumber: 'INV-2026-0001',
+    status: 'draft',
+    issuedAt: null,
+    sentAt: null,
+    dueAt: NEAR_FUTURE_ISO,
+    paidAt: null,
+    paidAmountCents: 0,
+    lineItems: [
+      {
+        id: mk('inv-line-1'),
+        kind: 'labor',
+        description: 'Roof replacement \u2014 class A metal',
+        quantity: 1,
+        unitCostCents: 1850000,
+      },
+    ],
+    markupPercent: 0,
+    taxPercent: 0,
+    notes: null,
+    totals: {
+      subtotalCents: 1850000,
+      markupCents: 0,
+      taxCents: 0,
+      totalCents: 1850000,
+    },
+    createdAt: NOW,
+    updatedAt: NOW,
+    deletedAt: null,
+  },
+  {
+    id: mk('invoice-seed-sent'),
+    organizationId: FIXTURE_ORG_ID,
+    propertyId: SEED_PROPERTY.id,
+    workOrderId: SEED_WO_ID,
+    quoteId: null,
+    invoiceNumber: 'INV-2026-0002',
+    status: 'sent',
+    issuedAt: '2026-05-01T17:00:00.000Z',
+    sentAt: '2026-05-01T17:00:00.000Z',
+    dueAt: NEAR_FUTURE_ISO,
+    paidAt: null,
+    paidAmountCents: 0,
+    lineItems: [
+      {
+        id: mk('inv-line-2'),
+        kind: 'labor',
+        description: 'Defensible-space clearing \u2014 zone 1',
+        quantity: 8,
+        unitCostCents: 12500,
+      },
+    ],
+    markupPercent: 10,
+    taxPercent: 0,
+    notes: null,
+    totals: {
+      subtotalCents: 100000,
+      markupCents: 10000,
+      taxCents: 0,
+      totalCents: 110000,
+    },
+    createdAt: NOW,
+    updatedAt: NOW,
+    deletedAt: null,
+  },
+  {
+    id: mk('invoice-seed-overdue'),
+    organizationId: FIXTURE_ORG_ID,
+    propertyId: SEED_PROPERTY.id,
+    workOrderId: SEED_WO_ID,
+    quoteId: null,
+    invoiceNumber: 'INV-2026-0003',
+    status: 'sent',
+    issuedAt: '2026-04-01T17:00:00.000Z',
+    sentAt: '2026-04-01T17:00:00.000Z',
+    dueAt: PAST_ISO,
+    paidAt: null,
+    paidAmountCents: 0,
+    lineItems: [
+      {
+        id: mk('inv-line-3'),
+        kind: 'material',
+        description: 'Class-A metal roofing \u2014 Standing seam',
+        quantity: 24,
+        unitCostCents: 18000,
+      },
+    ],
+    markupPercent: 0,
+    taxPercent: 0,
+    notes: 'Past due. Followup email sent 2026-04-30.',
+    totals: {
+      subtotalCents: 432000,
+      markupCents: 0,
+      taxCents: 0,
+      totalCents: 432000,
+    },
+    createdAt: NOW,
+    updatedAt: NOW,
+    deletedAt: null,
+  },
+  {
+    id: mk('invoice-seed-paid'),
+    organizationId: FIXTURE_ORG_ID,
+    propertyId: SEED_PROPERTY.id,
+    workOrderId: SEED_WO_ID,
+    quoteId: null,
+    invoiceNumber: 'INV-2026-0004',
+    status: 'paid',
+    issuedAt: '2026-03-15T17:00:00.000Z',
+    sentAt: '2026-03-15T17:00:00.000Z',
+    dueAt: '2026-04-15T17:00:00.000Z',
+    paidAt: '2026-04-10T17:00:00.000Z',
+    paidAmountCents: 75000,
+    lineItems: [
+      {
+        id: mk('inv-line-4'),
+        kind: 'labor',
+        description: 'Initial site assessment',
+        quantity: 1,
+        unitCostCents: 75000,
+      },
+    ],
+    markupPercent: 0,
+    taxPercent: 0,
+    notes: null,
+    totals: {
+      subtotalCents: 75000,
+      markupCents: 0,
+      taxCents: 0,
+      totalCents: 75000,
+    },
     createdAt: NOW,
     updatedAt: NOW,
     deletedAt: null,

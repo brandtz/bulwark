@@ -14,6 +14,7 @@ import type { ISubcontractorService } from './subcontractor'
 import type { IWorkOrderService } from './work-order'
 import type { IJobService } from './job'
 import type { IComplianceDocService } from './compliance'
+import type { IInvoiceService } from './invoice'
 
 export interface BulwarkServices {
   auth: IAuthService
@@ -25,8 +26,8 @@ export interface BulwarkServices {
   workOrder: IWorkOrderService
   job: IJobService
   complianceDoc: IComplianceDocService
-  // E0-S6 stubs the rest as we add them: invoice, auditLog,
-  // apiKey, settings.*
+  invoice: IInvoiceService
+  // E0-S6 stubs the rest as we add them: auditLog, apiKey, settings.*
 }
 
 export type ServiceName = keyof BulwarkServices
