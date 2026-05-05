@@ -48,17 +48,23 @@ before marking complete. CI gains a `BACKEND=real` job alongside `BACKEND=mock`.
 
 ## Approval Status
 
-⏸️ **Deferred (gating: infrastructure)** — All twelve stories are coding-ready (contracts + mock services already pin every method signature, and the suite at sha `387f3bc` covers 128 chromium + 35 unit paths against the mock layer). E11 cannot start until the sponsor provisions:
+🟢 **Ready to start** — All five infrastructure decisions locked by [ADR-0012](../decisions/ADR-0012-phase2-infrastructure.md) on 2026-05-05:
 
-1. **Postgres**: a Neon project (or equivalent managed Postgres) with a staging database URL exposed as `DATABASE_URL`.
-2. **Drizzle migration target**: connection string for local + staging so `drizzle-kit push` has somewhere to land.
-3. **Auth backing store**: confirmation of password storage (bcrypt rounds), session strategy (cookie vs JWT vs `nuxt-auth-utils`), and any IdP integration (Microsoft Entra? Google Workspace? local-only?).
-4. **R2 / object storage**: AWS S3 or Cloudflare R2 bucket for compliance-doc PDFs (+ signed-URL signer key).
-5. **Background-runner host**: decision on inline jobs (same Nuxt server) vs a dedicated worker process for E11-S9.
+| Concern | Decision |
+|---|---|
+| Postgres (dev) | Local PostgreSQL 18 service `postgresql-x64-18`, role `bulwark_app`, db `bulwark_dev` |
+| Postgres (staging/prod) | Neon (deferred until first deploy milestone) |
+| Auth | `bcryptjs` + `nuxt-auth-utils` session cookies (no SSO for v1) |
+| Object storage | Cloudflare R2 |
+| Background jobs | `pg-boss` worker as a separate Node process (Render/Railway) |
+| Hosting | Vercel for Nuxt app |
+| Payments | Stripe (E13-S7 only) |
 
-When those land, E11-S1 (migrations) is the kickoff story — every subsequent story is one service swap behind a `BULWARK_BACKEND=real` env flag, with the full Playwright suite re-run against the real backend before merge. Until then the mock services keep the UX honest and unblock E12 / E13 design conversations.
+**Single remaining unblock**: sponsor pastes the `DATABASE_URL=postgresql://bulwark_app:...@localhost:5432/bulwark_dev` connection string into `bulwark/.env.local`. Then E11-S1 starts.
+
+Every subsequent story is one service swap behind a `BULWARK_BACKEND=real` env flag, with the full Playwright suite re-run against the real backend before merge. Mock services stay alive in parallel so the dev loop never goes dark.
 
 ## Downstream Impact
 
-- **E12 (Subcontractor Portal)** depends on real auth (E11-S3) for sub login + on the real WorkOrder service (E11-S8) for cross-tenant assignment delivery. Cannot start before E11 is in flight.
-- **E13 (Homeowner Portal)** depends on real auth + real Invoice service (E11-S11) for the homeowner pay-link. Cannot start before E11 is in flight.
+- **E12 (Subcontractor Portal)** depends on real auth (E11-S3) for sub login + on the real WorkOrder service (E11-S8) for cross-tenant assignment delivery. Strict serial per ADR-0012 §7.
+- **E13 (Homeowner Portal)** depends on real auth + real Invoice service (E11-S11) for the homeowner pay-link. Strict serial per ADR-0012 §7.

@@ -11,11 +11,11 @@
 
 ## Active Epic
 
-[E11 — Backend Wiring](agents/epics/E11-backend-wiring.md) — **deferred until sponsor provisions Postgres/Neon + production auth**. E12 (Production Hardening) and E13 (Launch) depend on E11.
+[E11 — Backend Wiring](agents/epics/E11-backend-wiring.md) — **🟢 ready to start**. Phase 2 infrastructure stack locked by [ADR-0012](agents/decisions/ADR-0012-phase2-infrastructure.md): local PostgreSQL 18 (`postgresql-x64-18`) for dev, Neon for staging (deferred), `bcryptjs` + `nuxt-auth-utils` for auth, Cloudflare R2 for object storage, `pg-boss` worker on Render/Railway for jobs, Vercel for the Nuxt app, Stripe for E13-S7 only. Single remaining unblock: sponsor pastes `DATABASE_URL` for the local `bulwark_app`/`bulwark_dev` role into `bulwark/.env.local`. E12 (Subcontractor Portal) and E13 (Homeowner Portal) follow strictly serially per ADR-0012 §7.
 
 ## Active Story
 
-E11-S1 — pending infrastructure provisioning.
+E11-S1 — Drizzle migrations applied to local Postgres. Awaiting connection string.
 
 **Epic E10 closed.** Field GC role gets a complete mobile-first surface: dashboard (`/field/dashboard`), properties list + detail (`/field/properties`, `/field/properties/[id]`), work-orders list (`/field/work-orders`), assessments list (`/field/assessments`), sync-queue stub (`/field/sync-queue`, offline strategy ADR deferred to Phase 2 PWA work), and shared profile (`/profile`). All field surfaces role-gated to `ROLE_GROUPS.field` via the `role` middleware; no `$` rendered anywhere on the field surface. Cross-links into the existing `/admin/properties/[id]/assessment` and `assessment-summary` pages (both already field-allowed via E4) keep field crews on a single capture flow without duplicating the assessment shell. New `tests/e2e/happy-path-field.spec.ts` walks dashboard → properties → property → assessment on a 390×844 viewport and asserts no `$` text on every field page. **128 chromium tests passing** (2 skipped) + 35 unit tests.
 
