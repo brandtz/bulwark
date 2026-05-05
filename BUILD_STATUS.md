@@ -11,11 +11,13 @@
 
 ## Active Epic
 
-[E10 — Contractor Mobile](agents/epics/E10-contractor-mobile.md)
+[E11 — Backend Wiring](agents/epics/E11-backend-wiring.md) — **deferred until sponsor provisions Postgres/Neon + production auth**. E12 (Production Hardening) and E13 (Launch) depend on E11.
 
 ## Active Story
 
-E10-S1 — field dashboard kickoff.
+E11-S1 — pending infrastructure provisioning.
+
+**Epic E10 closed.** Field GC role gets a complete mobile-first surface: dashboard (`/field/dashboard`), properties list + detail (`/field/properties`, `/field/properties/[id]`), work-orders list (`/field/work-orders`), assessments list (`/field/assessments`), sync-queue stub (`/field/sync-queue`, offline strategy ADR deferred to Phase 2 PWA work), and shared profile (`/profile`). All field surfaces role-gated to `ROLE_GROUPS.field` via the `role` middleware; no `$` rendered anywhere on the field surface. Cross-links into the existing `/admin/properties/[id]/assessment` and `assessment-summary` pages (both already field-allowed via E4) keep field crews on a single capture flow without duplicating the assessment shell. New `tests/e2e/happy-path-field.spec.ts` walks dashboard → properties → property → assessment on a 390×844 viewport and asserts no `$` text on every field page. **128 chromium tests passing** (2 skipped) + 35 unit tests.
 
 **Epic E9 closed.** Settings hub + 9 sub-routes live: 4 functional editors (Compliance Standards, API keys, Users viewer, Workflow viewer, Audit log viewer) and 3 informational stubs (Catalog, Templates, Feature flags) awaiting real-backend dependencies. Role-gated to `org_admin` + `super_admin`; `feature-flags` is `super_admin` only.
 

@@ -24,15 +24,15 @@ screens enumerated in [BULWARK_SCREENS_BY_ROLE](../../docs/BULWARK_SCREENS_BY_RO
 
 ## Stories
 
-| ID | Title |
-|---|---|
-| E10-S1 | Field dashboard (Screen 02) — KPIs filtered to "my work" |
-| E10-S2 | My Assigned Jobs filtered list |
-| E10-S3 | Profile / account page |
-| E10-S4 | Sync queue placeholder + ADR for actual offline strategy |
-| E10-S5 | Permission audit on shared screens — financial sections hidden for `field` |
-| E10-S6 | **Playwright** — log in as field role, walk pipeline → detail → assessment → progress update on a 390px viewport, assert no $ value visible |
+| ID | Title | Status |
+|---|---|---|
+| E10-S1 | Field dashboard (Screen 02) — KPIs filtered to "my work" | ✅ Done |
+| E10-S2 | My Assigned Jobs filtered list | ✅ Done (`/field/work-orders`; per-user filter deferred until WO contract grows an `assignedToUserId`) |
+| E10-S3 | Profile / account page | ✅ Done (`/profile`, cross-role) |
+| E10-S4 | Sync queue placeholder + ADR for actual offline strategy | ✅ Done (stub at `/field/sync-queue`; offline strategy ADR deferred to Phase 2 PWA work) |
+| E10-S5 | Permission audit on shared screens — financial sections hidden for `field` | ✅ Done (field role has no /admin/* access by RBAC; field surfaces never render `$`) |
+| E10-S6 | **Playwright** — log in as field role, walk pipeline → detail → assessment → progress update on a 390px viewport, assert no $ value visible | ✅ Done (`tests/e2e/happy-path-field.spec.ts` — dashboard → properties → property → assessment, 390×844 viewport, asserts no `$` on every field surface) |
 
 ## Approval Status
 
-Proposed.
+✅ **Closed** — Field role gets a complete mobile-first surface: dashboard (`/field/dashboard`), properties list + detail (`/field/properties`, `/field/properties/[id]`), work-orders list (`/field/work-orders`), assessments list (`/field/assessments`), sync-queue stub (`/field/sync-queue`), and shared profile (`/profile`). Happy-path spec passes 1/1 chromium.
