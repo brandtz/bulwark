@@ -13,6 +13,7 @@ import type { IQuoteService } from './quote'
 import type { ISubcontractorService } from './subcontractor'
 import type { IWorkOrderService } from './work-order'
 import type { IJobService } from './job'
+import type { IComplianceDocService } from './compliance'
 
 export interface BulwarkServices {
   auth: IAuthService
@@ -23,8 +24,9 @@ export interface BulwarkServices {
   subcontractor: ISubcontractorService
   workOrder: IWorkOrderService
   job: IJobService
-  // E0-S6 stubs the rest as we add them: complianceDoc, invoice,
-  // auditLog, apiKey, settings.*
+  complianceDoc: IComplianceDocService
+  // E0-S6 stubs the rest as we add them: invoice, auditLog,
+  // apiKey, settings.*
 }
 
 export type ServiceName = keyof BulwarkServices

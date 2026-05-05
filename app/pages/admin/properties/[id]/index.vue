@@ -308,12 +308,21 @@ const compliance = computed(() => {
         </template>
 
         <template #tab-compliance>
-          <EmptyState
-            icon="·"
-            title="No compliance docs yet"
-            body="Compliance generator + standards config lands in Epic E8."
-            data-testid="tab-panel-compliance"
-          />
+          <section data-testid="tab-panel-compliance" class="flex flex-col items-start gap-4">
+            <EmptyState
+              icon="·"
+              title="No compliance docs yet"
+              body="Generate the homeowner-and-insurer-facing PDF from completed work-order trade slots."
+              class="self-stretch"
+            />
+            <NuxtLink
+              :to="`/admin/properties/${propertyId}/compliance/new`"
+              class="self-center inline-flex h-input items-center rounded-input bg-primary px-4 text-body font-medium text-white hover:bg-primary-700 transition"
+              data-testid="tab-start-compliance-cta"
+            >
+              Generate compliance doc
+            </NuxtLink>
+          </section>
         </template>
 
         <template #tab-invoices>

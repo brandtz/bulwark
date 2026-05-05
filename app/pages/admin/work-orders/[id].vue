@@ -197,7 +197,11 @@ async function onProgressUpdate(slotId: string, next: TradeSlotStatus) {
 </script>
 
 <template>
-  <div class="p-4 md:p-6 max-w-4xl mx-auto" data-testid="work-order-detail">
+  <div
+    class="p-4 md:p-6 max-w-4xl mx-auto"
+    data-testid="work-order-detail"
+    :data-property-id="bundle?.workOrder?.propertyId"
+  >
     <BulwarkBreadcrumbs
       :items="[
         { label: 'Work orders', to: '/admin/work-orders' },

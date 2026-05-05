@@ -29,6 +29,7 @@ import { MockQuoteService } from './quote.mock'
 import { MockSubcontractorService } from './subcontractor.mock'
 import { MockWorkOrderService } from './work-order.mock'
 import { MockJobService } from './job.mock'
+import { MockComplianceDocService } from './compliance.mock'
 import type { TenantResolver } from './tenant'
 
 let cachedServices: BulwarkServices | null = null
@@ -42,6 +43,7 @@ export function createMockServices(
     // Default resolver pulls the active session synchronously from auth.
     // Callers (e.g. unit tests) can pass an explicit resolver to override.
     const resolver: TenantResolver = tenantResolver ?? (() => auth.resolveTenantSync())
+    const job = new MockJobService(resolver)
     cachedServices = {
       auth,
       property: new MockPropertyService(resolver),
@@ -50,7 +52,8 @@ export function createMockServices(
       quote: new MockQuoteService(resolver),
       subcontractor: new MockSubcontractorService(resolver),
       workOrder: new MockWorkOrderService(resolver),
-      job: new MockJobService(resolver),
+      job,
+      complianceDoc: new MockComplianceDocService(resolver, () => job),
     }
   }
   return cachedServices
