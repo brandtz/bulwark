@@ -18,12 +18,12 @@ URL after a 2s timer; E11 wires real Puppeteer.
 
 ## Stories
 
-| ID | Title | Visible delta |
-|---|---|---|
-| E7-S1 | `useJob` polling composable + MockJobService | unit test green |
-| E7-S2 | Compliance generator UI — checklist of WO items, signature pad | sponsor walks through |
-| E7-S3 | "Generating…" state → preview → download (mock URL) | full async UX visible |
-| E7-S4 | **Playwright** — generate doc → wait for ready state → see preview | green spec |
+| ID | Title | Visible delta | Status |
+|---|---|---|---|
+| E7-S1 | `useJob` polling composable + MockJobService | unit test green | ✅ Done |
+| E7-S2 | Compliance generator UI — checklist of WO items, signature pad | sponsor walks through | ✅ Done |
+| E7-S3 | "Generating…" state → preview → download (mock URL) | full async UX visible | ✅ Done |
+| E7-S4 | **Playwright** — generate doc → wait for ready state → see preview | green spec | ⏳ Active |
 
 ## Approval Status
 
