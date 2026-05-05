@@ -28,20 +28,20 @@ real implementation when `process.env.BULWARK_BACKEND === 'real'`.
 
 ## Stories
 
-| ID | Title |
-|---|---|
-| E11-S1 | Drizzle migrations applied to local Postgres + Neon staging |
-| E11-S2 | RealAuditService + transaction helper |
-| E11-S3 | RealAuthService (JOSE, bcrypt, nuxt-auth-utils) |
-| E11-S4 | Tenant firewall middleware live |
-| E11-S5 | RealPropertyService + RealClientService |
-| E11-S6 | RealAssessmentService |
-| E11-S7 | RealQuoteService |
-| E11-S8 | RealWorkOrderService + RealSubcontractorService |
-| E11-S9 | RealJobService (background worker) |
-| E11-S10 | RealComplianceService — Puppeteer PDF, R2 signed URL |
-| E11-S11 | RealInvoiceService |
-| E11-S12 | RealApiKeyService + scope enforcement |
+| ID | Title | Status |
+|---|---|---|
+| E11-S1 | Drizzle migrations applied to local Postgres + Neon staging | ✅ Done (local; Neon deferred) |
+| E11-S2 | RealAuditService + transaction helper | Not started |
+| E11-S3 | RealAuthService (JOSE, bcrypt, nuxt-auth-utils) | Not started |
+| E11-S4 | Tenant firewall middleware live | Not started |
+| E11-S5 | RealPropertyService + RealClientService | Not started |
+| E11-S6 | RealAssessmentService | Not started |
+| E11-S7 | RealQuoteService | Not started |
+| E11-S8 | RealWorkOrderService + RealSubcontractorService | Not started |
+| E11-S9 | RealJobService (background worker) | Not started |
+| E11-S10 | RealComplianceService — Puppeteer PDF, R2 signed URL | Not started |
+| E11-S11 | RealInvoiceService | Not started |
+| E11-S12 | RealApiKeyService + scope enforcement | Not started |
 
 Each story re-runs the **full Playwright suite** against the real backend
 before marking complete. CI gains a `BACKEND=real` job alongside `BACKEND=mock`.

@@ -1,0 +1,1 @@
+ALTER TABLE "compliance_standards" ADD CONSTRAINT "compliance_standards_organization_id_pk" PRIMARY KEY("organization_id");
