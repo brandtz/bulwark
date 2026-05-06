@@ -32,7 +32,7 @@ real implementation when `process.env.BULWARK_BACKEND === 'real'`.
 |---|---|---|
 | E11-S1 | Drizzle migrations applied to local Postgres + Neon staging | ✅ Done (local; Neon deferred) |
 | E11-S2 | RealAuditService + transaction helper | ✅ Done |
-| E11-S3 | RealAuthService (JOSE, bcrypt, nuxt-auth-utils) | Not started |
+| E11-S3 | RealAuthService (JOSE, bcrypt, nuxt-auth-utils) | ✅ Done (service + seed; nuxt-auth-utils plugin wiring deferred to E11-S4) |
 | E11-S4 | Tenant firewall middleware live | Not started |
 | E11-S5 | RealPropertyService + RealClientService | Not started |
 | E11-S6 | RealAssessmentService | Not started |

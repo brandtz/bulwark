@@ -24,7 +24,8 @@
     "//4": "Drizzle is wired in E0-S4 (schemas) and applied in E11-S1 (migrations).",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "node scripts/db-seed.mjs"
   },
   "dependencies": {
     "@vee-validate/zod": "^4.13.0",
