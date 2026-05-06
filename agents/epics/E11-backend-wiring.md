@@ -35,13 +35,14 @@ real implementation when `process.env.BULWARK_BACKEND === 'real'`.
 | E11-S3 | RealAuthService (JOSE, bcrypt, nuxt-auth-utils) | ✅ Done (service + seed; nuxt-auth-utils plugin wiring deferred to E11-S4) |
 | E11-S4 | Tenant firewall middleware live | ✅ Done (server/services/_tenant.ts re-exports the shared firewall; every Real* service calls assertSameTenant before any DB access) |
 | E11-S5 | RealPropertyService + RealClientService | ✅ Done |
-| E11-S6 | RealAssessmentService | Not started |
-| E11-S7 | RealQuoteService | Not started |
-| E11-S8 | RealWorkOrderService + RealSubcontractorService | Not started |
-| E11-S9 | RealJobService (background worker) | Not started |
-| E11-S10 | RealComplianceService — Puppeteer PDF, R2 signed URL | Not started |
-| E11-S11 | RealInvoiceService | Not started |
-| E11-S12 | RealApiKeyService + scope enforcement | Not started |
+| E11-S6 | RealAssessmentService | ✅ Done |
+| E11-S7 | RealQuoteService | ✅ Done |
+| E11-S8 | RealWorkOrderService + RealSubcontractorService | ✅ Done |
+| E11-S9 | RealJobService (background worker) | Blocked (needs pg-boss install + worker hosting decision) |
+| E11-S10 | RealComplianceService — Puppeteer PDF, R2 signed URL | Blocked (needs R2 bucket + Puppeteer install) |
+| E11-S11 | RealInvoiceService | ✅ Done |
+| E11-S12 | RealApiKeyService + scope enforcement | ✅ Done |
+| E11-S13 | RealStandardsService (folded in) | ✅ Done |
 
 Each story re-runs the **full Playwright suite** against the real backend
 before marking complete. CI gains a `BACKEND=real` job alongside `BACKEND=mock`.

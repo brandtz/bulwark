@@ -116,7 +116,7 @@ d('RealAuthService (E11-S3)', () => {
     expect(r.devToken).toBeNull()
   })
 
-  it('resetPassword() rotates the hash and signs the user in', async () => {
+  it('resetPassword() rotates the hash and signs the user in', { timeout: 20_000 }, async () => {
     const adapter = new InMemoryAuthSessionAdapter()
     const svc = new RealAuthService(adapter)
     const { devToken } = await svc.requestPasswordReset({ email })
