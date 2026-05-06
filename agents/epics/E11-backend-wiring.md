@@ -39,7 +39,7 @@ real implementation when `process.env.BULWARK_BACKEND === 'real'`.
 | E11-S7 | RealQuoteService | ✅ Done |
 | E11-S8 | RealWorkOrderService + RealSubcontractorService | ✅ Done |
 | E11-S9 | RealJobService (background worker) | ✅ Done (pg-boss 12 + tsx worker; `pnpm run worker:jobs` boots the queue consumer; integration test green) |
-| E11-S10 | RealComplianceService — Puppeteer PDF, R2 signed URL | Blocked (needs R2 bucket + Puppeteer install) |
+| E11-S10 | RealComplianceService — Puppeteer PDF, R2 signed URL | ✅ Done (puppeteer 24 + @aws-sdk/client-s3 + s3-request-presigner; HTML→PDF→R2→7-day signed URL; BULWARK_PDF_STUB=1 fast path for tests/no-cred envs) |
 | E11-S11 | RealInvoiceService | ✅ Done |
 | E11-S12 | RealApiKeyService + scope enforcement | ✅ Done |
 | E11-S13 | RealStandardsService (folded in) | ✅ Done |
