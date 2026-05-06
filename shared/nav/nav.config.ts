@@ -31,8 +31,11 @@ export type NavItem = {
 
 export const NAV_ITEMS: NavItem[] = [
   // ----------------------- Admin / Owner / Manager ------------------------
-  { group: 'Operations', label: 'Pipeline',       to: '/admin/pipeline',       icon: 'kanban',     roles: ['super_admin','org_admin','org_manager'], mobile: true  },
-  { group: 'Operations', label: 'Properties',     to: '/admin/properties',     icon: 'home',       roles: ['super_admin','org_admin','org_manager']                  },
+  // Note (2026-05-06 audit): the original "Pipeline" entry pointed at
+  // `/admin/pipeline` which never had a page. The kanban view is built
+  // into /admin/properties (toggle between kanban + list there), so the
+  // dedicated Pipeline row was a dead link. Removed.
+  { group: 'Operations', label: 'Properties',     to: '/admin/properties',     icon: 'home',       roles: ['super_admin','org_admin','org_manager'], mobile: true  },
   { group: 'Operations', label: 'Work orders',    to: '/admin/work-orders',    icon: 'clipboard',  roles: ['super_admin','org_admin','org_manager'], mobile: true  },
   { group: 'Operations', label: 'Quotes',         to: '/admin/quotes',         icon: 'document',   roles: ['super_admin','org_admin','org_manager']                  },
   { group: 'Operations', label: 'Invoices',       to: '/admin/invoices',       icon: 'receipt',    roles: ['super_admin','org_admin','org_manager']                  },
