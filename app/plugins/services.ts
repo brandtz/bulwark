@@ -4,19 +4,62 @@
  * Pages call `const { $services } = useNuxtApp()` or the `useService(name)`
  * helper composable (app/composables/useService.ts). ADR-0004.
  *
- * Decisions:
- *   - We resolve the factory ONCE at plugin init based on runtimeConfig
- *     (`useRuntimeConfig().public.backend`). This means flipping the env
- *     var requires a restart, which is fine for the mock-vs-real split.
+ * # Decisions (E11-S13)
+ *   - Mock backend: in-process factory, cookie-backed persona adapter.
+ *   - Real backend: a tiny RPC proxy. Every method dispatches to
+ *     `POST /api/services/[service]/[method]` with the input as the
+ *     body. The server side runs `createRealServices(event)` which
+ *     does the actual DB work.
+ *   - Plugin runs both server + client. To avoid pulling Drizzle/pg
+ *     into the client bundle, we NEVER import the real factory here —
+ *     the proxy talks HTTP. On SSR, Nuxt's `$fetch` short-circuits to
+ *     in-memory dispatch, so there's no real network round-trip.
  *
- * Decisions NOT taken:
- *   - We do NOT support per-domain mock-vs-real toggling at runtime. E11-S1
- *     introduces a build-time feature flag for partial rollouts (e.g.
- *     property=real, quote=mock during migration); that's a different
- *     mechanism than this plugin.
+ * # Decision cast down
+ *   - Per-domain mock-vs-real toggling at runtime. Rejected — flipping
+ *     the env var requires a restart, which is fine for the mock-vs-
+ *     real split. A finer-grained flag would multiply the test matrix.
  */
 import { createMockServices } from '~~/shared/mocks/factory'
-import type { BulwarkServices } from '~~/shared/contracts/services'
+import type { BulwarkServices, ServiceName } from '~~/shared/contracts/services'
+
+interface FetchErrorShape {
+  data?: { statusMessage?: string; message?: string }
+  statusMessage?: string
+  message?: string
+}
+
+function unwrapFetchError(err: unknown): never {
+  const e = err as FetchErrorShape
+  const msg = e?.data?.statusMessage ?? e?.data?.message ?? e?.statusMessage ?? e?.message ?? 'Request failed'
+  throw new Error(msg)
+}
+
+function makeRpcProxy(): BulwarkServices {
+  const cache = new Map<string, unknown>()
+  return new Proxy({} as BulwarkServices, {
+    get(_target, prop: string) {
+      if (cache.has(prop)) return cache.get(prop)
+      const serviceName = prop as ServiceName
+      const serviceProxy = new Proxy({} as Record<string, unknown>, {
+        get(_t2, methodName: string) {
+          return async (input?: unknown) => {
+            try {
+              return await $fetch(`/api/services/${String(serviceName)}/${methodName}`, {
+                method: 'POST',
+                body: input === undefined ? {} : input,
+              })
+            } catch (err) {
+              unwrapFetchError(err)
+            }
+          }
+        },
+      })
+      cache.set(prop, serviceProxy)
+      return serviceProxy
+    },
+  })
+}
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
@@ -24,26 +67,12 @@ export default defineNuxtPlugin(() => {
 
   let services: BulwarkServices
   if (backend === 'real') {
-    // E11-S1 will replace this throw with createRealServices().
-    throw new Error('[bulwark] BULWARK_BACKEND=real is not yet supported. Set BULWARK_BACKEND=mock until E11.')
+    services = makeRpcProxy()
   } else {
     /*
      * Cookie-backed adapter so SSR + client + middleware all read the same
-     * "who's signed in?" state.
-     *
-     * Decision (revised in E2-S1): NO default value. The earlier
-     * `default: 'drew@bulwark.demo'` was a tempting dev DX shortcut, but it
-     * meant logout could not actually sign anyone out — every subsequent
-     * request hit the missing-cookie code path and re-defaulted to admin.
-     * The dev shortcut moved to /login (the persona quick-pick block).
-     *
-     * Decision cast down: storing a JSON-encoded SessionUser in the cookie.
-     * Rejected — fixture data is small and the email key is enough to
-     * rehydrate. Cookie size stays tiny and we don't ship internal IDs.
-     *
-     * Note: useCookie() is called per-method-invocation rather than once,
-     * so each request resolves its own cookie ref. Caching the ref at
-     * factory time would leak across requests on SSR.
+     * "who's signed in?" state. No default email — each persona switch
+     * writes the cookie explicitly. See E2-S1 / login.vue persona block.
      */
     const COOKIE = 'bulwark.mock.persona'
     const ORG_COOKIE = 'bulwark.mock.activeOrg'
@@ -52,8 +81,6 @@ export default defineNuxtPlugin(() => {
       setActivePersonaEmail: (email) => {
         useCookie<string | null>(COOKIE, { sameSite: 'lax' }).value = email
       },
-      // E2-S4: per-session active-org override. Null = use the user's
-      // default activeOrganizationId (their first membership).
       getActiveOrgOverride: () => useCookie<string | null>(ORG_COOKIE, { sameSite: 'lax' }).value ?? null,
       setActiveOrgOverride: (orgId) => {
         useCookie<string | null>(ORG_COOKIE, { sameSite: 'lax' }).value = orgId
