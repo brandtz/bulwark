@@ -38,7 +38,7 @@ real implementation when `process.env.BULWARK_BACKEND === 'real'`.
 | E11-S6 | RealAssessmentService | ✅ Done |
 | E11-S7 | RealQuoteService | ✅ Done |
 | E11-S8 | RealWorkOrderService + RealSubcontractorService | ✅ Done |
-| E11-S9 | RealJobService (background worker) | Blocked (needs pg-boss install + worker hosting decision) |
+| E11-S9 | RealJobService (background worker) | ✅ Done (pg-boss 12 + tsx worker; `pnpm run worker:jobs` boots the queue consumer; integration test green) |
 | E11-S10 | RealComplianceService — Puppeteer PDF, R2 signed URL | Blocked (needs R2 bucket + Puppeteer install) |
 | E11-S11 | RealInvoiceService | ✅ Done |
 | E11-S12 | RealApiKeyService + scope enforcement | ✅ Done |

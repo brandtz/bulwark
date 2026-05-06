@@ -25,7 +25,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "node scripts/db-seed.mjs"
+    "db:seed": "node scripts/db-seed.mjs",
+    "//5": "Background worker (E11-S9 / ADR-0012). Render Start Command: pnpm run worker:jobs.",
+    "worker:jobs": "tsx server/jobs/worker.ts"
   },
   "dependencies": {
     "@vee-validate/zod": "^4.13.0",
@@ -34,7 +36,9 @@
     "jose": "^5.9.0",
     "nuxt": "^3.14.0",
     "nuxt-auth-utils": "^0.5.0",
+    "pg-boss": "^12.18.2",
     "postgres": "^3.4.0",
+    "tsx": "^4.21.0",
     "vee-validate": "^4.13.0",
     "vue": "^3.5.0",
     "vue-router": "^4.4.0",
