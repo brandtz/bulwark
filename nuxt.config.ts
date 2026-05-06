@@ -87,6 +87,17 @@ export default defineNuxtConfig({
     databaseUrl: process.env.DATABASE_URL || '',
     jwtSecret: process.env.JWT_SECRET || '',
 
+    // nuxt-auth-utils session cookie config. Secure flag must be off
+    // for local dev / Playwright (HTTP localhost); browsers drop Secure
+    // cookies on non-HTTPS. Production overrides via NODE_ENV check.
+    session: {
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        httpOnly: true,
+      },
+    },
+
     public: {
       // Exposed to the client. ADR-0004: this flag flips mock vs real services.
       backend: process.env.BULWARK_BACKEND || 'mock',

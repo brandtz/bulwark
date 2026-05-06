@@ -42,7 +42,13 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { BULWARK_BACKEND: 'mock' },
+    env: {
+      BULWARK_BACKEND: process.env.BULWARK_BACKEND || 'mock',
+      ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
+      ...(process.env.NUXT_SESSION_PASSWORD ? { NUXT_SESSION_PASSWORD: process.env.NUXT_SESSION_PASSWORD } : {}),
+      ...(process.env.JWT_SECRET ? { JWT_SECRET: process.env.JWT_SECRET } : {}),
+      ...(process.env.BULWARK_PDF_STUB ? { BULWARK_PDF_STUB: process.env.BULWARK_PDF_STUB } : {}),
+    },
   },
 
   projects: [

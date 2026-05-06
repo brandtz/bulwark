@@ -37,6 +37,11 @@ function unwrapFetchError(err: unknown): never {
 
 function makeRpcProxy(): BulwarkServices {
   const cache = new Map<string, unknown>()
+  // On SSR, plain $fetch does NOT forward the incoming request's cookies
+  // to internal API calls. useRequestFetch() returns a fetch wrapper that
+  // does, so the nuxt-session cookie reaches /api/services/auth/currentUser
+  // during SSR navigation. On the client this is a no-op (just returns $fetch).
+  const requestFetch = import.meta.server ? useRequestFetch() : $fetch
   return new Proxy({} as BulwarkServices, {
     get(_target, prop: string) {
       if (cache.has(prop)) return cache.get(prop)
@@ -45,7 +50,7 @@ function makeRpcProxy(): BulwarkServices {
         get(_t2, methodName: string) {
           return async (input?: unknown) => {
             try {
-              return await $fetch(`/api/services/${String(serviceName)}/${methodName}`, {
+              return await requestFetch(`/api/services/${String(serviceName)}/${methodName}`, {
                 method: 'POST',
                 body: input === undefined ? {} : input,
               })
