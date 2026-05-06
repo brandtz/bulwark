@@ -128,6 +128,13 @@ function previewLinkFor(q: Quote): string {
           <span v-if="activeFilter !== 'all'"> · {{ STATUS_LABEL[activeFilter as QuoteStatus] }}</span>
         </p>
       </div>
+      <NuxtLink
+        to="/admin/quotes/new"
+        data-testid="new-quote-button"
+        class="inline-flex items-center justify-center rounded-input bg-primary text-white text-body font-medium px-4 h-input hover:bg-primary-hover transition-colors"
+      >
+        + New quote
+      </NuxtLink>
     </header>
 
     <div class="mt-4">
@@ -144,8 +151,8 @@ function previewLinkFor(q: Quote): string {
       <EmptyState
         icon="·"
         title="No quotes here yet"
-        body="Build the first quote from a property's Quotes tab."
-        :cta="{ label: 'Browse properties', to: '/admin/properties' }"
+        body="Build the first quote from a property's Quotes tab — or pick a property below."
+        :cta="{ label: 'New quote', to: '/admin/quotes/new' }"
         data-testid="quotes-empty"
       />
     </div>

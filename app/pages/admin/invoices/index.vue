@@ -126,6 +126,13 @@ function detailLinkFor(inv: Invoice): string {
           >
         </p>
       </div>
+      <NuxtLink
+        to="/admin/invoices/new"
+        data-testid="new-invoice-button"
+        class="inline-flex items-center justify-center rounded-input bg-primary text-white text-body font-medium px-4 h-input hover:bg-primary-hover transition-colors"
+      >
+        + New invoice
+      </NuxtLink>
     </header>
 
     <div class="mt-4">
@@ -143,7 +150,7 @@ function detailLinkFor(inv: Invoice): string {
         icon="·"
         title="No invoices match this filter"
         body="Try a different filter or create an invoice from a completed work order."
-        :cta="{ label: 'Browse work orders', to: '/admin/work-orders' }"
+        :cta="{ label: 'New invoice', to: '/admin/invoices/new' }"
         data-testid="invoices-empty"
       />
     </div>

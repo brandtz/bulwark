@@ -47,19 +47,29 @@ const { data: bundle } = await useAsyncData(
 
 <template>
   <div class="p-4 md:p-6 max-w-5xl mx-auto" data-testid="subcontractors-list">
-    <header>
-      <h1 class="text-display">Subcontractors</h1>
-      <p class="text-body text-text-secondary mt-1">
-        {{ bundle?.total ?? 0 }}
-        {{ (bundle?.total ?? 0) === 1 ? 'subcontractor' : 'subcontractors' }}
-      </p>
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-display">Subcontractors</h1>
+        <p class="text-body text-text-secondary mt-1">
+          {{ bundle?.total ?? 0 }}
+          {{ (bundle?.total ?? 0) === 1 ? 'subcontractor' : 'subcontractors' }}
+        </p>
+      </div>
+      <NuxtLink
+        to="/admin/subcontractors/new"
+        data-testid="new-subcontractor-button"
+        class="inline-flex items-center justify-center rounded-input bg-primary text-white text-body font-medium px-4 h-input hover:bg-primary-hover transition-colors"
+      >
+        + New subcontractor
+      </NuxtLink>
     </header>
 
     <div v-if="!bundle || bundle.rows.length === 0" class="mt-6">
       <EmptyState
         icon="·"
         title="No subcontractors yet"
-        body="Subcontractor management lands fully in the next wave. The seed list will appear here."
+        body="Onboard a subcontractor so they can be assigned to work-order trade slots."
+        :cta="{ label: 'New subcontractor', to: '/admin/subcontractors/new' }"
         data-testid="subcontractors-empty"
       />
     </div>

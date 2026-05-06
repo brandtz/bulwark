@@ -82,6 +82,23 @@ export const SubcontractorListOutputSchema = ListOutputSchema(SubcontractorSchem
 export type SubcontractorListOutput = z.infer<typeof SubcontractorListOutputSchema>
 
 // ----------------------------------------------------------------------------
+// Create input — same shape as Update but with required identity fields so
+// the server has everything it needs to insert a row. Wired up in E14-S6.
+// ----------------------------------------------------------------------------
+export const SubcontractorCreateInputSchema = SubcontractorSchema.pick({
+  organizationId: true,
+  companyName: true,
+  contactName: true,
+  email: true,
+  phone: true,
+  trades: true,
+  licenseNumber: true,
+  licenseExpiresAt: true,
+  notes: true,
+})
+export type SubcontractorCreateInput = z.infer<typeof SubcontractorCreateInputSchema>
+
+// ----------------------------------------------------------------------------
 // Update input — license info + contact details. Server determines which
 // fields it accepts; v1 contract is permissive within the SubcontractorSchema
 // shape. Trades stay editable so an admin can correct an onboarding mistake.
@@ -104,6 +121,7 @@ export type SubcontractorUpdateInput = z.infer<typeof SubcontractorUpdateInputSc
 export interface ISubcontractorService {
   list(input: SubcontractorListInput): Promise<SubcontractorListOutput>
   get(id: string, organizationId: string): Promise<Subcontractor | null>
+  create(input: SubcontractorCreateInput): Promise<Subcontractor>
   update(
     id: string,
     input: SubcontractorUpdateInput,

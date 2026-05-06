@@ -17,6 +17,7 @@
 import type {
   ISubcontractorService,
   Subcontractor,
+  SubcontractorCreateInput,
   SubcontractorListInput,
   SubcontractorListOutput,
   SubcontractorUpdateInput,
@@ -59,6 +60,28 @@ export class MockSubcontractorService implements ISubcontractorService {
       (x) => x.id === id && x.organizationId === organizationId && !x.deletedAt,
     )
     return r ?? null
+  }
+
+  async create(input: SubcontractorCreateInput): Promise<Subcontractor> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const now = new Date().toISOString()
+    const row: Subcontractor = {
+      id: `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      organizationId: input.organizationId,
+      companyName: input.companyName,
+      contactName: input.contactName,
+      email: input.email ?? null,
+      phone: input.phone,
+      trades: input.trades,
+      licenseNumber: input.licenseNumber ?? null,
+      licenseExpiresAt: input.licenseExpiresAt ?? null,
+      notes: input.notes ?? null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    }
+    rows.push(row)
+    return row
   }
 
   async update(

@@ -118,6 +118,13 @@ function addressFor(w: WorkOrder): string {
           <span v-if="activeFilter !== 'all'"> · {{ STATUS_LABEL[activeFilter as WorkOrderStatus] }}</span>
         </p>
       </div>
+      <NuxtLink
+        to="/admin/work-orders/new"
+        data-testid="new-work-order-button"
+        class="inline-flex items-center justify-center rounded-input bg-primary text-white text-body font-medium px-4 h-input hover:bg-primary-hover transition-colors"
+      >
+        + New work order
+      </NuxtLink>
     </header>
 
     <div class="mt-4">
@@ -134,8 +141,8 @@ function addressFor(w: WorkOrder): string {
       <EmptyState
         icon="·"
         title="No work orders here yet"
-        body="Work orders are created from accepted quotes. Open a property's Quotes tab to start one."
-        :cta="{ label: 'Browse properties', to: '/admin/properties' }"
+        body="Work orders are created from accepted quotes — pick one to schedule below."
+        :cta="{ label: 'New work order', to: '/admin/work-orders/new' }"
         data-testid="work-orders-empty"
       />
     </div>

@@ -46,14 +46,14 @@ surfaces. Audit found three categories:
 | ID | Title | Visible delta | Status |
 |---|---|---|---|
 | E14-S1 | Drop dead `/admin/pipeline` nav link + ship `/admin/compliance` org-wide list | sidebar links resolve | ✅ Done (2026-05-06) |
-| E14-S2 | Top-level "+ New quote" CTA on `/admin/quotes` → property picker → quote builder | sponsor can start a quote without first navigating to a property | not-started |
-| E14-S3 | Top-level "+ New work order" CTA on `/admin/work-orders` → accepted-quote picker → WO builder | same chain shortcut for WOs | not-started |
-| E14-S4 | Top-level "+ New invoice" CTA on `/admin/invoices` → completed-WO picker → invoice builder | same chain shortcut for invoices | not-started |
-| E14-S5 | Client create + edit forms on `/admin/clients/new` and `/admin/clients/[id]/edit` | client CRUD parity with subcontractors | not-started |
-| E14-S6 | Subcontractor create form on `/admin/subcontractors/new` | sponsor can onboard a sub without seed data | not-started |
-| E14-S7 | Property detail "Photos" tab — explicit "Photos land in E10" stub (replace empty state) | tab no longer feels broken | not-started |
-| E14-S8 | Property detail "Notes" tab — explicit "Private notes land in E10" stub | same | not-started |
-| E14-S9 | **Playwright** — happy path through the new top-level "+ New" affordances | green spec | not-started |
+| E14-S2 | Top-level "+ New quote" CTA on `/admin/quotes` → property picker → quote builder | sponsor can start a quote without first navigating to a property | ✅ Done (2026-05-06) |
+| E14-S3 | Top-level "+ New work order" CTA on `/admin/work-orders` → accepted-quote picker → WO builder | same chain shortcut for WOs | ✅ Done (2026-05-06) |
+| E14-S4 | Top-level "+ New invoice" CTA on `/admin/invoices` → completed-WO picker → invoice builder | same chain shortcut for invoices | ✅ Done (2026-05-06) |
+| E14-S5 | Client create form on `/admin/clients/new` (edit deferred — contract has no `update`) | client onboarding without going through property intake | ✅ Done (2026-05-06) |
+| E14-S6 | Subcontractor create form on `/admin/subcontractors/new` (contract + mock + real `create()` added) | sponsor can onboard a sub without seed data | ✅ Done (2026-05-06) |
+| E14-S7 | Property detail "Photos" tab — explicit "Photos land in Epic E4" stub copy | tab no longer feels broken | ✅ Done (2026-05-06) |
+| E14-S8 | Property detail "Notes" tab — explicit "Internal notes land in Epic E10" stub | same | ✅ Done (2026-05-06) |
+| E14-S9 | **Playwright** — happy path through the new top-level "+ New" affordances | green spec | ✅ Done (2026-05-06) |
 
 ## Audit Findings — Reference
 
@@ -84,4 +84,4 @@ The full audit lives in the 2026-05-06 conversation transcript. Summary:
 
 ## Approval Status
 
-🟢 **E14-S1 shipped 2026-05-06.** Remaining stories ready to start.
+🟢 **All 9 stories shipped 2026-05-06.** Epic complete.

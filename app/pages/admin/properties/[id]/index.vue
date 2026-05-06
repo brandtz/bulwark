@@ -337,8 +337,8 @@ const compliance = computed(() => {
         <template #tab-photos>
           <EmptyState
             icon="·"
-            title="No photos yet"
-            body="Photo capture + gallery lands in Epic E4 alongside assessment."
+            title="Photos land in Epic E4"
+            body="The assessment camera + per-property gallery ship as part of the field-assessment epic. This tab is intentionally empty until then."
             data-testid="tab-panel-photos"
           />
         </template>
@@ -346,8 +346,8 @@ const compliance = computed(() => {
         <template #tab-notes>
           <EmptyState
             icon="·"
-            title="No internal notes yet"
-            body="Activity feed + private notes land in Epic E10."
+            title="Internal notes land in Epic E10"
+            body="The activity feed and private (admin-only) notes are part of the messaging + history epic. This tab is intentionally empty until then."
             data-testid="tab-panel-notes"
           />
         </template>

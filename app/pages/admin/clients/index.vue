@@ -48,6 +48,13 @@ const { data: list } = await useAsyncData(
           {{ list?.total ?? 0 }} {{ (list?.total ?? 0) === 1 ? 'client' : 'clients' }} on file.
         </p>
       </div>
+      <NuxtLink
+        to="/admin/clients/new"
+        data-testid="new-client-button"
+        class="inline-flex items-center justify-center rounded-input bg-primary text-white text-body font-medium px-4 h-input hover:bg-primary-hover transition-colors"
+      >
+        + New client
+      </NuxtLink>
     </header>
 
     <BulwarkCard padding="none">
@@ -75,8 +82,8 @@ const { data: list } = await useAsyncData(
         v-if="(list?.rows ?? []).length === 0"
         icon="·"
         title="No clients yet"
-        body="Clients are created from the property intake form."
-        :cta="{ label: 'Add a property', to: '/admin/properties/new' }"
+        body="Add a client directly, or create one inline from the property intake form."
+        :cta="{ label: 'New client', to: '/admin/clients/new' }"
         data-testid="clients-empty"
       />
     </BulwarkCard>

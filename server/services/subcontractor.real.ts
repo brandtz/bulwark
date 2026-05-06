@@ -12,6 +12,7 @@ import { and, desc, eq, sql, type SQL } from 'drizzle-orm'
 import type {
   ISubcontractorService,
   Subcontractor,
+  SubcontractorCreateInput,
   SubcontractorListInput,
   SubcontractorListOutput,
   SubcontractorUpdateInput,
@@ -83,6 +84,35 @@ export class RealSubcontractorService implements ISubcontractorService {
       )
       .limit(1)
     return row ? rowToContract(row) : null
+  }
+
+  async create(input: SubcontractorCreateInput): Promise<Subcontractor> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    return await withAudit(async ({ tx, audit }) => {
+      const [row] = await tx
+        .insert(subcontractors)
+        .values({
+          organizationId: input.organizationId,
+          companyName: input.companyName,
+          contactName: input.contactName,
+          email: input.email ?? null,
+          phone: input.phone,
+          trades: input.trades,
+          licenseNumber: input.licenseNumber ?? null,
+          licenseExpiresAt: input.licenseExpiresAt ? new Date(input.licenseExpiresAt) : null,
+          notes: input.notes ?? null,
+        })
+        .returning()
+      await audit.record({
+        organizationId: input.organizationId,
+        entityType: 'subcontractor',
+        entityId: row!.id,
+        action: 'create',
+        actorUserId: this.tenantResolver?.()?.userId ?? null,
+        after: { companyName: row!.companyName, trades: row!.trades },
+      })
+      return rowToContract(row!)
+    })
   }
 
   async update(id: string, input: SubcontractorUpdateInput, organizationId: string): Promise<Subcontractor> {
