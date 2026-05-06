@@ -52,7 +52,10 @@ const personas = [
 ]
 async function quickLogin(personaEmail: string) {
   email.value = personaEmail
-  password.value = 'demo'
+  // Use the seed demo password so the quick-pick works against the real
+  // backend too (the mock backend ignores the password). All seeded
+  // personas share this password by design (scripts/db-seed.mjs).
+  password.value = 'BulwarkDemo!1'
   await submit()
 }
 

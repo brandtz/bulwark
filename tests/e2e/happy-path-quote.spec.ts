@@ -32,6 +32,11 @@ async function pickPropertyId(page: Page): Promise<string> {
 }
 
 test.describe('Happy path: assessment → quote → send (E5-S5)', () => {
+  test.beforeAll(async () => {
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page)
   })
@@ -91,11 +96,16 @@ test.describe('Happy path: assessment → quote → send (E5-S5)', () => {
     await page.getByRole('link', { name: 'Quotes', exact: true }).first().click()
     await page.waitForURL(/\/admin\/quotes(?:\?.*)?$/)
     const rows = page.locator('[data-testid="quote-row"]')
-    await expect(rows).toHaveCount(1)
-    await expect(rows.first().getByTestId('quote-row-number')).toHaveText(
-      String(quoteNumber).trim(),
-    )
-    await expect(rows.first().getByTestId('quote-row-status')).toHaveAttribute(
+    // Real-backend mode also has the seeded accepted quote (Q-2026-0001).
+    const expectedTotal = process.env.BULWARK_BACKEND === 'real' ? 2 : 1
+    await expect(rows).toHaveCount(expectedTotal)
+    const matchingRow = rows.filter({
+      has: page.getByTestId('quote-row-number').filter({
+        hasText: String(quoteNumber).trim(),
+      }),
+    })
+    await expect(matchingRow).toHaveCount(1)
+    await expect(matchingRow.getByTestId('quote-row-status')).toHaveAttribute(
       'data-status',
       'sent',
     )

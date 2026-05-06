@@ -67,6 +67,10 @@ test.describe('Compliance preview polling (E7-S3)', () => {
   test('generating spinner transitions to ready preview + download', async ({
     page,
   }) => {
+    test.skip(
+      process.env.BULWARK_BACKEND === 'real',
+      'RealJobService + pg-boss runner not yet wired (E11-S9 / E11-S10); compliance docs stay in `generating` against the real backend.',
+    )
     const propertyId = await getSeedPropertyId(page)
     await page.goto(`/admin/properties/${propertyId}/compliance/new`)
     await page.waitForLoadState('networkidle')

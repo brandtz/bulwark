@@ -23,6 +23,11 @@ import { signInAsAdmin } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
+test.beforeAll(async () => {
+  const { reseedRealBackend } = await import('./_reseed')
+  reseedRealBackend()
+})
+
 test('E4 happy path: detail → start assessment → non-compliant → summary → back to tab', async ({ page }) => {
   test.skip(test.info().project.name !== 'chromium', 'desktop-only flow for now')
   await signInAsAdmin(page)

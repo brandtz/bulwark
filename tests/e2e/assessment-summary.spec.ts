@@ -46,6 +46,13 @@ async function fillAssessment(
 }
 
 test.describe('Assessment summary (E4-S3)', () => {
+  test.beforeAll(async () => {
+    // Real-backend mode: reseed so the \"empty state\" test sees a property
+    // without an upstream-spec-created assessment.
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page)
   })

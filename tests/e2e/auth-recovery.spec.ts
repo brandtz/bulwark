@@ -99,6 +99,10 @@ test.describe('Auth recovery — forgot / reset / invite', () => {
   })
 
   test('accept-invite happy path creates an account and signs the user in', async ({ page }) => {
+    test.skip(
+      process.env.BULWARK_BACKEND === 'real',
+      'mintInviteToken emits the mock base64url(JSON) shape; RealAuthService uses JOSE/HS256. Real-backend invite path is covered by tests/integration/auth.real.test.ts.',
+    )
     const token = mintInviteToken({
       email: 'newhire@bulwark.demo',
       // Use org_admin so the post-accept role-aware redirect lands on a

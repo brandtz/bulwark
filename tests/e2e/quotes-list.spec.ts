@@ -64,11 +64,22 @@ async function buildQuoteAndStayOnPreview(
 }
 
 test.describe('Quotes list (E5-S4)', () => {
+  test.beforeAll(async () => {
+    // Real-backend mode shares state across files; reseed so this spec's
+    // count assertions (empty / 2 / 1 sent) start from a known baseline.
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page)
   })
 
   test('shows empty state when no quotes exist', async ({ page }) => {
+    test.skip(
+      process.env.BULWARK_BACKEND === 'real',
+      'real-backend seed always includes one quote (E11 fixture); empty-state covered by mock mode',
+    )
     await page.goto('/admin/quotes')
     await page.waitForLoadState('networkidle')
     await expect(page.getByTestId('quotes-list')).toBeVisible()
@@ -91,7 +102,11 @@ test.describe('Quotes list (E5-S4)', () => {
     await page.waitForURL(/\/admin\/quotes(?:\?.*)?$/)
 
     const rows = page.locator('[data-testid="quote-row"]')
-    await expect(rows).toHaveCount(2)
+    // Real-backend seed contributes one accepted quote (Q-2026-0001) to the
+    // baseline; mock starts empty. Both modes accept the two new builder
+    // quotes plus whatever the seed fixture contributed.
+    const expected = process.env.BULWARK_BACKEND === 'real' ? 3 : 2
+    await expect(rows).toHaveCount(expected)
     // Most recent first by createdAt desc.
     await expect(rows.first().getByTestId('quote-row-number')).toContainText('Q-')
   })

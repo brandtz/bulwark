@@ -31,6 +31,13 @@ async function pickFreshPropertyId(page: Page): Promise<string> {
 }
 
 test.describe('Property assessment tab (E4-S4)', () => {
+  test.beforeAll(async () => {
+    // Real-backend mode: upstream specs leave assessments on otherwise-empty
+    // properties, breaking the "no assessment exists" branch.
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page)
   })

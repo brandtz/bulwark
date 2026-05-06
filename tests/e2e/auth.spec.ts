@@ -43,7 +43,9 @@ test.describe('Auth — login form + middleware', () => {
     await page.goto('/login?next=%2Fadmin%2Fproperties')
     await page.waitForLoadState('networkidle')
     await page.getByLabel('Email').fill('drew@bulwark.demo')
-    await page.getByLabel('Password').fill('whatever')
+    await page
+      .getByLabel('Password')
+      .fill(process.env.BULWARK_BACKEND === 'real' ? 'BulwarkDemo!1' : 'whatever')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL('/admin/properties')
   })

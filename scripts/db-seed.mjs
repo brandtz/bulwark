@@ -325,6 +325,27 @@ const INVOICES = [
 // Apply
 // ============================================================================
 try {
+  // Wipe domain rows owned by the demo orgs so re-running the seed produces
+  // a deterministic state. Tests + manual exploration leave detritus; with
+  // `BULWARK_BACKEND=real` and a single shared DB across workers, the only
+  // safe baseline is "delete everything domain-shaped, then upsert". We
+  // intentionally preserve users + memberships across the wipe so personas
+  // in other orgs aren't affected and reset-victim's password gets restored
+  // by the upsert below.
+  const DEMO_ORG_IDS = [ORG_BULWARK.id, ORG_ACME.id]
+  await sql`DELETE FROM compliance_docs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM jobs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM invoices WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM work_orders WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM quotes WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM assessments WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM properties WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM clients WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM subcontractors WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM api_keys WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM compliance_standards WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM audit_log WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+
   // Orgs ---------------------------------------------------------------------
   for (const org of [ORG_BULWARK, ORG_ACME]) {
     await sql`

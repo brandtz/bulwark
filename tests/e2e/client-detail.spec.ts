@@ -18,6 +18,14 @@ import { signInAsAdmin } from './_helpers'
 test.describe.configure({ mode: 'serial' })
 
 test.describe('Clients list + detail (E3-S6)', () => {
+  test.beforeAll(async () => {
+    // Real-backend mode: upstream specs (property-intake) create properties
+    // without clientIds, breaking the \"View client profile\" link assertion
+    // when the first property-card happens to be one of those.
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'desktop-only flow for now')
     await signInAsAdmin(page)

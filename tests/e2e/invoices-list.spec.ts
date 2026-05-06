@@ -18,6 +18,13 @@ import { test, expect } from '@playwright/test'
 import { signInAsAdmin } from './_helpers'
 
 test.describe('Invoices list (E8-S1)', () => {
+  test.beforeAll(async () => {
+    // Real-backend mode: prior specs (invoice-create) leave extra invoice
+    // rows that break the exact `toHaveCount(4)` assertion. Reseed.
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page)
   })

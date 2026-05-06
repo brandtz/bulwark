@@ -36,6 +36,11 @@ async function pickFreshPropertyId(page: Page): Promise<string> {
 }
 
 test.describe('Happy path: quote → WO → assign → start (E6-S6)', () => {
+  test.beforeAll(async () => {
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page)
   })
@@ -84,6 +89,9 @@ test.describe('Happy path: quote → WO → assign → start (E6-S6)', () => {
       ),
     )
     const slotsOnNew = page.getByTestId('trade-slot')
+    // Wait for the derived-slots watch to fire (real backend roundtrip can be
+    // a few hundred ms slower than the in-memory mock).
+    await expect(slotsOnNew.first()).toBeVisible({ timeout: 10000 })
     expect(await slotsOnNew.count()).toBeGreaterThanOrEqual(1)
 
     // 5) Submit the WO → land on detail page.

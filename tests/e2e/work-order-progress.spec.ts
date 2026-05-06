@@ -30,6 +30,14 @@ async function openSeedWorkOrder(page: Page): Promise<void> {
 }
 
 test.describe('Work order progress updater (E6-S4)', () => {
+  test.beforeAll(async () => {
+    // Real-backend mode: this spec mutates the seed roofing slot's status,
+    // so reseeding from a known baseline is essential (also handles upstream
+    // pollution from work-order-assign / -create).
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page)
   })

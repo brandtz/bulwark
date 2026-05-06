@@ -26,6 +26,13 @@ import { test, expect } from '@playwright/test'
 import { signInAsAdmin } from './_helpers'
 
 test.describe('Work order detail (E6-S1)', () => {
+  test.beforeAll(async () => {
+    // Real-backend mode: prior specs (work-order-create, -assign, -progress)
+    // leave detritus that breaks the trade-slot count assertion.
+    const { reseedRealBackend } = await import('./_reseed')
+    reseedRealBackend()
+  })
+
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page)
   })
