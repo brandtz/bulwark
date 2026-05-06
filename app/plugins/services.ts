@@ -48,11 +48,11 @@ function makeRpcProxy(): BulwarkServices {
       const serviceName = prop as ServiceName
       const serviceProxy = new Proxy({} as Record<string, unknown>, {
         get(_t2, methodName: string) {
-          return async (input?: unknown) => {
+          return async (...args: unknown[]) => {
             try {
               return await requestFetch(`/api/services/${String(serviceName)}/${methodName}`, {
                 method: 'POST',
-                body: input === undefined ? {} : input,
+                body: { args },
               })
             } catch (err) {
               unwrapFetchError(err)

@@ -70,7 +70,10 @@ test.describe('Auth recovery — forgot / reset / invite', () => {
   test('reset-password full round trip lands on /login with reset=ok', async ({ page }) => {
     await page.goto('/forgot-password')
     await page.waitForLoadState('networkidle')
-    await page.getByLabel('Email').fill('drew@bulwark.demo')
+    // Use a throwaway user so the password rotation doesn't break sibling
+    // specs that rely on `drew@bulwark.demo` being signed in. Seeded via
+    // scripts/db-seed.mjs.
+    await page.getByLabel('Email').fill('reset-victim@bulwark.demo')
     await page.getByTestId('forgot-submit').click()
     await expect(page.getByTestId('dev-reset-link')).toBeVisible()
     const href = await page.getByTestId('dev-reset-link').getAttribute('href')

@@ -50,21 +50,25 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: `Unknown method: ${String(serviceName)}.${methodName}` })
   }
 
-  // Empty body -> undefined so zero-arg methods work as written.
-  let input: unknown
+  // Body shape: `{ args: unknown[] }` from the RPC proxy. Empty body or
+  // missing args (e.g. unauth callers hitting login via curl) collapse to
+  // an empty arg list — the contract's own validation will reject it.
+  let args: unknown[] = []
   try {
-    input = await readBody(event)
+    const body = await readBody(event)
+    if (body && typeof body === 'object' && Array.isArray((body as { args?: unknown }).args)) {
+      args = (body as { args: unknown[] }).args
+    } else if (body && typeof body === 'object' && Object.keys(body as object).length > 0) {
+      // Back-compat: callers (e.g. tests, curl) that POST a bare payload as the
+      // single first arg. Keeps `auth.login` working from raw HTTP without a
+      // wrapping `{args:[...]}` envelope.
+      args = [body]
+    }
   } catch {
-    input = undefined
-  }
-  if (input && typeof input === 'object' && Object.keys(input as object).length === 0) {
-    // h3 returns {} for missing bodies — collapse to undefined so methods
-    // that take no args (e.g. auth.currentUser) match their type signature.
-    input = undefined
+    args = []
   }
 
   try {
-    const args = input === undefined ? [] : [input]
     return await (fn as (...a: unknown[]) => unknown).apply(target, args)
   } catch (err) {
     if (err instanceof TenantViolationError) {

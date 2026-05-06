@@ -71,6 +71,7 @@ const USER_ADMIN_ID = mk('user-drew-admin')
 const USER_FIELD_ID = mk('user-matthew-field')
 const USER_SUB_ID = mk('user-jeff-sub')
 const USER_SUPER_ID = mk('user-sasha-super')
+const USER_RESET_VICTIM_ID = mk('user-reset-victim')
 
 const PERSONAS = [
   { id: USER_ADMIN_ID, email: 'drew@bulwark.demo',      fullName: 'Drew Owens',    memberships: [{ orgId: ORG_BULWARK.id, role: 'org_admin' }] },
@@ -78,6 +79,9 @@ const PERSONAS = [
   { id: USER_SUB_ID,   email: 'jeff@bulwark.demo',      fullName: 'Jeff Park',     memberships: [{ orgId: ORG_BULWARK.id, role: 'sub_contractor' }] },
   { id: USER_SUPER_ID, email: 'sasha@bulwark.platform', fullName: 'Sasha Liu',
     memberships: [{ orgId: ORG_BULWARK.id, role: 'super_admin' }, { orgId: ORG_ACME.id, role: 'super_admin' }] },
+  // Throwaway user for auth-recovery tests so the destructive password reset
+  // never touches drew@bulwark.demo (which 90% of e2e specs depend on).
+  { id: USER_RESET_VICTIM_ID, email: 'reset-victim@bulwark.demo', fullName: 'Reset Victim', memberships: [{ orgId: ORG_BULWARK.id, role: 'org_admin' }] },
 ]
 
 // ----------------------------------------------------------------------------

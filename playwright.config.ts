@@ -24,10 +24,15 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  globalSetup: './tests/e2e/global-setup.ts',
+  // Real-backend mode shares a single Postgres database across all workers;
+  // some specs are intentionally destructive (auth-recovery, settings) and
+  // race against parallel readers. Pin to a single worker / no parallelism
+  // when BULWARK_BACKEND=real to keep the suite deterministic.
+  fullyParallel: process.env.BULWARK_BACKEND !== 'real',
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.BULWARK_BACKEND === 'real' ? 1 : process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
 
   use: {
