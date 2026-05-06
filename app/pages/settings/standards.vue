@@ -37,7 +37,7 @@ const ROOF_OPTIONS = [
   { value: 'metal', label: 'Metal' },
   { value: 'tile', label: 'Tile' },
   { value: 'class_a_asphalt', label: 'Class A asphalt' },
-  { value: 'asphalt_shingle', label: 'Asphalt shingle' },
+  { value: 'standard_asphalt', label: 'Asphalt shingle' },
   { value: 'wood_shake', label: 'Wood shake (combustible)' },
 ] as const
 
@@ -59,7 +59,7 @@ const EAVE_OPTIONS = [
 
 const VENT_OPTIONS = [
   { value: 'ember_resistant', label: 'Ember-resistant (1/16" mesh)' },
-  { value: 'standard', label: 'Standard' },
+  { value: 'standard_mesh', label: 'Standard' },
 ] as const
 
 const form = reactive<ComplianceStandards>({
@@ -79,7 +79,7 @@ async function load() {
 }
 await load()
 
-function toggle(list: string[], value: string): string[] {
+function toggle<T extends string>(list: readonly T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
 
@@ -139,7 +139,7 @@ async function onSave() {
               :checked="form.compliantRoofMaterials.includes(opt.value)"
               :data-testid="`standards-roof-${opt.value}`"
               @change="form.compliantRoofMaterials = toggle(form.compliantRoofMaterials, opt.value)"
-            />
+            >
             {{ opt.label }}
           </label>
         </div>
@@ -160,7 +160,7 @@ async function onSave() {
               :checked="form.compliantSidingMaterials.includes(opt.value)"
               :data-testid="`standards-siding-${opt.value}`"
               @change="form.compliantSidingMaterials = toggle(form.compliantSidingMaterials, opt.value)"
-            />
+            >
             {{ opt.label }}
           </label>
         </div>
@@ -180,7 +180,7 @@ async function onSave() {
               class="sr-only"
               :checked="form.compliantEaveTypes.includes(opt.value)"
               @change="form.compliantEaveTypes = toggle(form.compliantEaveTypes, opt.value)"
-            />
+            >
             {{ opt.label }}
           </label>
         </div>
@@ -200,7 +200,7 @@ async function onSave() {
               class="sr-only"
               :checked="form.compliantVentTypes.includes(opt.value)"
               @change="form.compliantVentTypes = toggle(form.compliantVentTypes, opt.value)"
-            />
+            >
             {{ opt.label }}
           </label>
         </div>
@@ -214,7 +214,7 @@ async function onSave() {
             type="checkbox"
             class="h-4 w-4"
             data-testid="standards-defensible-checkbox"
-          />
+          >
           <span class="text-body">Require defensible space cleared</span>
         </label>
       </fieldset>

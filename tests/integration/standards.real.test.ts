@@ -20,7 +20,7 @@ d('RealStandardsService (E11)', () => {
   beforeAll(async () => {
     const db = getDb()
     const [o] = await db.insert(organizations).values({ name: 'Std Org', slug: `e11std-${stamp}` }).returning()
-    orgId = o.id
+    orgId = o!.id
   })
 
   afterAll(async () => {

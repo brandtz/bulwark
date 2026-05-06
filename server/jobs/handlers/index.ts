@@ -25,7 +25,7 @@ export interface JobHandlerResult {
   resultUrl?: string
 }
 
-export type JobHandler = (env: JobEnvelope) => Promise<JobHandlerResult | void>
+export type JobHandler = (env: JobEnvelope) => Promise<JobHandlerResult | undefined>
 
 export const HANDLERS: Record<JobKind, JobHandler> = {
   compliance_doc: complianceDocHandler,

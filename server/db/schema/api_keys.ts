@@ -6,8 +6,7 @@
  * by the mock service) so the UI can disambiguate keys without
  * exposing the rest.
  */
-import { pgTable, text, uuid } from 'drizzle-orm/pg-core'
-import { timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, timestamp } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { users } from './users'
 

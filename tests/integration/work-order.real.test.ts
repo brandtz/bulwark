@@ -28,11 +28,11 @@ d('RealWorkOrderService (E11-S8)', () => {
   beforeAll(async () => {
     const db = getDb()
     const [o] = await db.insert(organizations).values({ name: 'E11-S8 WO Org', slug: `e11s8w-${stamp}` }).returning()
-    orgId = o.id
+    orgId = o!.id
     const [u] = await db.insert(users).values({ email: `e11s8w-${stamp}@x.test`, fullName: 'T', passwordHash: await bcrypt.hash('x', 4), isActive: true }).returning()
-    userId = u.id
+    userId = u!.id
     const [p] = await db.insert(properties).values({ organizationId: orgId, addressLine1: 'W', city: 'C', state: 'CA', postalCode: '0' }).returning()
-    propertyId = p.id
+    propertyId = p!.id
     const [q] = await db.insert(quotes).values({
       organizationId: orgId, propertyId, assessmentId: null, createdById: userId,
       quoteNumber: `Q-FIX-${stamp}`, status: 'accepted',
@@ -40,7 +40,7 @@ d('RealWorkOrderService (E11-S8)', () => {
       totals: { subtotalCents: 0, markupCents: 0, taxCents: 0, totalCents: 0 },
       totalCents: 0,
     }).returning()
-    quoteId = q.id
+    quoteId = q!.id
   })
 
   afterAll(async () => {

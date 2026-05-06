@@ -103,7 +103,8 @@ const stepperSteps = [
         <BulwarkAvatar name="Matthew Reyes" size="sm" />
         <BulwarkAvatar name="Jeff Park" size="lg" />
       </div>
-      <BulwarkBreadcrumbs :items="[
+      <BulwarkBreadcrumbs
+:items="[
         { label: 'Properties', to: '/admin/properties' },
         { label: '123 Pine St' },
       ]" />

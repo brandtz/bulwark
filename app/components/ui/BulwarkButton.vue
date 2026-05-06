@@ -14,7 +14,7 @@
 type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive'
 type Size = 'sm' | 'md' | 'lg'
 
-const props = withDefaults(defineProps<{
+const _props = withDefaults(defineProps<{
   variant?: Variant
   size?: Size
   type?: 'button' | 'submit' | 'reset'

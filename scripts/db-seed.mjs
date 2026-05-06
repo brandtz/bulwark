@@ -21,6 +21,15 @@ import postgres from 'postgres'
 import bcrypt from 'bcryptjs'
 import { readFileSync } from 'node:fs'
 
+// Mirror FIXTURE_ORG_ID / FIXTURE_ORG_ID_2 derived UUIDs.
+// NOTE: The shared/mocks `mk()` produces non-hex chars (fine for in-memory
+// mocks). Postgres `uuid` columns reject those, so we hash the slug to hex
+// here. This breaks identity with the mock fixtures' UUIDs — that's
+// acceptable because the real backend doesn't share identity with mock
+// runs anyway. What matters is that re-running the seed yields the SAME
+// UUIDs (idempotent) and that personas have stable IDs across runs.
+import { createHash } from 'node:crypto'
+
 // Hand-load .env.local (no dotenv dep needed; same parser as tests/setup/env.ts).
 try {
   const text = readFileSync('.env.local', 'utf8')
@@ -45,15 +54,6 @@ const sql = postgres(url, { max: 4 })
 
 const DEMO_PASSWORD = 'BulwarkDemo!1'
 const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12)
-
-// Mirror FIXTURE_ORG_ID / FIXTURE_ORG_ID_2 derived UUIDs.
-// NOTE: The shared/mocks `mk()` produces non-hex chars (fine for in-memory
-// mocks). Postgres `uuid` columns reject those, so we hash the slug to hex
-// here. This breaks identity with the mock fixtures' UUIDs — that's
-// acceptable because the real backend doesn't share identity with mock
-// runs anyway. What matters is that re-running the seed yields the SAME
-// UUIDs (idempotent) and that personas have stable IDs across runs.
-import { createHash } from 'node:crypto'
 const mk = (slug) => {
   const h = createHash('sha256').update(slug).digest('hex').slice(0, 32)
   // v4 layout: 8-4-4-4-12, where char 12 = '4', char 16 ∈ {8,9,a,b}.

@@ -28,7 +28,7 @@ d('RealAuditService + withAudit (E11-S2)', () => {
       .insert(organizations)
       .values({ name: 'E11-S2 Test Org', slug: `e11s2-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` })
       .returning()
-    orgId = org.id
+    orgId = org!.id
   })
 
   afterAll(async () => {
@@ -65,8 +65,8 @@ d('RealAuditService + withAudit (E11-S2)', () => {
 
     const rows = await audit.list({ organizationId: orgId, entityType: 'quote', entityId: eid, limit: 10 })
     expect(rows).toHaveLength(2)
-    expect(rows[0].action).toBe('state_change')
-    expect(rows[1].action).toBe('create')
+    expect(rows[0]!.action).toBe('state_change')
+    expect(rows[1]!.action).toBe('create')
   })
 
   it('withAudit() commits domain write + audit row atomically', async () => {
@@ -77,14 +77,14 @@ d('RealAuditService + withAudit (E11-S2)', () => {
         .values({ name: 'TX Test Org', slug: newSlug })
         .returning()
       await audit.record({
-        organizationId: createdOrg.id,
+        organizationId: createdOrg!.id,
         entityType: 'organization',
-        entityId: createdOrg.id,
+        entityId: createdOrg!.id,
         action: 'create',
         actorUserId: null,
-        after: { name: createdOrg.name },
+        after: { name: createdOrg!.name },
       })
-      return createdOrg
+      return createdOrg!
     })
 
     const db = getDb()

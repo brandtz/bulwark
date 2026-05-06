@@ -35,11 +35,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{ 'update:modelValue': [v: Tri] }>()
 
 const buttons = computed(() => {
-  const base = [
-    { v: 'pass' as const, label: 'Pass', activeClass: 'bg-status-success border-status-success text-white' },
-    { v: 'fail' as const, label: 'Fail', activeClass: 'bg-status-error border-status-error text-white' },
+  const base: Array<{ v: 'pass' | 'fail' | 'na'; label: string; activeClass: string }> = [
+    { v: 'pass', label: 'Pass', activeClass: 'bg-status-success border-status-success text-white' },
+    { v: 'fail', label: 'Fail', activeClass: 'bg-status-error border-status-error text-white' },
   ]
-  if (props.allowNa) base.push({ v: 'na' as const, label: 'N/A', activeClass: 'bg-text-secondary border-text-secondary text-white' })
+  if (props.allowNa) base.push({ v: 'na', label: 'N/A', activeClass: 'bg-text-secondary border-text-secondary text-white' })
   return base
 })
 
@@ -62,7 +62,7 @@ function pick(v: Exclude<Tri, null>) {
       :aria-label="label"
     >
       <button
-        v-for="(btn, idx) in buttons"
+        v-for="btn in buttons"
         :key="btn.v"
         type="button"
         role="radio"

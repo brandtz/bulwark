@@ -5,8 +5,7 @@
  * separate from `totals.totalCents` so partial-pay flows (sponsor
  * mentioned retainers) round-trip cleanly.
  */
-import { pgTable, text, uuid, pgEnum, jsonb, integer, doublePrecision } from 'drizzle-orm/pg-core'
-import { timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, pgEnum, jsonb, integer, doublePrecision, timestamp } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { properties } from './properties'
 import { workOrders } from './work_orders'

@@ -68,7 +68,7 @@ export class RealAuditService implements IAuditService {
         after: input.after ?? null,
       })
       .returning()
-    return rowToContract(row)
+    return rowToContract(row!)
   }
 
   async list(input: AuditListInput): Promise<AuditLogRow[]> {

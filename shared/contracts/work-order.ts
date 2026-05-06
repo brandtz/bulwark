@@ -30,7 +30,7 @@ import {
   PaginationInputSchema,
   UuidSchema,
 } from './_shared'
-import { TradeSchema, type Trade } from './subcontractor'
+import { TradeSchema } from './subcontractor'
 
 // ----------------------------------------------------------------------------
 // Status enums.

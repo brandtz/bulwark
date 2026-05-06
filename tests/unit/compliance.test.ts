@@ -50,7 +50,7 @@ describe('evaluateCompliance (E4-S1)', () => {
   it('flags vinyl siding', () => {
     const result = evaluateCompliance({ ...COMPLIANT_INPUT, sidingMaterial: 'vinyl' })
     expect(result.nonCompliantFields).toEqual(['sidingMaterial'])
-    expect(result.requiredUpgrades[0].standardRef).toBe('OAR 629-044-1040')
+    expect(result.requiredUpgrades[0]!.standardRef).toBe('OAR 629-044-1040')
   })
 
   it('flags open eaves', () => {
@@ -66,7 +66,7 @@ describe('evaluateCompliance (E4-S1)', () => {
   it('flags missing defensible space when standard requires it', () => {
     const result = evaluateCompliance({ ...COMPLIANT_INPUT, defensibleSpaceCleared: false })
     expect(result.nonCompliantFields).toEqual(['defensibleSpaceCleared'])
-    expect(result.requiredUpgrades[0].currentValue).toBe('not cleared')
+    expect(result.requiredUpgrades[0]!.currentValue).toBe('not cleared')
   })
 
   it('returns one upgrade per failed field when multiple fail', () => {

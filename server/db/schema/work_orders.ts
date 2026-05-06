@@ -6,8 +6,7 @@
  * single UPDATE; a separate `work_order_trades` table buys nothing
  * at our scale.
  */
-import { pgTable, text, uuid, pgEnum, jsonb } from 'drizzle-orm/pg-core'
-import { timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, pgEnum, jsonb, timestamp } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { properties } from './properties'
 import { quotes } from './quotes'

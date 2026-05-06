@@ -58,7 +58,7 @@ export async function complianceDocHandler(env: JobEnvelope): Promise<JobHandler
   // Lazy-load Puppeteer so envs without Chromium can still import this
   // module (e.g. unit tests that exercise other handlers).
   const puppeteerMod = await import('puppeteer')
-  const puppeteer = (puppeteerMod as { default?: typeof puppeteerMod }).default ?? puppeteerMod
+  const puppeteer = (puppeteerMod as unknown as { default?: typeof puppeteerMod }).default ?? puppeteerMod
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],

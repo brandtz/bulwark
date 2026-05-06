@@ -100,6 +100,7 @@ function buildInput(): PropertyCreateInput {
 function validate(): boolean {
   // Clear by deleting keys (avoids reactivity foot-guns from replacing .value).
   for (const k of Object.keys(errors.value) as (keyof FormState)[]) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete errors.value[k]
   }
   // Validate only the user-supplied fields. `organizationId` is injected by

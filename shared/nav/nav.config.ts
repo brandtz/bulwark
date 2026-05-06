@@ -18,7 +18,7 @@
  *   - We do NOT use the icon name to import an icon component here — the
  *     navigation component resolves icons by name (E1-S2).
  */
-import type { Role } from '../contracts/auth'
+import type { Role } from '../contracts/_shared'
 
 export type NavItem = {
   label: string

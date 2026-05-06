@@ -55,7 +55,7 @@ function toggle(value: string) {
           :checked="modelValue.includes(opt.value)"
           :disabled="opt.disabled"
           @change="toggle(opt.value)"
-        />
+        >
         <span class="text-body text-text-primary">{{ opt.label }}</span>
       </label>
     </div>

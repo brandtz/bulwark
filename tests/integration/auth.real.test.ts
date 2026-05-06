@@ -40,11 +40,11 @@ d('RealAuthService (E11-S3)', () => {
     const db = getDb()
     const [a] = await db.insert(organizations).values({ name: 'E11-S3 Org A', slug: `e11s3a-${stamp}` }).returning()
     const [b] = await db.insert(organizations).values({ name: 'E11-S3 Org B', slug: `e11s3b-${stamp}` }).returning()
-    orgIdA = a.id
-    orgIdB = b.id
+    orgIdA = a!.id
+    orgIdB = b!.id
     const hash = await bcrypt.hash(password, 12)
     const [u] = await db.insert(users).values({ email, fullName: 'Test User', passwordHash: hash, isActive: true }).returning()
-    userId = u.id
+    userId = u!.id
     await db.insert(memberships).values({ userId, organizationId: orgIdA, role: 'org_admin', isActive: true })
     await db.insert(memberships).values({ userId, organizationId: orgIdB, role: 'field', isActive: true })
   })

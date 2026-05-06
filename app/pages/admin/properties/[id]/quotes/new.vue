@@ -28,10 +28,10 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
-import {
-  type QuoteCreateInput,
-  type QuoteLineItem,
-  type QuoteLineItemKind,
+import type {
+  QuoteCreateInput,
+  QuoteLineItem,
+  QuoteLineItemKind,
 } from '~~/shared/contracts/quote'
 import {
   computeQuoteTotals,

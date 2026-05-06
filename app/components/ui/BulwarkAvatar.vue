@@ -56,7 +56,7 @@ const sizeClasses: Record<NonNullable<Props['size']>, string> = {
       :src="src"
       :alt="name"
       class="h-full w-full object-cover"
-    />
+    >
     <template v-else>{{ initials }}</template>
   </span>
 </template>

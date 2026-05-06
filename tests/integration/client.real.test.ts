@@ -22,8 +22,8 @@ d('RealClientService (E11-S5)', () => {
     const db = getDb()
     const [a] = await db.insert(organizations).values({ name: 'E11-S5 ClientOrg', slug: `e11s5c-${stamp}` }).returning()
     const [b] = await db.insert(organizations).values({ name: 'E11-S5 Other', slug: `e11s5co-${stamp}` }).returning()
-    orgId = a.id
-    otherOrgId = b.id
+    orgId = a!.id
+    otherOrgId = b!.id
   })
 
   afterAll(async () => {
@@ -65,8 +65,8 @@ d('RealClientService (E11-S5)', () => {
     const db = getDb()
     const rows = await db.select().from(auditLog).where(eq(auditLog.entityId, c.id))
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('create')
-    expect(rows[0].entityType).toBe('client')
+    expect(rows[0]!.action).toBe('create')
+    expect(rows[0]!.entityType).toBe('client')
   })
 
   it('tenant firewall throws on cross-tenant create', async () => {

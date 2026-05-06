@@ -9,13 +9,23 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
+      "~": ["./app"],
+      "~/*": ["./app/*"],
+      "@": ["./app"],
       "@/*": ["./app/*"],
-      "~~/shared/*": ["./shared/*"],
-      "~~/server/*": ["./server/*"],
-      "~~/tests/*": ["./tests/*"]
+      "~~": ["./"],
+      "~~/*": ["./*"],
+      "@@": ["./"],
+      "@@/*": ["./*"],
+      "#shared": ["./shared"],
+      "#shared/*": ["./shared/*"],
+      "#app": ["./node_modules/nuxt/dist/app"],
+      "#app/*": ["./node_modules/nuxt/dist/app/*"],
+      "#imports": ["./.nuxt/imports.d.ts"]
     }
   },
   "include": [
+    ".nuxt/nuxt.d.ts",
     "app/**/*",
     "server/**/*",
     "shared/**/*",
@@ -25,5 +35,5 @@
     "playwright.config.ts",
     "vitest.config.ts"
   ],
-  "exclude": ["node_modules", ".nuxt", ".output", "dist", "demo", "boilerplate"]
+  "exclude": ["node_modules", ".output", "dist", "demo", "boilerplate"]
 }

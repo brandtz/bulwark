@@ -25,7 +25,7 @@ export class MockClientService implements IClientService {
       scoped = scoped.filter(r =>
         r.fullName.toLowerCase().includes(q) ||
         (r.email?.toLowerCase().includes(q) ?? false) ||
-        r.phone.includes(input.search),
+        r.phone.includes(input.search!),
       )
     }
     const total = scoped.length

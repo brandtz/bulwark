@@ -4,11 +4,10 @@
  * Mirrors `shared/contracts/assessment.ts`. Material enums are postgres
  * enums so they round-trip through Drizzle without string-ification.
  */
-import { pgTable, text, uuid, pgEnum, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, pgEnum, boolean, timestamp } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { properties } from './properties'
 import { users } from './users'
-import { timestamp } from 'drizzle-orm/pg-core'
 
 export const roofMaterialEnum = pgEnum('roof_material', [
   'metal',

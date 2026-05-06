@@ -7,7 +7,6 @@
 -->
 <script setup lang="ts">
 import type { Property, PropertyStatus } from '~~/shared/contracts/property'
-import { PROPERTY_STATUS_LABEL } from '~~/shared/contracts/property'
 import { ROLE_GROUPS } from '~/composables/usePermissions'
 
 definePageMeta({

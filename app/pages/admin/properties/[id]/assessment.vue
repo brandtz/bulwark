@@ -146,6 +146,7 @@ function buildInput(): AssessmentCreateInput {
 
 function validate(): boolean {
   for (const k of Object.keys(errors.value) as (keyof FormState)[]) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete errors.value[k]
   }
   // We only validate user-controlled fields. Required: every material

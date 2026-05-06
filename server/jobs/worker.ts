@@ -67,7 +67,7 @@ async function markFailed(jobId: string, organizationId: string, message: string
 }
 
 async function start(): Promise<void> {
-  // eslint-disable-next-line no-console
+   
   console.log('[worker] starting…')
   const boss = await getBoss()
 
@@ -87,7 +87,7 @@ async function start(): Promise<void> {
           await markSucceeded(env.jobId, env.organizationId, out?.resultUrl ?? null)
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
-          // eslint-disable-next-line no-console
+           
           console.error(`[worker] job ${env.jobId} (${env.kind}) failed:`, msg)
           await markFailed(env.jobId, env.organizationId, msg)
           // Re-throw so pg-boss records its own failure metric (and
@@ -96,12 +96,12 @@ async function start(): Promise<void> {
         }
       }
     })
-    // eslint-disable-next-line no-console
+     
     console.log(`[worker] subscribed to queue: ${queue}`)
   }
 
   const shutdown = async (signal: string) => {
-    // eslint-disable-next-line no-console
+     
     console.log(`[worker] received ${signal}, shutting down…`)
     await stopBoss().catch((e) => console.error('[worker] stopBoss error', e))
     process.exit(0)
@@ -109,12 +109,12 @@ async function start(): Promise<void> {
   process.on('SIGINT', () => shutdown('SIGINT'))
   process.on('SIGTERM', () => shutdown('SIGTERM'))
 
-  // eslint-disable-next-line no-console
+   
   console.log('[worker] ready')
 }
 
 start().catch((err) => {
-  // eslint-disable-next-line no-console
+   
   console.error('[worker] fatal startup error', err)
   process.exit(1)
 })

@@ -20,6 +20,8 @@ import {
   type ComplianceStandards,
 } from './assessment'
 
+export type { ComplianceStandards }
+
 export const StandardsRowSchema = z.object({
   organizationId: z.string(),
   standards: ComplianceStandardsSchema,

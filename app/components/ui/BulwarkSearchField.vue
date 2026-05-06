@@ -57,7 +57,7 @@ function clear() {
       :aria-label="ariaLabel"
       class="h-input w-full rounded-input border border-border bg-surface pl-9 pr-9 text-body text-text-primary placeholder-text-disabled outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
       @input="onInput"
-    />
+    >
     <button
       v-if="local"
       type="button"

@@ -41,7 +41,6 @@ definePageMeta({
 useHead({ title: 'Subcontractor' })
 
 const route = useRoute()
-const router = useRouter()
 const { session, ensureLoaded } = useSession()
 await ensureLoaded()
 

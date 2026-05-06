@@ -19,7 +19,7 @@ d('RealApiKeyService (E11-S12)', () => {
   beforeAll(async () => {
     const db = getDb()
     const [o] = await db.insert(organizations).values({ name: 'K Org', slug: `e11k-${stamp}` }).returning()
-    orgId = o.id
+    orgId = o!.id
   })
 
   afterAll(async () => {

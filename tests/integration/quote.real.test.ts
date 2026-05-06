@@ -2,7 +2,7 @@
  * tests/integration/quote.real.test.ts — RealQuoteService (E11-S7).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { eq, randomUUID as _ } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { getDb } from '../../server/db/client'
@@ -26,11 +26,11 @@ d('RealQuoteService (E11-S7)', () => {
   beforeAll(async () => {
     const db = getDb()
     const [o] = await db.insert(organizations).values({ name: 'E11-S7 Org', slug: `e11s7-${stamp}` }).returning()
-    orgId = o.id
+    orgId = o!.id
     const [u] = await db.insert(users).values({ email: `e11s7-${stamp}@x.test`, fullName: 'T', passwordHash: await bcrypt.hash('x', 4), isActive: true }).returning()
-    userId = u.id
+    userId = u!.id
     const [p] = await db.insert(properties).values({ organizationId: orgId, addressLine1: 'Q', city: 'C', state: 'CA', postalCode: '0' }).returning()
-    propertyId = p.id
+    propertyId = p!.id
   })
 
   afterAll(async () => {

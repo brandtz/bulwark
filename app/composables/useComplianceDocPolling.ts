@@ -29,7 +29,7 @@ export interface UseComplianceDocPollingOptions {
 }
 
 export function useComplianceDocPolling(
-  doc: Ref<ComplianceDoc | null>,
+  doc: Ref<ComplianceDoc | null | undefined>,
   orgId: Ref<string>,
   opts: UseComplianceDocPollingOptions = {},
 ) {

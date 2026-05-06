@@ -80,7 +80,7 @@ export async function pollUntilTerminal(
   opts.onTick?.(job)
 
   // Subsequent ticks until terminal / timeout / abort.
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     if (opts.signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError')

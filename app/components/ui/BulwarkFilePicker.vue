@@ -79,7 +79,7 @@ function fmtSize(bytes: number) {
       :required="required && modelValue.length === 0"
       class="block w-full text-small file:mr-3 file:h-9 file:rounded-input file:border-0 file:bg-primary file:px-4 file:text-white file:cursor-pointer hover:file:bg-primary-700"
       @change="onChange"
-    />
+    >
     <ul v-if="modelValue.length" class="mt-2 flex flex-col gap-1">
       <li
         v-for="(f, idx) in modelValue"

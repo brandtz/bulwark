@@ -21,7 +21,7 @@
 import type { PropertyStatus } from '~~/shared/contracts/property'
 import { PROPERTY_STATUS_LABEL } from '~~/shared/contracts/property'
 
-const props = defineProps<{
+const _props = defineProps<{
   status: PropertyStatus
   count: number
 }>()

@@ -132,7 +132,7 @@ export class MockQuoteService implements IQuoteService {
     if (row.status === 'accepted') return row
     if (row.status !== 'sent') {
       throw new Error(
-        `Cannot accept quote ${id} from status \"${row.status}\" (must be sent)`,
+        `Cannot accept quote ${id} from status "${row.status}" (must be sent)`,
       )
     }
     row.status = 'accepted'

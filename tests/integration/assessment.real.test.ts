@@ -25,11 +25,11 @@ d('RealAssessmentService (E11-S6)', () => {
   beforeAll(async () => {
     const db = getDb()
     const [o] = await db.insert(organizations).values({ name: 'E11-S6 Org', slug: `e11s6-${stamp}` }).returning()
-    orgId = o.id
+    orgId = o!.id
     const [u] = await db.insert(users).values({ email: `e11s6-${stamp}@x.test`, fullName: 'Test', passwordHash: await bcrypt.hash('x', 4), isActive: true }).returning()
-    userId = u.id
+    userId = u!.id
     const [p] = await db.insert(properties).values({ organizationId: orgId, addressLine1: 'P', city: 'C', state: 'CA', postalCode: '0' }).returning()
-    propertyId = p.id
+    propertyId = p!.id
   })
 
   afterAll(async () => {
@@ -85,8 +85,8 @@ d('RealAssessmentService (E11-S6)', () => {
     const db = getDb()
     const rows = await db.select().from(auditLog).where(eq(auditLog.entityId, a.id))
     expect(rows).toHaveLength(1)
-    expect(rows[0].entityType).toBe('assessment')
-    expect(rows[0].action).toBe('create')
+    expect(rows[0]!.entityType).toBe('assessment')
+    expect(rows[0]!.action).toBe('create')
   })
 
   it('tenant firewall blocks cross-tenant create', async () => {

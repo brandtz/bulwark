@@ -4,8 +4,7 @@
  * `trades` is JSONB (a small array of trade enum strings) rather than
  * a join table. Few trades per sub, contract is full-replace on update.
  */
-import { pgTable, text, uuid, jsonb, pgEnum } from 'drizzle-orm/pg-core'
-import { timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, jsonb, pgEnum, timestamp } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import type { Trade } from '../../../shared/contracts/subcontractor'
 

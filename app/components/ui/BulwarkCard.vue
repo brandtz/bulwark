@@ -5,7 +5,7 @@
 <script setup lang="ts">
 type Padding = 'none' | 'sm' | 'md' | 'lg'
 
-const props = withDefaults(defineProps<{
+const _props = withDefaults(defineProps<{
   padding?: Padding
   clickable?: boolean
   as?: string

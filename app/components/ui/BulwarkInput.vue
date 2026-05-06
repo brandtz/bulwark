@@ -27,7 +27,7 @@
  *   props: modelValue, label, placeholder?, error?, required?, type, disabled?
  *   emits: update:modelValue, blur
  */
-type InputType = 'text' | 'email' | 'tel' | 'password' | 'number'
+type InputType = 'text' | 'email' | 'tel' | 'password' | 'number' | 'date'
 
 interface BulwarkInputProps {
   modelValue: string | number | null | undefined
@@ -100,7 +100,7 @@ function onInput(e: Event) {
       ]"
       @input="onInput"
       @blur="emit('blur', $event)"
-    />
+    >
 
     <p
       v-if="error"

@@ -21,10 +21,10 @@
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
 import { formatCents } from '~~/shared/utils/money'
-import {
-  type WorkOrder,
-  type WorkOrderStatus,
-  type TradeSlotStatus,
+import type {
+  WorkOrder,
+  WorkOrderStatus,
+  TradeSlotStatus,
 } from '~~/shared/contracts/work-order'
 import { TRADE_LABEL, type Subcontractor } from '~~/shared/contracts/subcontractor'
 

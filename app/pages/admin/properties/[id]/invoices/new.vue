@@ -149,6 +149,8 @@ function removeLine(uid: string) {
 
 const liveTotals = computed(() => {
   const mapped = lines.value.map((l) => ({
+    id: l.uid,
+    kind: 'other' as const,
     sourceField: '',
     description: l.description,
     quantity: l.quantity || 0,

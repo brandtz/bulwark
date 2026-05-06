@@ -16,7 +16,7 @@
  * When RealAuthService lands (E11-S2), this token-mint helper goes away
  * and the test reaches /accept-invite via the admin invite flow instead.
  */
-import { test, expect, type BrowserContext } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { signOut } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })

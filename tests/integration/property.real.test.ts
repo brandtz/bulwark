@@ -27,8 +27,8 @@ d('RealPropertyService (E11-S5)', () => {
     const db = getDb()
     const [a] = await db.insert(organizations).values({ name: 'E11-S5 PropOrg', slug: `e11s5p-${stamp}` }).returning()
     const [b] = await db.insert(organizations).values({ name: 'E11-S5 Other', slug: `e11s5o-${stamp}` }).returning()
-    orgId = a.id
-    otherOrgId = b.id
+    orgId = a!.id
+    otherOrgId = b!.id
   })
 
   afterAll(async () => {

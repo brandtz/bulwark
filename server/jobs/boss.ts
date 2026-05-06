@@ -57,12 +57,9 @@ export async function getBoss(): Promise<PgBoss> {
       // Keep a small connection budget; the worker process can scale
       // independently if we ever need more parallelism per job kind.
       max: 5,
-      // Useful default: retain succeeded jobs for 14 days, failed for 30.
-      // pg-boss's internal cleanup will GC older rows.
-      retentionDays: 30,
     })
     boss.on('error', (err) => {
-      // eslint-disable-next-line no-console
+       
       console.error('[pg-boss] error', err)
     })
     await boss.start()

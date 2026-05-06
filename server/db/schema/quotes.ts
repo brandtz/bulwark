@@ -4,8 +4,7 @@
  * Line items + totals are denormalised onto the row as JSONB per the
  * contract decision (E5: "no separate quote_line_items table").
  */
-import { pgTable, text, uuid, pgEnum, jsonb, integer, doublePrecision } from 'drizzle-orm/pg-core'
-import { timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, pgEnum, jsonb, integer, doublePrecision, timestamp } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { properties } from './properties'
 import { assessments } from './assessments'

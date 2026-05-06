@@ -50,7 +50,7 @@ const inputId = computed(() => props.id ?? `tgl-${reactiveId}`)
       :disabled="disabled"
       :aria-checked="modelValue"
       @change="emit('update:modelValue', ($event.target as HTMLInputElement).checked)"
-    />
+    >
     <span
       class="relative inline-flex h-6 w-11 shrink-0 rounded-full bg-border transition peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
     >

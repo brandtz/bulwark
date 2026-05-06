@@ -57,7 +57,7 @@ const inputId = computed(() => props.id ?? `dt-${reactiveId}`)
       class="h-input rounded-input border bg-surface px-3 text-body text-text-primary outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-surface-muted disabled:text-text-disabled"
       :class="error ? 'border-status-error' : 'border-border'"
       @change="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-    />
+    >
     <p v-if="error" class="text-small text-status-error" role="alert">{{ error }}</p>
     <p v-else-if="hint" class="text-small text-text-secondary">{{ hint }}</p>
   </div>

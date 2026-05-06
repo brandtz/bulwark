@@ -26,11 +26,11 @@ d('RealInvoiceService (E11-S11)', () => {
   beforeAll(async () => {
     const db = getDb()
     const [o] = await db.insert(organizations).values({ name: 'E11-S11 Org', slug: `e11s11-${stamp}` }).returning()
-    orgId = o.id
+    orgId = o!.id
     const [u] = await db.insert(users).values({ email: `e11s11-${stamp}@x.test`, fullName: 'T', passwordHash: await bcrypt.hash('x', 4), isActive: true }).returning()
-    userId = u.id
+    userId = u!.id
     const [p] = await db.insert(properties).values({ organizationId: orgId, addressLine1: 'I', city: 'C', state: 'CA', postalCode: '0' }).returning()
-    propertyId = p.id
+    propertyId = p!.id
   })
 
   afterAll(async () => {
