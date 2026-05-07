@@ -144,8 +144,13 @@ export class RealAuthService implements IAuthService {
   }
 
   async logout(): Promise<void> {
+    // Order matters: setActiveUserId(null) calls clearUserSession on the H3
+    // adapter, which writes a Set-Cookie max-age=0. Calling
+    // setActiveOrgOverride(null) AFTER that triggers a fresh getUserSession,
+    // which lazily resurrects a new sealed session id and emits a brand-new
+    // Set-Cookie on the response — silently undoing the logout. Skip the
+    // override clear since clearUserSession already wipes everything.
     await this.adapter.setActiveUserId(null)
-    await this.adapter.setActiveOrgOverride(null)
   }
 
   async currentUser(): Promise<SessionUser | null> {

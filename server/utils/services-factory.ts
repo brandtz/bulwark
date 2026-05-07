@@ -61,6 +61,11 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
   async setActiveUserId(id: string | null): Promise<void> {
     if (id === null) {
       await clearUserSession(this.event)
+      // Belt-and-suspenders: clearUserSession sets Set-Cookie to expire the
+      // session, but in some response paths the browser keeps the cookie if
+      // attributes don't exactly match. Explicitly delete on the same path
+      // and SameSite so the browser drops it.
+      deleteCookie(this.event, 'nuxt-session', { path: '/' })
       return
     }
     const s = await getUserSession(this.event)

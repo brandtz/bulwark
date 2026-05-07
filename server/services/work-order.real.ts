@@ -25,6 +25,19 @@ import type { WorkOrder as DbWO } from '../db/schema/work_orders'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 
+/**
+ * Mirrors shared/mocks/work-order.mock.ts deriveEnvelopeStatus so the real
+ * backend produces the same WO envelope status as the mock when slots are
+ * mutated.
+ */
+function deriveEnvelopeStatus(slots: DbWO['tradeSlots']): DbWO['status'] {
+  if (slots.length === 0) return 'draft'
+  if (slots.every((s) => s.status === 'completed')) return 'completed'
+  if (slots.some((s) => s.status === 'in_progress')) return 'in_progress'
+  if (slots.every((s) => s.status === 'unassigned')) return 'draft'
+  return 'scheduled'
+}
+
 function rowToContract(r: DbWO): WorkOrder {
   return {
     id: r.id,
@@ -175,9 +188,10 @@ export class RealWorkOrderService implements IWorkOrderService {
         .limit(1)
       if (!before) throw new Error('Work order not found')
       const newSlots = before.tradeSlots.map(map)
+      const newStatus = deriveEnvelopeStatus(newSlots)
       const [after] = await tx
         .update(workOrders)
-        .set({ tradeSlots: newSlots, updatedAt: new Date() })
+        .set({ tradeSlots: newSlots, status: newStatus, updatedAt: new Date() })
         .where(and(eq(workOrders.id, workOrderId), eq(workOrders.organizationId, organizationId)))
         .returning()
       await audit.record({
