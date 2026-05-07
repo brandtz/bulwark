@@ -131,6 +131,11 @@ export default defineNuxtConfig({
   // -------------------------------------------------------------------------
   nitro: {
     // E11 wires real DB. For now Nitro just serves the SSR app.
+    //
+    // Deploy preset: `vercel` when running on Vercel (auto-detected via the
+    // VERCEL=1 env var Vercel injects in CI). Local `nuxt dev` and `nuxt
+    // build` without that flag default to the node-server preset.
+    preset: process.env.VERCEL ? 'vercel' : undefined,
     experimental: {
       tasks: true, // enables background tasks for async PDF generation (E7 / E11)
     },

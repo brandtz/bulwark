@@ -45,6 +45,23 @@ if (!url) {
   process.exit(1)
 }
 
+// Production safety guard — refuse to wipe-and-seed any database that isn't
+// clearly a local Postgres. Demo fixtures are dev-only (ADR-0008); running
+// this script against Neon prod/staging would destroy real-customer rows in
+// the `Bulwark Demo Co.` and `Acme Restoration` orgs (and only those — the
+// wipe is org-scoped — but still: no).
+const ALLOW_PROD_SEED = process.env.BULWARK_ALLOW_PROD_SEED === '1'
+const isLocalHost = /(@|\/\/)(localhost|127\.0\.0\.1|::1)(:\d+)?\//.test(url)
+if (!isLocalHost && !ALLOW_PROD_SEED) {
+  console.error(
+    'Refusing to run db-seed.mjs against a non-localhost DATABASE_URL.\n' +
+      `  host parsed from URL: ${(url.match(/@([^/:]+)/) ?? [])[1] ?? '<unknown>'}\n` +
+      '  This script wipes-and-seeds demo fixtures (ADR-0008) and is dev-only.\n' +
+      '  If you know what you are doing, set BULWARK_ALLOW_PROD_SEED=1 and re-run.',
+  )
+  process.exit(1)
+}
+
 const sql = postgres(url, { max: 4 })
 
 const DEMO_PASSWORD = 'BulwarkDemo!1'

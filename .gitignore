@@ -43,3 +43,7 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+
+# Vercel build output
+.vercel/
+
