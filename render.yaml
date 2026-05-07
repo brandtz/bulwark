@@ -1,0 +1,62 @@
+# Render IaC blueprint — Bulwark background worker (E11-S9 / ADR-0012).
+#
+# Provisions a single Node Background Worker that runs the pg-boss
+# subscriber loop in `server/jobs/worker.ts`. The web tier lives on
+# Vercel; this worker handles compliance-doc PDF rendering (Puppeteer +
+# Chromium → R2 upload → signed URL) and any future async jobs.
+#
+# # First deploy
+#   1. Push this repo to GitHub.
+#   2. In Render, "New" → "Blueprint" → connect the repo. Render reads
+#      this file and offers to create the service.
+#   3. Render will prompt for the secret env vars listed under
+#      `envVars` with `sync: false` (DATABASE_URL, R2_*).
+#      Use the same Neon URL + R2 creds the Vercel project uses.
+#   4. Confirm. The service builds, runs `pnpm install` (which fetches
+#      Chromium for Puppeteer), then starts the worker.
+#
+# # Scaling
+#   - Plan starts at `starter` (512 MB / 0.5 CPU). Compliance PDFs use
+#     ~250 MB peak per render; bump to `standard` if we see EAGAIN /
+#     SIGABRT on Chromium launch.
+#   - `numInstances: 1` is intentional — pg-boss handles single-leader
+#     fan-out from the queue; we don't need multiple subscribers yet.
+#
+# # Decision cast down
+#   - Running the worker on Vercel via cron + serverless. Rejected:
+#     Vercel functions cap at 300s and can't keep a long-lived
+#     subscription open. pg-boss needs a persistent process.
+services:
+  - type: worker
+    name: bulwark-worker
+    runtime: node
+    plan: starter
+    region: oregon  # us-west — colocated with Neon us-west-2 + Vercel pdx1.
+    branch: main
+    buildCommand: pnpm install --frozen-lockfile
+    startCommand: pnpm run worker:jobs
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BULWARK_BACKEND
+        value: real
+      - key: BULWARK_PDF_STUB
+        value: "0"
+      # --- Secrets (Render prompts for these on first deploy) -----------
+      - key: DATABASE_URL
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
+      # Optional — leave blank if R2 bucket is private (worker uses
+      # signed URLs). Set if you front R2 with a public CDN later.
+      - key: R2_PUBLIC_URL
+        sync: false
