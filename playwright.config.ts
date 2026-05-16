@@ -48,7 +48,9 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
-      BULWARK_BACKEND: process.env.BULWARK_BACKEND || 'mock',
+      // ADR-0015 / EH-C: real backend is the runtime default. Mock survives
+      // as an explicit opt-in (BULWARK_BACKEND=mock) for offline dev runs.
+      BULWARK_BACKEND: process.env.BULWARK_BACKEND || 'real',
       ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
       ...(process.env.NUXT_SESSION_PASSWORD ? { NUXT_SESSION_PASSWORD: process.env.NUXT_SESSION_PASSWORD } : {}),
       ...(process.env.JWT_SECRET ? { JWT_SECRET: process.env.JWT_SECRET } : {}),

@@ -27,7 +27,14 @@
  *   props: modelValue, label, placeholder?, error?, required?, type, disabled?
  *   emits: update:modelValue, blur
  */
-type InputType = 'text' | 'email' | 'tel' | 'password' | 'number' | 'date'
+type InputType =
+  | 'text'
+  | 'email'
+  | 'tel'
+  | 'password'
+  | 'number'
+  | 'date'
+  | 'datetime-local'
 
 interface BulwarkInputProps {
   modelValue: string | number | null | undefined

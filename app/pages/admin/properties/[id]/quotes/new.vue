@@ -32,6 +32,7 @@ import type {
   QuoteCreateInput,
   QuoteLineItem,
   QuoteLineItemKind,
+  QuoteTier,
 } from '~~/shared/contracts/quote'
 import {
   computeQuoteTotals,
@@ -104,6 +105,8 @@ const upgradeSuggestions = computed<UpgradeItem[]>(() =>
 
 // Local UI line-item shape. We keep `unitCostInput` as a string so the
 // user can type freely; `unitCostCents` is derived for the totals math.
+// W2-3b additions (ADR-0020): optional toggle, per-line discount (bps),
+// free-text notes, and a category slug for PDF grouping.
 interface UiLineItem {
   id: string
   kind: QuoteLineItemKind
@@ -111,6 +114,10 @@ interface UiLineItem {
   quantity: number
   unitCostInput: string
   sourceField: string
+  optional: boolean
+  discountInput: string // percent string, e.g. "10" → 1000 bps
+  notes: string
+  categorySlug: string
 }
 
 function blankItem(): UiLineItem {
@@ -121,6 +128,10 @@ function blankItem(): UiLineItem {
     quantity: 1,
     unitCostInput: '0',
     sourceField: '',
+    optional: false,
+    discountInput: '0',
+    notes: '',
+    categorySlug: '',
   }
 }
 
@@ -129,6 +140,18 @@ const KIND_OPTIONS: { value: QuoteLineItemKind; label: string }[] = [
   { value: 'material', label: 'Material' },
   { value: 'other', label: 'Other' },
 ]
+
+// W2-3b / EH-G — tier control + customer-visible notes + expiry.
+const { t: tLabel } = useLabel()
+const TIER_OPTIONS: { value: QuoteTier; label: string }[] = [
+  { value: 'good', label: tLabel('quote.tiers', 'good', 'Good') },
+  { value: 'better', label: tLabel('quote.tiers', 'better', 'Better') },
+  { value: 'best', label: tLabel('quote.tiers', 'best', 'Best') },
+  { value: 'custom', label: tLabel('quote.tiers', 'custom', 'Custom') },
+]
+const tier = ref<QuoteTier>('custom')
+const customerVisibleNotes = ref('')
+const expiryDate = ref('') // yyyy-mm-dd
 
 const lineItems = ref<UiLineItem[]>([blankItem()])
 const markupPercent = ref<number>(10)
@@ -145,6 +168,10 @@ function populateFromAssessment() {
     quantity: 1,
     unitCostInput: '0',
     sourceField: u.field,
+    optional: false,
+    discountInput: '0',
+    notes: '',
+    categorySlug: '',
   }))
   // Surface the assessmentId so the persisted quote links back to the
   // source data (audit trail; future re-evaluations will check freshness).
@@ -193,19 +220,47 @@ function removeItem(id: string) {
 }
 
 const contractItems = computed<QuoteLineItem[]>(() =>
-  lineItems.value.map((li) => ({
-    id: li.id,
-    kind: li.kind,
-    description: li.description.trim() || '(unnamed)',
-    quantity: Number.isFinite(li.quantity) && li.quantity > 0 ? li.quantity : 0,
-    unitCostCents: parseDollarsToCents(li.unitCostInput) ?? 0,
-    sourceField: li.sourceField,
-  })),
+  lineItems.value.map((li) => {
+    const discount = Number(li.discountInput)
+    const discountBps = Number.isFinite(discount)
+      ? Math.max(0, Math.min(10_000, Math.round(discount * 100)))
+      : 0
+    return {
+      id: li.id,
+      kind: li.kind,
+      description: li.description.trim() || '(unnamed)',
+      quantity: Number.isFinite(li.quantity) && li.quantity > 0 ? li.quantity : 0,
+      unitCostCents: parseDollarsToCents(li.unitCostInput) ?? 0,
+      sourceField: li.sourceField,
+      optional: li.optional,
+      discountBps,
+      notes: li.notes.trim() ? li.notes.trim() : null,
+      categorySlug: li.categorySlug.trim() ? li.categorySlug.trim() : null,
+    }
+  }),
+)
+
+// Totals exclude optional lines by default (they are presented to the
+// customer as add-ons) and honor per-line discountBps. Markup + tax then
+// layer on top per the shared helper.
+const includedItems = computed<QuoteLineItem[]>(() =>
+  contractItems.value
+    .filter((li) => !li.optional)
+    .map((li) => {
+      const bps = li.discountBps ?? 0
+      if (bps === 0) return li
+      const gross = Math.round(li.quantity * li.unitCostCents)
+      const net = Math.round(gross * (10_000 - bps) / 10_000)
+      // Encode the discounted total back as a unit cost × quantity by
+      // keeping quantity = 1 and unit cost = net. The helper sums
+      // quantity × unitCostCents — equivalent under the helper's math.
+      return { ...li, quantity: 1, unitCostCents: net }
+    }),
 )
 
 const totals = computed(() =>
   computeQuoteTotals(
-    contractItems.value,
+    includedItems.value,
     Number.isFinite(markupPercent.value) ? markupPercent.value : 0,
     Number.isFinite(taxPercent.value) ? taxPercent.value : 0,
   ),
@@ -255,6 +310,13 @@ async function onSubmit() {
       taxPercent: taxPercent.value,
       expiresAt: null,
       notes: notes.value.trim() ? notes.value.trim() : null,
+      tier: tier.value,
+      expiryDate: expiryDate.value
+        ? new Date(`${expiryDate.value}T23:59:59.000Z`).toISOString()
+        : null,
+      customerVisibleNotes: customerVisibleNotes.value.trim()
+        ? customerVisibleNotes.value.trim()
+        : null,
     }
     const created = await quote.create(input)
     await router.push(
@@ -311,6 +373,19 @@ async function onSubmit() {
     </BulwarkCard>
 
     <form class="mt-6 flex flex-col gap-6" novalidate @submit.prevent="onSubmit">
+      <!-- Tier (W2-3b) ---------------------------------------------- -->
+      <section data-testid="quote-tier-section">
+        <label class="text-small font-medium text-text-secondary block mb-1">
+          Tier
+        </label>
+        <BulwarkSegmentedControl
+          v-model="tier"
+          :options="TIER_OPTIONS"
+          aria-label="Quote tier"
+          data-testid="quote-tier"
+        />
+      </section>
+
       <!-- Line items ------------------------------------------------ -->
       <section data-testid="line-items">
         <div class="flex items-center justify-between mb-2">
@@ -375,6 +450,41 @@ async function onSubmit() {
                   Remove
                 </button>
               </div>
+              <!-- W2-3b additions ---------------------------------- -->
+              <div class="md:col-span-3 flex items-center gap-2 pt-2 md:pt-0">
+                <input
+                  :id="`opt-${li.id}`"
+                  v-model="li.optional"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-border-default"
+                  :data-testid="`line-item-${idx}-optional`"
+                />
+                <label
+                  :for="`opt-${li.id}`"
+                  class="text-small text-text-secondary"
+                >Optional (excluded from total)</label>
+              </div>
+              <BulwarkInput
+                v-model="li.discountInput"
+                label="Discount %"
+                inputmode="decimal"
+                class="md:col-span-3"
+                :data-testid="`line-item-${idx}-discount`"
+              />
+              <BulwarkInput
+                v-model="li.categorySlug"
+                label="Category"
+                placeholder="roofing"
+                class="md:col-span-3"
+                :data-testid="`line-item-${idx}-category`"
+              />
+              <BulwarkTextarea
+                v-model="li.notes"
+                label="Line notes (customer-visible)"
+                :rows="2"
+                class="md:col-span-12"
+                :data-testid="`line-item-${idx}-notes`"
+              />
             </div>
           </BulwarkCard>
         </div>
@@ -388,8 +498,8 @@ async function onSubmit() {
         </p>
       </section>
 
-      <!-- Markup / tax ---------------------------------------------- -->
-      <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Markup / tax / expiry ------------------------------------- -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <BulwarkInput
           v-model.number="markupPercent"
           label="Markup %"
@@ -406,6 +516,12 @@ async function onSubmit() {
           :error="errors.taxPercent"
           data-testid="field-taxPercent"
         />
+        <BulwarkInput
+          v-model="expiryDate"
+          type="date"
+          label="Expires on"
+          data-testid="field-expiryDate"
+        />
       </section>
 
       <!-- Notes ----------------------------------------------------- -->
@@ -415,6 +531,13 @@ async function onSubmit() {
         placeholder="Anything the next person on this quote needs to know."
         :rows="3"
         data-testid="field-notes"
+      />
+      <BulwarkTextarea
+        v-model="customerVisibleNotes"
+        label="Customer-visible notes"
+        placeholder="Will appear on the customer-facing quote PDF."
+        :rows="3"
+        data-testid="field-customerVisibleNotes"
       />
 
       <!-- Totals ---------------------------------------------------- -->

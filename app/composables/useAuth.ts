@@ -24,11 +24,18 @@
  */
 import type {
   LoginInput,
+  AuthLoginResult,
   RequestPasswordResetInput,
   ResetPasswordInput,
   AcceptInviteInput,
   InvitePreview,
 } from '~~/shared/contracts/auth'
+
+export type LoginEnvelope =
+  | { ok: true; kind: 'session' }
+  | { ok: true; kind: 'mfa_required'; mfaToken: string; email: string }
+  | { ok: false; kind: 'locked'; retryAfterSeconds: number }
+  | { ok: false; kind: 'error'; message: string }
 
 export function useAuth() {
   const { session, refresh } = useSession()
@@ -46,6 +53,52 @@ export function useAuth() {
     } catch (e: unknown) {
       // Mock backend never throws today, but RealAuthService will. Normalise.
       error.value = e instanceof Error ? e.message : 'Sign in failed'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * W2-5 / W4-1 — login that surfaces the full discriminated result so
+   * the page can branch on `mfa_required` / `account_locked`. The
+   * legacy `login()` above stays for callers that just need a boolean.
+   */
+  async function loginEx(input: LoginInput): Promise<LoginEnvelope> {
+    const auth = useService('auth')
+    loading.value = true
+    error.value = null
+    try {
+      const r: AuthLoginResult = await auth.login(input)
+      if (r.kind === 'mfa_required') {
+        return { ok: true, kind: 'mfa_required', mfaToken: r.mfaToken, email: r.email }
+      }
+      await refresh()
+      return { ok: true, kind: 'session' }
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === 'account_locked') {
+        const retry = (e as Error & { retryAfterSeconds?: number }).retryAfterSeconds ?? 60
+        error.value = 'Account temporarily locked'
+        return { ok: false, kind: 'locked', retryAfterSeconds: retry }
+      }
+      const msg = e instanceof Error ? e.message : 'Sign in failed'
+      error.value = msg
+      return { ok: false, kind: 'error', message: msg }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function verifyMfa(mfaToken: string, code: string): Promise<boolean> {
+    const auth = useService('auth')
+    loading.value = true
+    error.value = null
+    try {
+      await auth.verifyMfa(mfaToken, code)
+      await refresh()
+      return true
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Verification failed'
       return false
     } finally {
       loading.value = false
@@ -143,6 +196,8 @@ export function useAuth() {
     loading,
     error,
     login,
+    loginEx,
+    verifyMfa,
     logout,
     requestPasswordReset,
     resetPassword,

@@ -61,6 +61,7 @@ d('RealAuthService (E11-S3)', () => {
     const adapter = new InMemoryAuthSessionAdapter()
     const svc = new RealAuthService(adapter)
     const result = await svc.login({ email, password })
+    if (result.kind !== 'session') throw new Error('expected session')
     expect(result.user.email).toBe(email)
     expect(result.user.userId).toBe(userId)
     expect(result.user.memberships).toHaveLength(2)
@@ -129,6 +130,7 @@ d('RealAuthService (E11-S3)', () => {
     const svc2 = new RealAuthService(new InMemoryAuthSessionAdapter())
     await expect(svc2.login({ email, password })).rejects.toThrow(/invalid/i)
     const ok = await svc2.login({ email, password: newPassword })
+    if (ok.kind !== 'session') throw new Error('expected session')
     expect(ok.user.userId).toBe(userId)
   })
 

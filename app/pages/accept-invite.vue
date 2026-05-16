@@ -88,7 +88,9 @@ async function submit() {
         : role === 'field'
         ? '/field/dashboard'
         : role === 'sub_contractor'
-        ? '/sub/dashboard'
+        ? '/sub'
+        : role === 'homeowner'
+        ? '/homeowner'
         : '/admin/dashboard'
     if (typeof window !== 'undefined') window.location.assign(dest)
     else await navigateTo(dest)

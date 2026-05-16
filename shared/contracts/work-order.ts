@@ -54,7 +54,13 @@ export const TradeSlotStatusSchema = z.enum([
 export type TradeSlotStatus = z.infer<typeof TradeSlotStatusSchema>
 
 // ----------------------------------------------------------------------------
-// Trade slot \u2014 one row in a work order.
+// Priority enum (W2-3 / EH-G). All defaulted so legacy rows validate.
+// ----------------------------------------------------------------------------
+export const WorkOrderPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent'])
+export type WorkOrderPriority = z.infer<typeof WorkOrderPrioritySchema>
+
+// ----------------------------------------------------------------------------
+// Trade slot — one row in a work order.
 // ----------------------------------------------------------------------------
 export const TradeSlotSchema = z.object({
   id: UuidSchema,
@@ -65,6 +71,11 @@ export const TradeSlotSchema = z.object({
   scheduledStart: z.string().datetime().nullable(),
   scheduledEnd: z.string().datetime().nullable(),
   notes: z.string().nullable(),
+  // W2-3 / EH-G additions. Optional for fixture compatibility.
+  actualStart: z.string().datetime().nullable().optional(),
+  actualCompletion: z.string().datetime().nullable().optional(),
+  estimatedHours: z.number().min(0).max(10_000).optional(),
+  actualHours: z.number().min(0).max(10_000).optional(),
 })
 export type TradeSlot = z.infer<typeof TradeSlotSchema>
 
@@ -97,6 +108,11 @@ export const WorkOrderSchema = z
     materials: z.array(MaterialItemSchema),
     notes: z.string().nullable(),
     createdById: UuidSchema,
+    // W2-3 / EH-G additions. Optional for fixture compatibility.
+    estimatedHours: z.number().min(0).max(100_000).optional(),
+    actualHours: z.number().min(0).max(100_000).optional(),
+    priority: WorkOrderPrioritySchema.optional(),
+    dispatchNotes: z.string().max(2000).nullable().optional(),
   })
   .merge(AuditFieldsSchema)
 export type WorkOrder = z.infer<typeof WorkOrderSchema>
@@ -145,4 +161,45 @@ export interface IWorkOrderService {
     status: TradeSlotStatus,
     organizationId: string,
   ): Promise<WorkOrder>
+  /**
+   * W2-3 / EH-G: schedule (or reschedule) the WO envelope. Stamps
+   * `scheduledStart` / `scheduledEnd`, emits `workOrderScheduled`.
+   * Idempotent on identical inputs.
+   */
+  schedule(input: {
+    workOrderId: string
+    organizationId: string
+    scheduledStart: string | null
+    scheduledEnd: string | null
+  }): Promise<WorkOrder>
+  /**
+   * W2-3 / EH-G: stamp `actualStart` on a slot and bump its status to
+   * `in_progress`. No-op if already in_progress / completed.
+   */
+  startSlot(input: {
+    workOrderId: string
+    tradeSlotId: string
+    organizationId: string
+  }): Promise<WorkOrder>
+  /**
+   * W2-3 / EH-G: stamp `actualCompletion`, record `actualHours`, append
+   * `notes`, transition slot status to `completed`.
+   */
+  completeSlot(input: {
+    workOrderId: string
+    tradeSlotId: string
+    organizationId: string
+    actualHours: number
+    notes?: string | null
+  }): Promise<WorkOrder>
+  /**
+   * W2-3 / EH-G: pure read — sum estimated vs. actual hours across
+   * the WO's slots and return the variance in integer cents (the
+   * variance is hours × tenant default labor rate; v1 returns hour
+   * diffs and lets the UI multiply).
+   */
+  costRollup(input: {
+    workOrderId: string
+    organizationId: string
+  }): Promise<{ estimatedHours: number; actualHours: number; varianceHours: number }>
 }

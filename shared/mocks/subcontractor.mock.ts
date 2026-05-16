@@ -21,6 +21,11 @@ import type {
   SubcontractorListInput,
   SubcontractorListOutput,
   SubcontractorUpdateInput,
+  SubcontractorUser,
+  SubInviteInput,
+  SubInviteOutput,
+  SubcontractorCoiDoc,
+  SubCoiUploadInput,
 } from '../contracts/subcontractor'
 import {
   SubcontractorUpdateInputSchema,
@@ -29,6 +34,21 @@ import { FIXTURE_SUBCONTRACTORS } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
 
 const rows: Subcontractor[] = [...FIXTURE_SUBCONTRACTORS]
+const userRows: SubcontractorUser[] = []
+const coiRows: SubcontractorCoiDoc[] = []
+let memId = 1
+function nid(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${(memId++).toString(36)}`
+}
+
+/** Test-only reset hook. Clears all mutable in-memory state. */
+export function __resetSubcontractorMock(): void {
+  rows.length = 0
+  rows.push(...FIXTURE_SUBCONTRACTORS)
+  userRows.length = 0
+  coiRows.length = 0
+  memId = 1
+}
 
 export class MockSubcontractorService implements ISubcontractorService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -107,5 +127,131 @@ export class MockSubcontractorService implements ISubcontractorService {
     }
     rows[idx] = merged
     return merged
+  }
+
+  // --------------------------------------------------------------------
+  // W3-4 / EH-N additions — sub portal membership + COI + assignments.
+  // --------------------------------------------------------------------
+
+  async listUsers(subcontractorId: string, organizationId: string): Promise<SubcontractorUser[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    return userRows.filter(
+      (u) =>
+        u.subcontractorId === subcontractorId &&
+        u.organizationId === organizationId &&
+        !u.deletedAt,
+    )
+  }
+
+  async inviteUser(input: SubInviteInput): Promise<SubInviteOutput> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const now = new Date().toISOString()
+    const id = nid('subuser')
+    const userId = nid('user')
+    const row: SubcontractorUser = {
+      id,
+      organizationId: input.organizationId,
+      subcontractorId: input.subcontractorId,
+      userId,
+      email: input.email.toLowerCase(),
+      fullName: input.fullName,
+      invitedAt: now,
+      acceptedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    }
+    userRows.push(row)
+    const token = `mock-${id}`
+    return {
+      inviteId: id,
+      membershipId: id,
+      inviteUrl: `/accept-invite?token=${token}`,
+      inviteToken: token,
+    }
+  }
+
+  async removeUser(membershipId: string, organizationId: string): Promise<void> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const idx = userRows.findIndex(
+      (u) => u.id === membershipId && u.organizationId === organizationId,
+    )
+    if (idx === -1) return
+    userRows[idx] = { ...userRows[idx]!, deletedAt: new Date().toISOString() }
+  }
+
+  async resolveSubForUser(
+    userId: string,
+    organizationId: string,
+  ): Promise<{ subcontractorId: string } | null> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const m = userRows.find(
+      (u) => u.userId === userId && u.organizationId === organizationId && !u.deletedAt,
+    )
+    return m ? { subcontractorId: m.subcontractorId } : null
+  }
+
+  async listMyAssignments(_userId: string, organizationId: string): Promise<unknown[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    // Mock returns an empty list; tests inject WorkOrder fixtures separately.
+    return []
+  }
+
+  async listMyQuotesRequested(_userId: string, organizationId: string): Promise<unknown[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    return []
+  }
+
+  async listCois(
+    subcontractorId: string,
+    organizationId: string,
+  ): Promise<SubcontractorCoiDoc[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    return coiRows
+      .filter(
+        (c) =>
+          c.subcontractorId === subcontractorId &&
+          c.organizationId === organizationId &&
+          !c.deletedAt,
+      )
+      .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
+  }
+
+  async uploadCoi(input: SubCoiUploadInput): Promise<SubcontractorCoiDoc> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const now = new Date().toISOString()
+    const row: SubcontractorCoiDoc = {
+      id: nid('coi'),
+      organizationId: input.organizationId,
+      subcontractorId: input.subcontractorId,
+      fileUrl: input.fileUrl,
+      fileName: input.fileName,
+      expiresAt: input.expiresAt,
+      uploadedByUserId: null,
+      uploadedAt: now,
+      notes: input.notes ?? null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    }
+    coiRows.push(row)
+    return row
+  }
+
+  async scanCoiExpiry(input: {
+    organizationId: string
+    withinDays?: number
+    nowIso?: string
+  }): Promise<SubcontractorCoiDoc[]> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const within = input.withinDays ?? 30
+    const now = input.nowIso ? new Date(input.nowIso) : new Date()
+    const cutoff = new Date(now.getTime() + within * 24 * 60 * 60 * 1000)
+    return coiRows.filter(
+      (c) =>
+        c.organizationId === input.organizationId &&
+        !c.deletedAt &&
+        new Date(c.expiresAt) <= cutoff,
+    )
   }
 }

@@ -8,6 +8,8 @@
   derivation (deterministic per name), same circle.
 -->
 <script setup lang="ts">
+import { safeUrl } from '~/utils/safeUrl'
+
 interface Props {
   name: string
   src?: string | null
@@ -52,8 +54,8 @@ const sizeClasses: Record<NonNullable<Props['size']>, string> = {
     :aria-label="name"
   >
     <img
-      v-if="src"
-      :src="src"
+      v-if="src && safeUrl(src)"
+      :src="safeUrl(src) ?? ''"
       :alt="name"
       class="h-full w-full object-cover"
     >

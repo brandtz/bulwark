@@ -90,7 +90,15 @@ export class MockWorkOrderService implements IWorkOrderService {
   async create(input: WorkOrderCreateInput): Promise<WorkOrder> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     const now = nowIso()
-    const slots = input.tradeSlots.map((s) => ({ ...s, id: newId() }))
+    const slots = input.tradeSlots.map((s) => ({
+      ...s,
+      id: newId(),
+      // W2-3 / EH-G defaults so older create inputs keep working.
+      actualStart: (s as Partial<TradeSlot>).actualStart ?? null,
+      actualCompletion: (s as Partial<TradeSlot>).actualCompletion ?? null,
+      estimatedHours: (s as Partial<TradeSlot>).estimatedHours ?? 0,
+      actualHours: (s as Partial<TradeSlot>).actualHours ?? 0,
+    }))
     const row: WorkOrder = {
       id: newId(),
       organizationId: input.organizationId,
@@ -104,6 +112,11 @@ export class MockWorkOrderService implements IWorkOrderService {
       materials: input.materials.map((m) => ({ ...m, id: newId() })),
       notes: input.notes ?? null,
       createdById: input.createdById,
+      // W2-3 / EH-G defaults.
+      estimatedHours: input.estimatedHours ?? 0,
+      actualHours: input.actualHours ?? 0,
+      priority: input.priority ?? 'normal',
+      dispatchNotes: input.dispatchNotes ?? null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -162,5 +175,100 @@ export class MockWorkOrderService implements IWorkOrderService {
       throw new Error(`Work order ${workOrderId} not found in org ${organizationId}`)
     }
     return row
+  }
+
+  // --- W2-3 / EH-G additions --------------------------------------------
+  async schedule(input: {
+    workOrderId: string
+    organizationId: string
+    scheduledStart: string | null
+    scheduledEnd: string | null
+  }): Promise<WorkOrder> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const row = this.findOrThrow(input.workOrderId, input.organizationId)
+    row.scheduledStart = input.scheduledStart
+    row.scheduledEnd = input.scheduledEnd
+    // Envelope status is derived from slots, not the schedule.
+    row.updatedAt = nowIso()
+    return row
+  }
+
+  async startSlot(input: {
+    workOrderId: string
+    tradeSlotId: string
+    organizationId: string
+  }): Promise<WorkOrder> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const row = this.findOrThrow(input.workOrderId, input.organizationId)
+    const slot = row.tradeSlots.find((s) => s.id === input.tradeSlotId)
+    if (!slot) throw new Error(`Trade slot ${input.tradeSlotId} not found on WO ${input.workOrderId}`)
+    if (slot.status === 'in_progress' || slot.status === 'completed') return row
+    slot.status = 'in_progress'
+    slot.actualStart = slot.actualStart ?? nowIso()
+    row.status = deriveEnvelopeStatus(row.tradeSlots)
+    row.updatedAt = nowIso()
+    return row
+  }
+
+  async completeSlot(input: {
+    workOrderId: string
+    tradeSlotId: string
+    organizationId: string
+    actualHours: number
+    notes?: string | null
+  }): Promise<WorkOrder> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const row = this.findOrThrow(input.workOrderId, input.organizationId)
+    const slot = row.tradeSlots.find((s) => s.id === input.tradeSlotId)
+    if (!slot) throw new Error(`Trade slot ${input.tradeSlotId} not found on WO ${input.workOrderId}`)
+    slot.status = 'completed'
+    slot.actualCompletion = nowIso()
+    slot.actualHours = input.actualHours
+    if (input.notes !== undefined) slot.notes = input.notes
+    row.actualHours = row.tradeSlots.reduce((s, x) => s + (x.actualHours ?? 0), 0)
+    row.status = deriveEnvelopeStatus(row.tradeSlots)
+    row.updatedAt = nowIso()
+    return row
+  }
+
+  async costRollup(input: { workOrderId: string; organizationId: string }) {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const row = this.findOrThrow(input.workOrderId, input.organizationId)
+    const estimatedHours = row.tradeSlots.reduce((s, x) => s + (x.estimatedHours ?? 0), 0)
+    const actualHours = row.tradeSlots.reduce((s, x) => s + (x.actualHours ?? 0), 0)
+    return {
+      estimatedHours,
+      actualHours,
+      varianceHours: actualHours - estimatedHours,
+    }
+  }
+
+  /**
+   * W3-3 / EH-M (ADR-0029) — parity with `RealWorkOrderService.listForFieldUser`.
+   * Returns WOs scheduled in `[dateFrom, dateTo)` for the active org.
+   * `userId` is accepted but unused at v1 (see ADR-0029).
+   */
+  async listForFieldUser(input: {
+    organizationId: string
+    userId: string
+    dateFrom: string
+    dateTo: string
+  }): Promise<WorkOrder[]> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    void input.userId
+    const from = new Date(input.dateFrom).getTime()
+    const to = new Date(input.dateTo).getTime()
+    return rows
+      .filter(
+        (r) =>
+          r.organizationId === input.organizationId &&
+          !r.deletedAt &&
+          r.status !== 'cancelled' &&
+          r.scheduledStart !== null &&
+          new Date(r.scheduledStart).getTime() >= from &&
+          new Date(r.scheduledStart).getTime() < to,
+      )
+      .slice()
+      .sort((a, b) => (a.scheduledStart ?? '').localeCompare(b.scheduledStart ?? ''))
   }
 }

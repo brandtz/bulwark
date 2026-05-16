@@ -88,6 +88,7 @@ async function doLogout() {
       data-testid="user-menu-button"
       :aria-expanded="open"
       aria-haspopup="menu"
+      aria-label="Open user menu"
       @click="toggle"
     >
       <div class="w-8 h-8 rounded-full bg-primary text-white text-small font-semibold flex items-center justify-center">
@@ -97,7 +98,8 @@ async function doLogout() {
         <div class="text-small text-text-primary leading-tight">{{ session?.fullName }}</div>
         <div class="text-tiny text-text-secondary leading-tight">{{ session?.activeRole }}</div>
       </div>
-      <span aria-hidden="true" class="hidden sm:inline text-text-secondary">▾</span>
+      <!-- W2-6 / EH-L: sprite chevron replaces the inline ▾ glyph. -->
+      <BulwarkIcon name="chevron-down" size="sm" class="hidden sm:inline text-text-secondary" />
     </button>
 
     <div
@@ -118,6 +120,27 @@ async function doLogout() {
         data-testid="user-menu-switch-org"
         @click="close"
       >Switch organization</NuxtLink>
+
+      <NuxtLink
+        to="/profile/notifications"
+        class="block px-3 py-2 text-small text-text-primary rounded hover:bg-surface-muted"
+        data-testid="user-menu-notifications"
+        @click="close"
+      >Notification preferences</NuxtLink>
+
+      <NuxtLink
+        to="/profile/security"
+        class="block px-3 py-2 text-small text-text-primary rounded hover:bg-surface-muted"
+        data-testid="user-menu-security"
+        @click="close"
+      >Security</NuxtLink>
+
+      <NuxtLink
+        to="/profile/data"
+        class="block px-3 py-2 text-small text-text-primary rounded hover:bg-surface-muted"
+        data-testid="user-menu-account-data"
+        @click="close"
+      >Account &amp; data</NuxtLink>
 
       <button
         type="button"

@@ -35,7 +35,8 @@
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
 import { computeQuoteTotals, parseDollarsToCents, formatCents } from '~~/shared/utils/money'
-import type { InvoiceLineItem } from '~~/shared/contracts/invoice'
+import type { InvoiceLineItem, InvoiceTerms } from '~~/shared/contracts/invoice'
+import { INVOICE_TERMS_DAYS } from '~~/shared/contracts/invoice'
 import { TRADE_LABEL } from '~~/shared/contracts/subcontractor'
 
 definePageMeta({
@@ -100,6 +101,28 @@ const markupPercent = ref(0)
 const taxPercent = ref(0)
 const notes = ref('')
 const dueDate = ref('') // yyyy-mm-dd
+
+// W2-3b / EH-G additions.
+const { t: tLabel } = useLabel()
+const TERMS_OPTIONS: { value: InvoiceTerms; label: string }[] = [
+  { value: 'due_on_receipt', label: tLabel('invoice.terms', 'due_on_receipt', 'Due on receipt') },
+  { value: 'net_15', label: tLabel('invoice.terms', 'net_15', 'Net 15') },
+  { value: 'net_30', label: tLabel('invoice.terms', 'net_30', 'Net 30') },
+  { value: 'net_60', label: tLabel('invoice.terms', 'net_60', 'Net 60') },
+  { value: 'custom', label: tLabel('invoice.terms', 'custom', 'Custom') },
+]
+const terms = ref<InvoiceTerms>('net_30')
+const depositDollars = ref<string>('0')
+const retainagePercent = ref<number>(0)
+
+// Auto-recompute dueDate from terms (unless custom).
+watch(terms, (t) => {
+  if (t === 'custom') return
+  const days = INVOICE_TERMS_DAYS[t]
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  dueDate.value = d.toISOString().slice(0, 10)
+})
 
 // Pre-fill once when the WO bundle resolves.
 watchEffect(() => {
@@ -167,14 +190,15 @@ async function onSubmit() {
   serverError.value = ''
   submitting.value = true
   try {
+    const dueIso = dueDate.value
+      ? new Date(`${dueDate.value}T17:00:00.000Z`).toISOString()
+      : null
     const created = await invoice.create({
       organizationId: orgId.value,
       propertyId: propertyId.value,
       workOrderId: bundle.value.workOrder.id,
       quoteId: bundle.value.workOrder.quoteId ?? null,
-      dueAt: dueDate.value
-        ? new Date(`${dueDate.value}T17:00:00.000Z`).toISOString()
-        : null,
+      dueAt: dueIso,
       lineItems: lines.value.map((l) => ({
         id: l.uid,
         kind: l.kind,
@@ -185,6 +209,13 @@ async function onSubmit() {
       markupPercent: markupPercent.value,
       taxPercent: taxPercent.value,
       notes: notes.value.trim() || null,
+      depositRequiredCents: parseDollarsToCents(depositDollars.value) ?? 0,
+      retainageBps: Math.max(
+        0,
+        Math.min(2000, Math.round((Number(retainagePercent.value) || 0) * 100)),
+      ),
+      terms: terms.value,
+      dueDate: dueIso,
     })
     toastSuccess('Invoice created', `${created.invoiceNumber} is ready to send.`)
     await router.push(`/admin/invoices/${created.id}`)
@@ -312,6 +343,35 @@ async function onSubmit() {
           v-model="dueDate"
           type="date"
           label="Due date"
+        />
+      </section>
+
+      <!-- Payment terms / deposit / retainage (W2-3b) -------------- -->
+      <section
+        class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3"
+        data-testid="invoice-new-terms-card"
+      >
+        <BulwarkSelect
+          v-model="terms"
+          label="Payment terms"
+          :options="TERMS_OPTIONS"
+          data-testid="terms-select"
+        />
+        <BulwarkInput
+          v-model="depositDollars"
+          label="Deposit required ($)"
+          inputmode="decimal"
+          placeholder="0.00"
+          data-testid="deposit-input"
+        />
+        <BulwarkInput
+          v-model.number="retainagePercent"
+          type="number"
+          label="Retainage (%)"
+          min="0"
+          max="20"
+          step="0.5"
+          data-testid="retainage-bps-input"
         />
       </section>
 

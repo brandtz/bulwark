@@ -27,6 +27,7 @@ import type {
   IPropertyService,
   Property,
   PropertyCreateInput,
+  PropertyDepth,
   PropertyListInput,
   PropertyListOutput,
   PropertyStatus,
@@ -34,9 +35,21 @@ import type {
 } from '../../shared/contracts/property'
 import { getDb } from '../db/client'
 import { properties } from '../db/schema/properties'
+import { buildings } from '../db/schema/buildings'
+import { buildingSections } from '../db/schema/building_sections'
+import { contacts } from '../db/schema/contacts'
+import { propertyPhotos } from '../db/schema/property_photos'
+import { escapeLikeContains } from '../../shared/utils/likeEscape'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
-import { dbPropertyToContract } from './_row-mappers'
+import {
+  dbBuildingSectionToContract,
+  dbBuildingToContract,
+  dbContactToContract,
+  dbPropertyToContract,
+} from './_row-mappers'
+import { emit } from '../../shared/events/bus'
+import { propertyCreated } from '../../shared/events/catalog'
 
 export class RealPropertyService implements IPropertyService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -51,7 +64,8 @@ export class RealPropertyService implements IPropertyService {
     ]
     if (input.status) conditions.push(eq(properties.status, input.status))
     if (input.search) {
-      const q = `%${input.search}%`
+      // W5-3 / ADR-0037: escape LIKE wildcards in user input.
+      const q = escapeLikeContains(input.search)
       const like = or(ilike(properties.addressLine1, q), ilike(properties.city, q))
       if (like) conditions.push(like)
     }
@@ -98,7 +112,7 @@ export class RealPropertyService implements IPropertyService {
 
   async create(input: PropertyCreateInput): Promise<Property> {
     assertSameTenant(this.tenantResolver, input.organizationId)
-    return await withAudit(async ({ tx, audit }) => {
+    const created = await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(properties)
         .values({
@@ -111,6 +125,15 @@ export class RealPropertyService implements IPropertyService {
           clientId: input.clientId ?? null,
           status: 'lead',
           notes: input.notes ?? null,
+          // W2-1 / EH-E — new metadata fields (ADR-0018). Numeric column
+          // accepts string|number; we pass through the contract number as-is.
+          lotSizeAcres: input.lotSizeAcres == null ? null : String(input.lotSizeAcres),
+          parcelNumber: input.parcelNumber ?? null,
+          yearBuilt: input.yearBuilt ?? null,
+          accessNotes: input.accessNotes ?? null,
+          gateCode: input.gateCode ?? null,
+          specialInstructions: input.specialInstructions ?? null,
+          primaryContactId: input.primaryContactId ?? null,
         })
         .returning()
       await audit.record({
@@ -123,6 +146,15 @@ export class RealPropertyService implements IPropertyService {
       })
       return dbPropertyToContract(row!)
     })
+    // Post-transaction emit (ADR-0017).
+    await emit(propertyCreated, {
+      organizationId: created.organizationId,
+      entityId: created.id,
+      actorUserId: this.actorUserId(),
+      timestamp: new Date().toISOString(),
+      addressLine1: created.addressLine1,
+    })
+    return created
   }
 
   async update(input: PropertyUpdateInput): Promise<Property> {
@@ -143,6 +175,15 @@ export class RealPropertyService implements IPropertyService {
       if (input.postalCode !== undefined) patch.postalCode = input.postalCode
       if (input.clientId !== undefined) patch.clientId = input.clientId
       if (input.notes !== undefined) patch.notes = input.notes
+      // W2-1 / EH-E (ADR-0018) — new metadata fields.
+      if (input.lotSizeAcres !== undefined)
+        patch.lotSizeAcres = input.lotSizeAcres == null ? null : String(input.lotSizeAcres)
+      if (input.parcelNumber !== undefined) patch.parcelNumber = input.parcelNumber ?? null
+      if (input.yearBuilt !== undefined) patch.yearBuilt = input.yearBuilt ?? null
+      if (input.accessNotes !== undefined) patch.accessNotes = input.accessNotes ?? null
+      if (input.gateCode !== undefined) patch.gateCode = input.gateCode ?? null
+      if (input.specialInstructions !== undefined) patch.specialInstructions = input.specialInstructions ?? null
+      if (input.primaryContactId !== undefined) patch.primaryContactId = input.primaryContactId ?? null
 
       const [after] = await tx
         .update(properties)
@@ -216,5 +257,82 @@ export class RealPropertyService implements IPropertyService {
   /** Pulls the active session's user id, if available. */
   private actorUserId(): string | null {
     return this.tenantResolver?.()?.userId ?? null
+  }
+
+  async getWithDepth(propertyId: string, organizationId: string): Promise<PropertyDepth | null> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const db = getDb()
+    const property = await this.get(propertyId, organizationId)
+    if (!property) return null
+
+    const [buildingRows, contactRows, photoRows] = await Promise.all([
+      db
+        .select()
+        .from(buildings)
+        .where(
+          and(
+            eq(buildings.organizationId, organizationId),
+            eq(buildings.propertyId, propertyId),
+            sql`${buildings.deletedAt} IS NULL`,
+          ),
+        )
+        .orderBy(buildings.sortOrder),
+      db
+        .select()
+        .from(contacts)
+        .where(
+          and(
+            eq(contacts.organizationId, organizationId),
+            eq(contacts.propertyId, propertyId),
+            sql`${contacts.deletedAt} IS NULL`,
+          ),
+        )
+        .orderBy(sql`${contacts.isPrimary} DESC`, contacts.sortOrder),
+      db
+        .select()
+        .from(propertyPhotos)
+        .where(
+          and(
+            eq(propertyPhotos.organizationId, organizationId),
+            eq(propertyPhotos.propertyId, propertyId),
+            sql`${propertyPhotos.deletedAt} IS NULL`,
+          ),
+        )
+        .orderBy(propertyPhotos.sortOrder)
+        .limit(1),
+    ])
+
+    // Section fetch — one query for ALL sections of all buildings of
+    // this property, then group in memory (avoids N+1 round-trips).
+    const buildingIds = buildingRows.map(b => b.id)
+    const sectionRows = buildingIds.length === 0
+      ? []
+      : await db
+          .select()
+          .from(buildingSections)
+          .where(
+            and(
+              eq(buildingSections.organizationId, organizationId),
+              sql`${buildingSections.deletedAt} IS NULL`,
+              sql`${buildingSections.buildingId} IN (${sql.join(buildingIds.map(id => sql`${id}`), sql`, `)})`,
+            ),
+          )
+          .orderBy(buildingSections.sortOrder)
+    const sectionsByBuilding = new Map<string, typeof sectionRows>()
+    for (const s of sectionRows) {
+      const bucket = sectionsByBuilding.get(s.buildingId) ?? []
+      bucket.push(s)
+      sectionsByBuilding.set(s.buildingId, bucket)
+    }
+
+    return {
+      property,
+      buildings: buildingRows.map(b => ({
+        ...dbBuildingToContract(b),
+        sections: (sectionsByBuilding.get(b.id) ?? []).map(dbBuildingSectionToContract),
+      })),
+      contacts: contactRows.map(dbContactToContract),
+      primaryPhotoUrl: photoRows[0]?.url ?? null,
+    }
   }
 }

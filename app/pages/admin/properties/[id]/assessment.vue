@@ -213,6 +213,20 @@ const propertyAddress = computed(() => {
       {{ propertyAddress }}
     </p>
 
+    <!-- W2-2 (ADR-0019): point GCs at the new dynamic inspection workflow.
+         The legacy assessment is kept for parity but new captures should
+         flow through the program-driven inspection form. -->
+    <div
+      data-testid="legacy-assessment-banner"
+      class="mt-4 rounded-card border border-info-light bg-info-light/40 p-3 text-small text-status-info"
+    >
+      A new dynamic inspection workflow is available —
+      <NuxtLink
+        :to="`/admin/properties/${propertyId}/inspection/new`"
+        class="font-medium underline"
+      >try it under Programs</NuxtLink>.
+    </div>
+
     <form class="mt-6 flex flex-col gap-4" novalidate @submit.prevent="onSubmit">
       <BulwarkSelect
         v-model="form.roofMaterial"

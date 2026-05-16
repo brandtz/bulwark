@@ -7,8 +7,8 @@
  *     resolves, the two interactive editors actually mutate state,
  *     and role gating works". Splitting that across nine specs
  *     would be slow without adding signal.
- *   - The matrix asserts the hub renders 8 cards for org_admin
- *     (Feature flags is super_admin-only) and 9 for super_admin.
+ *   - The matrix asserts the hub renders 9 cards for org_admin
+ *     (Feature flags is super_admin-only) and 10 for super_admin.
  *
  * # Decision cast down
  *   - Rejected: clicking each card sequentially in a single test
@@ -25,12 +25,12 @@ test.describe('Settings hub (E9-S1)', () => {
     await signInAsAdmin(page)
   })
 
-  test('org_admin sees 8 cards (no Feature flags)', async ({ page }) => {
+  test('org_admin sees 15 cards (no Feature flags)', async ({ page }) => {
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
 
     await expect(page.getByTestId('settings-hub')).toBeVisible()
-    await expect(page.getByTestId('settings-card')).toHaveCount(8)
+    await expect(page.getByTestId('settings-card')).toHaveCount(15)
     // Feature flags hidden for org_admin.
     await expect(page.getByText('Feature flags', { exact: true })).toHaveCount(0)
   })
@@ -133,12 +133,12 @@ test.describe('Settings: API keys editor (E9-S7)', () => {
 })
 
 test.describe('Settings: feature flags (super_admin only)', () => {
-  test('super_admin sees 9 cards including Feature flags', async ({ page }) => {
+  test('super_admin sees 16 cards including Feature flags', async ({ page }) => {
     await signInAsSuper(page)
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByTestId('settings-card')).toHaveCount(9)
+    await expect(page.getByTestId('settings-card')).toHaveCount(16)
     await page.goto('/settings/feature-flags')
     await page.waitForLoadState('networkidle')
     await expect(page.getByTestId('settings-feature-flags')).toBeVisible()

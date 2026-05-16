@@ -14,6 +14,7 @@ import type {
   ClientListInput,
   ClientListOutput,
 } from '../../shared/contracts/client'
+import { escapeLikeContains } from '../../shared/utils/likeEscape'
 import { getDb } from '../db/client'
 import { clients } from '../db/schema/clients'
 import { assertSameTenant, type TenantResolver } from './_tenant'
@@ -32,7 +33,9 @@ export class RealClientService implements IClientService {
       sql`${clients.deletedAt} IS NULL`,
     ]
     if (input.search) {
-      const q = `%${input.search}%`
+      // W5-3 / ADR-0037: escape LIKE wildcards so user input can't
+      // widen the match to every row.
+      const q = escapeLikeContains(input.search)
       const like = or(ilike(clients.fullName, q), ilike(clients.email, q), ilike(clients.phone, q))
       if (like) conditions.push(like)
     }

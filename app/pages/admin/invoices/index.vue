@@ -42,6 +42,7 @@ await ensureLoaded()
 
 const invoice = useService('invoice')
 const property = useService('property')
+const { t: tLabel } = useLabel()
 
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
@@ -49,17 +50,21 @@ type Filter = 'all' | InvoiceView
 
 const STATUS_FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'sent', label: 'Sent' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'paid', label: 'Paid' },
+  { value: 'draft', label: tLabel('status.invoice', 'draft', INVOICE_VIEW_LABEL.draft) },
+  { value: 'sent', label: tLabel('status.invoice', 'sent', INVOICE_VIEW_LABEL.sent) },
+  { value: 'partial', label: tLabel('status.invoice', 'partial', INVOICE_VIEW_LABEL.partial) },
+  { value: 'overdue', label: tLabel('status.invoice', 'overdue', INVOICE_VIEW_LABEL.overdue) },
+  { value: 'paid', label: tLabel('status.invoice', 'paid', INVOICE_VIEW_LABEL.paid) },
+  { value: 'voided', label: tLabel('status.invoice', 'voided', INVOICE_VIEW_LABEL.voided) },
 ]
 
 const STATUS_TONE: Record<InvoiceView, string> = {
   draft: 'bg-surface-muted text-text-secondary',
   sent: 'bg-status-info/10 text-status-info',
+  partial: 'bg-status-warning/10 text-status-warning',
   overdue: 'bg-status-error/10 text-status-error',
   paid: 'bg-status-success/10 text-status-success',
+  voided: 'bg-surface-muted text-text-tertiary line-through',
 }
 
 const activeFilter = computed<Filter>(() => {
@@ -69,6 +74,13 @@ const activeFilter = computed<Filter>(() => {
 
 function setFilter(v: string) {
   router.push({ query: { ...route.query, status: v === 'all' ? undefined : v } })
+}
+
+// W4-1 / EH-P — saved-views integration.
+const currentFilters = computed(() => ({ status: activeFilter.value }))
+function applySavedView(payload: { filters: Record<string, unknown> }) {
+  const next = typeof payload.filters?.status === 'string' ? payload.filters.status : 'all'
+  setFilter(next)
 }
 
 const { data: bundle } = await useAsyncData(
@@ -111,6 +123,21 @@ function addressFor(inv: Invoice): string {
 function detailLinkFor(inv: Invoice): string {
   return `/admin/invoices/${inv.id}`
 }
+
+const NOW_MS = Date.parse(NOW_ISO)
+/**
+ * Days past due for sent/partial rows. Returns null when not applicable
+ * (no due date, draft/paid/voided, or not yet overdue).
+ */
+function daysPastDue(inv: Invoice): number | null {
+  const view = viewFor(inv)
+  if (view !== 'sent' && view !== 'partial' && view !== 'overdue') return null
+  const due = inv.dueDate ?? inv.dueAt
+  if (!due) return null
+  const dueMs = Date.parse(due)
+  if (!Number.isFinite(dueMs) || dueMs >= NOW_MS) return null
+  return Math.ceil((NOW_MS - dueMs) / 86_400_000)
+}
 </script>
 
 <template>
@@ -135,13 +162,18 @@ function detailLinkFor(inv: Invoice): string {
       </NuxtLink>
     </header>
 
-    <div class="mt-4">
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
       <BulwarkSegmentedControl
         :model-value="activeFilter"
         :options="STATUS_FILTERS"
         aria-label="Filter invoices by status"
         data-testid="invoice-status-filter"
         @update:model-value="setFilter"
+      />
+      <SavedViewsMenu
+        entity-type="invoice"
+        :current-filters="currentFilters"
+        @apply="applySavedView"
       />
     </div>
 
@@ -177,6 +209,13 @@ function detailLinkFor(inv: Invoice): string {
               </div>
               <div class="flex items-center gap-3">
                 <span
+                  v-if="daysPastDue(inv) !== null"
+                  class="inline-flex items-center rounded-pill px-2 py-0.5 text-tiny font-medium bg-status-error/10 text-status-error whitespace-nowrap"
+                  data-testid="invoice-row-days-past-due"
+                >
+                  {{ daysPastDue(inv) }}d past due
+                </span>
+                <span
                   :class="[
                     'inline-flex items-center rounded-pill px-2.5 py-1 text-tiny font-medium whitespace-nowrap',
                     STATUS_TONE[viewFor(inv)],
@@ -184,7 +223,7 @@ function detailLinkFor(inv: Invoice): string {
                   data-testid="invoice-row-status"
                   :data-status="viewFor(inv)"
                 >
-                  {{ INVOICE_VIEW_LABEL[viewFor(inv)] }}
+                  {{ tLabel('status.invoice', viewFor(inv), INVOICE_VIEW_LABEL[viewFor(inv)]) }}
                 </span>
                 <span
                   class="text-body font-medium"

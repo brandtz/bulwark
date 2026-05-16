@@ -49,6 +49,30 @@ export const QuoteStatusSchema = z.enum([
 export type QuoteStatus = z.infer<typeof QuoteStatusSchema>
 
 // ----------------------------------------------------------------------------
+// Tier enum (W2-3 / EH-G).
+// ----------------------------------------------------------------------------
+// Tiered "good/better/best" pricing is the GC sales playbook standard.
+// `custom` is the fallback for one-off quotes (the existing single-tier
+// flow). Defaults to `custom` so legacy rows continue to validate.
+export const QuoteTierSchema = z.enum(['good', 'better', 'best', 'custom'])
+export type QuoteTier = z.infer<typeof QuoteTierSchema>
+
+// ----------------------------------------------------------------------------
+// Rejection reason taxonomy (W2-3 / EH-G).
+// ----------------------------------------------------------------------------
+// Enumerated reasons feed the win/loss report. `other` is the free-text
+// escape hatch backed by `rejectedReason`.
+export const QuoteRejectedReasonCodeSchema = z.enum([
+  'price',
+  'scope',
+  'timing',
+  'competitor',
+  'unresponsive',
+  'other',
+])
+export type QuoteRejectedReasonCode = z.infer<typeof QuoteRejectedReasonCodeSchema>
+
+// ----------------------------------------------------------------------------
 // Line item — one row in the quote.
 // ----------------------------------------------------------------------------
 export const QuoteLineItemKindSchema = z.enum(['labor', 'material', 'other'])
@@ -63,6 +87,18 @@ export const QuoteLineItemSchema = z.object({
   // Free-form note attached to the assessment field this item resolves
   // (E5-S2). Empty string when the item was added manually.
   sourceField: z.string().max(60).default(''),
+  // W2-3 / EH-G additions. All optional so legacy line items keep
+  // validating without rewrites. Code reads with `?? <default>`.
+  /** Per-line discount in basis points (1 bp = 0.01%). Default 0. */
+  discountBps: z.number().int().min(0).max(10_000).optional(),
+  /** Optional line — default-excluded from totals unless `optionalSelected`. */
+  optional: z.boolean().optional(),
+  /** When `optional=true`, whether the customer accepted the line. */
+  optionalSelected: z.boolean().optional(),
+  /** Free-text note attached to the line (visible to customer). */
+  notes: z.string().max(500).nullable().optional(),
+  /** Slug for grouping in the quote PDF (e.g. `roofing` / `defensible-space`). */
+  categorySlug: z.string().max(60).nullable().optional(),
 })
 export type QuoteLineItem = z.infer<typeof QuoteLineItemSchema>
 
@@ -99,6 +135,23 @@ export const QuoteSchema = z
     taxPercent: z.number().min(0).max(50),
     notes: z.string().nullable(),
     totals: QuoteTotalsSchema,
+    // W2-3 / EH-G additions. Optional so existing seed rows + tests
+    // keep validating; service code reads with `?? <default>`.
+    /** Tier this quote represents in a tiered offer. Defaults to `custom`. */
+    tier: QuoteTierSchema.optional(),
+    /** Groups revisions of the same offer. Null = standalone. */
+    revisionGroupId: UuidSchema.nullable().optional(),
+    /** The quote this one supersedes (null on v1). */
+    parentQuoteId: UuidSchema.nullable().optional(),
+    /** Monotonically incremented within a `revisionGroupId`. Defaults to 1. */
+    revisionNumber: z.number().int().positive().optional(),
+    /** Hard expiry date (date-only ISO; UI defaults from org settings). */
+    expiryDate: z.string().datetime().nullable().optional(),
+    /** Free-text rejection notes (paired with `rejectedReasonCode`). */
+    rejectedReason: z.string().max(1000).nullable().optional(),
+    rejectedReasonCode: QuoteRejectedReasonCodeSchema.nullable().optional(),
+    /** Notes visible on the customer-facing quote PDF. */
+    customerVisibleNotes: z.string().max(2000).nullable().optional(),
   })
   .merge(AuditFieldsSchema)
 export type Quote = z.infer<typeof QuoteSchema>
@@ -148,4 +201,48 @@ export interface IQuoteService {
    * if called on a draft (must be sent first).
    */
   markAccepted(id: string, organizationId: string): Promise<Quote>
+  /**
+   * W2-3 / EH-G: clone an existing quote into a new draft revision,
+   * sharing `revisionGroupId` and incrementing `revisionNumber`. The
+   * source quote remains untouched (per ADR-0020: revisions are a
+   * superseding fork, never an in-place mutation).
+   */
+  revise(id: string, organizationId: string): Promise<Quote>
+  /**
+   * W2-3 / EH-G: transition a `sent` quote to `rejected`, recording
+   * `rejectedReason` + structured `rejectedReasonCode`. Emits
+   * `quoteRejected`.
+   */
+  reject(input: {
+    id: string
+    organizationId: string
+    reason: string
+    reasonCode: QuoteRejectedReasonCode
+  }): Promise<Quote>
+  /**
+   * W2-3 / EH-G: transition a single quote to `expired`. Manually
+   * callable as the "Expire now" admin action; the W3-1 cron will
+   * invoke this in batch from `expireBatch()`.
+   */
+  expire(id: string, organizationId: string): Promise<Quote>
+  /**
+   * W2-3 / EH-G: scan for `sent` quotes whose `expiryDate` is past
+   * `nowIso` and transition each to `expired`. Returns the rows
+   * mutated. Idempotent (already-expired rows are filtered out).
+   */
+  expireBatch(input: { organizationId: string; nowIso?: string }): Promise<Quote[]>
+  /**
+   * W3-4 / EH-N: sub portal — vendor signs an accept/decline on a
+   * quote-request the GC sent for that sub's trades. Emits
+   * `subQuoteResponded`. Does NOT transition the quote status itself
+   * (admin still owns transitions) — it stamps a sub-side decision
+   * for the admin to review.
+   */
+  respondToQuote(input: {
+    id: string
+    organizationId: string
+    subcontractorId: string
+    response: 'accepted' | 'declined'
+    notes?: string
+  }): Promise<{ quoteId: string; response: 'accepted' | 'declined' }>
 }

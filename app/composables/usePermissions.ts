@@ -38,6 +38,8 @@ export const ROLE_GROUPS = {
   field: ['field'] as Role[],
   /** Subcontractor partners. */
   sub: ['sub_contractor'] as Role[],
+  /** Homeowner / customer portal users. */
+  homeowner: ['homeowner'] as Role[],
   /** Read-only auditor / insurance reviewer. */
   viewer: ['viewer'] as Role[],
   /** Admin OR field — used by shared screens like property detail. */
@@ -65,6 +67,10 @@ export function usePermissions() {
     return hasAnyRole(...ROLE_GROUPS.sub)
   }
 
+  function isHomeowner(): boolean {
+    return hasAnyRole(...ROLE_GROUPS.homeowner)
+  }
+
   function isSuperAdmin(): boolean {
     return hasAnyRole('super_admin')
   }
@@ -75,6 +81,7 @@ export function usePermissions() {
     isAdmin,
     isField,
     isSub,
+    isHomeowner,
     isSuperAdmin,
   }
 }

@@ -1,0 +1,67 @@
+/*
+ * print.css — Bulwark print stylesheet (W2-6 / EH-L).
+ *
+ * # Why this file exists
+ * Compliance docs, quotes, and invoices are routinely printed by office
+ * managers and AHJ inspectors. Without print rules they came out with
+ * the dark sidebar, navigation chrome, and three pages of empty header.
+ * This sheet:
+ *   - hides app chrome (`nav`, `aside`, action buttons in `header`/`footer`)
+ *   - flattens colors to black-on-white
+ *   - tightens type for letter paper
+ *   - prints link URLs inline so a paper copy is self-contained
+ *
+ * # Opt out
+ *   - Add `class="no-print"` (or Tailwind `print:hidden`) to any element
+ *     that should not appear on paper.
+ *   - Wrap forced-page-break sections with `class="page-break"`.
+ *
+ * Wired into nuxt.config.ts `css[]` so it loads on every page; the
+ * `@media print` guard means it has zero impact on screen rendering.
+ */
+@media print {
+  .no-print,
+  nav,
+  aside,
+  header button,
+  footer button,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  h1 { font-size: 18pt; }
+  h2 { font-size: 14pt; }
+  h3 { font-size: 12pt; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid #444;
+    padding: 4px 6px;
+  }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #555;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+
+  @page {
+    margin: 0.6in;
+  }
+}

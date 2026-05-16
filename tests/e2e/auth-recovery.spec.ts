@@ -35,7 +35,7 @@ function mintInviteToken(opts: {
   const payload = {
     email: opts.email,
     kind: 'invite' as const,
-    organizationId: 'orgbulwarkdemo000-0000-0000-0000-000000000000',
+    organizationId: 'f2725c71-2b45-df00-0000-000000000000',
     organizationName: opts.organizationName ?? 'Bulwark Demo Co.',
     role: opts.role ?? 'field',
     exp: Date.now() + (opts.ttlMs ?? 60 * 60 * 1000),

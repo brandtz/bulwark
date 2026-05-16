@@ -6,6 +6,8 @@
  */
 import { z } from 'zod'
 import { AuditFieldsSchema, ListOutputSchema, PaginationInputSchema, UuidSchema } from './_shared'
+import { BuildingSchema, BuildingSectionSchema, type Building, type BuildingSection } from './building'
+import { ContactSchema, type Contact } from './contact'
 
 export const PropertyStatusSchema = z.enum([
   'lead',
@@ -51,6 +53,15 @@ export const PropertySchema = z.object({
   clientId: UuidSchema.nullable(),
   status: PropertyStatusSchema,
   notes: z.string().nullable(),
+  // W2-1 / EH-E — richer property metadata (ADR-0018). All nullable so
+  // legacy rows stay valid; UI surfaces blanks as "—".
+  lotSizeAcres: z.number().nullable(),
+  parcelNumber: z.string().nullable(),
+  yearBuilt: z.number().int().nullable(),
+  accessNotes: z.string().nullable(),
+  gateCode: z.string().nullable(),
+  specialInstructions: z.string().nullable(),
+  primaryContactId: UuidSchema.nullable(),
 }).merge(AuditFieldsSchema)
 export type Property = z.infer<typeof PropertySchema>
 
@@ -62,6 +73,21 @@ export const PropertyCreateInputSchema = PropertySchema.pick({
   postalCode: true,
   clientId: true,
   notes: true,
+  lotSizeAcres: true,
+  parcelNumber: true,
+  yearBuilt: true,
+  accessNotes: true,
+  gateCode: true,
+  specialInstructions: true,
+  primaryContactId: true,
+}).partial({
+  lotSizeAcres: true,
+  parcelNumber: true,
+  yearBuilt: true,
+  accessNotes: true,
+  gateCode: true,
+  specialInstructions: true,
+  primaryContactId: true,
 }).extend({
   organizationId: UuidSchema,
 })
@@ -83,6 +109,27 @@ export type PropertyListInput = z.infer<typeof PropertyListInputSchema>
 export const PropertyListOutputSchema = ListOutputSchema(PropertySchema)
 export type PropertyListOutput = z.infer<typeof PropertyListOutputSchema>
 
+// W2-1 / EH-E — nested "depth" payload for the property overview screen
+// (ADR-0018). One round-trip returns the property, every active building
+// with its sections, every contact, and the primary photo URL (if any).
+export const BuildingWithSectionsSchema = BuildingSchema.extend({
+  sections: z.array(BuildingSectionSchema),
+})
+export type BuildingWithSections = Building & { sections: BuildingSection[] }
+
+export const PropertyDepthSchema = z.object({
+  property: PropertySchema,
+  buildings: z.array(BuildingWithSectionsSchema),
+  contacts: z.array(ContactSchema),
+  primaryPhotoUrl: z.string().nullable(),
+})
+export type PropertyDepth = {
+  property: Property
+  buildings: BuildingWithSections[]
+  contacts: Contact[]
+  primaryPhotoUrl: string | null
+}
+
 export interface IPropertyService {
   list(input: PropertyListInput): Promise<PropertyListOutput>
   get(id: string, organizationId: string): Promise<Property | null>
@@ -90,4 +137,9 @@ export interface IPropertyService {
   update(input: PropertyUpdateInput): Promise<Property>
   softDelete(id: string, organizationId: string): Promise<void>
   updateStatus(id: string, status: PropertyStatus, organizationId: string): Promise<Property>
+  /**
+   * W2-1 / EH-E (ADR-0018). One-shot depth fetch for the overview hub.
+   * Returns null when the property is missing or soft-deleted.
+   */
+  getWithDepth(propertyId: string, organizationId: string): Promise<PropertyDepth | null>
 }

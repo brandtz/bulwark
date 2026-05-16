@@ -34,10 +34,15 @@
  */
 import bcrypt from 'bcryptjs'
 import { SignJWT, jwtVerify } from 'jose'
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, gte } from 'drizzle-orm'
+import { createHash } from 'node:crypto'
 import type {
   IAuthService,
   AuthResult,
+  AuthLoginResult,
+  AuthAttemptRow,
+  GetAttemptsInput,
+  LockoutState,
   LoginInput,
   SessionUser,
   RequestPasswordResetInput,
@@ -46,9 +51,19 @@ import type {
   AcceptInviteInput,
   InvitePreview,
 } from '../../shared/contracts/auth'
+import {
+  AcceptInviteInputSchema,
+  LoginInputSchema,
+  RequestPasswordResetInputSchema,
+  ResetPasswordInputSchema,
+} from '../../shared/contracts/auth'
 import { getDb } from '../db/client'
 import { users, memberships } from '../db/schema/users'
 import { organizations } from '../db/schema/organizations'
+import { pendingInvites } from '../db/schema/pending_invites'
+import { authAttempts } from '../db/schema/auth_attempts'
+import { seedDefaultNotifications } from './notification-subscription.real'
+import { RealMfaService } from './mfa.real'
 
 export interface RealAuthSessionAdapter {
   getActiveUserId(): Promise<string | null> | string | null
@@ -71,6 +86,14 @@ const RESET_TTL_MS = 60 * 60 * 1000   // 1 hour
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000   // 7 days
 const BCRYPT_ROUNDS = 12
 
+// --- Lockout policy (W2-5 / ADR-0023) ---------------------------------------
+// System defaults; per-org overrides via org_settings land once the user
+// is identified, but the pre-auth lockout count uses these globals.
+const LOCKOUT_THRESHOLD = 5
+const LOCKOUT_WINDOW_MS = 15 * 60 * 1000
+const LOCKOUT_DURATION_MS = 30 * 60 * 1000
+const MFA_TOKEN_TTL_MS = 5 * 60 * 1000
+
 function getJwtSecret(): Uint8Array {
   const raw = process.env.JWT_SECRET ?? process.env.NUXT_SESSION_PASSWORD
   if (!raw || raw.length < 16) {
@@ -89,6 +112,7 @@ async function signToken(payload: Record<string, unknown>, ttlMs: number): Promi
 }
 
 interface ResetPayload { kind: 'reset'; userId: string }
+interface MfaTokenPayload { kind: 'mfa'; userId: string }
 interface InvitePayload {
   kind: 'invite'
   email: string
@@ -118,27 +142,91 @@ export class RealAuthService implements IAuthService {
   }
 
   // --- core session lifecycle ---------------------------------------------
-  async login(input: LoginInput): Promise<AuthResult> {
+  async login(input: LoginInput, opts?: { ipAddress?: string | null }): Promise<AuthLoginResult> {
+    // W5-3 / ADR-0037: Zod-parse at the boundary. This method is hit
+    // unauthenticated through the RPC dispatcher, which does not
+    // validate args. Reject non-conforming payloads before any DB or
+    // bcrypt work happens.
+    input = LoginInputSchema.parse(input)
     const db = getDb()
-    const [row] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, input.email.toLowerCase()))
-      .limit(1)
+    const email = input.email.toLowerCase()
+    const ipAddress = opts?.ipAddress ?? null
 
+    // Pre-flight lockout check (uses globals; can't pull org overrides
+    // before we know the user).
+    const lock = await this.getLockoutState({ email })
+    if (lock.locked) {
+      await db.insert(authAttempts).values({ email, ipAddress, success: false, reason: 'locked' })
+      const retryAfterSeconds = Math.max(1, Math.ceil(((lock.until ?? Date.now()) - Date.now()) / 1000))
+      const err = new Error('account_locked') as Error & { retryAfterSeconds?: number }
+      err.retryAfterSeconds = retryAfterSeconds
+      throw err
+    }
+
+    const [row] = await db.select().from(users).where(eq(users.email, email)).limit(1)
     // Constant-ish-time: always run a bcrypt compare so timing doesn't
     // distinguish "no such user" from "wrong password".
     const hash = row?.passwordHash ?? '$2a$12$0000000000000000000000000000000000000000000000000000'
     const ok = await bcrypt.compare(input.password, hash)
 
     if (!row || !row.isActive || !row.passwordHash || !ok) {
+      const reason = !row ? 'unknown_user' : !row.isActive ? 'inactive' : 'bad_password'
+      await db.insert(authAttempts).values({ email, ipAddress, success: false, reason })
       throw new Error('Invalid email or password')
     }
 
+    // Password OK — check MFA status BEFORE issuing the session.
+    const mfa = new RealMfaService()
+    const status = await mfa.getStatus(row.id)
+    if (status.enabled) {
+      // Don't record this as a success yet — issue a step-up token.
+      await db.insert(authAttempts).values({ email, ipAddress, success: false, reason: 'mfa_required' })
+      const mfaToken = await signToken({ kind: 'mfa', userId: row.id } satisfies MfaTokenPayload, MFA_TOKEN_TTL_MS)
+      return { kind: 'mfa_required', mfaToken, email }
+    }
+
+    await db.insert(authAttempts).values({ email, ipAddress, success: true, reason: null })
     await this.adapter.setActiveUserId(row.id)
     await this.adapter.setActiveOrgOverride(null)
-
     const session = await this.buildSessionUser(row.id)
+    if (!session) throw new Error('Account has no active memberships')
+    return { kind: 'session', user: session }
+  }
+
+  async verifyMfa(mfaToken: string, code: string, opts?: { ipAddress?: string | null }): Promise<AuthResult> {
+    const payload = await verifyTokenOfKind<MfaTokenPayload>(mfaToken, 'mfa')
+    const db = getDb()
+    const ipAddress = opts?.ipAddress ?? null
+    const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1)
+    if (!user || !user.isActive) {
+      throw new Error('Account not found or inactive')
+    }
+    const mfa = new RealMfaService()
+    let ok = (await mfa.verifyTotp(payload.userId, code)).ok
+    let usedBackup = false
+    if (!ok) {
+      const consumed = await mfa.consumeBackupCode(payload.userId, code)
+      ok = consumed.ok
+      usedBackup = consumed.ok
+    }
+    if (!ok) {
+      await db.insert(authAttempts).values({
+        email: user.email,
+        ipAddress,
+        success: false,
+        reason: 'mfa_bad_code',
+      })
+      throw new Error('Invalid authentication code')
+    }
+    await db.insert(authAttempts).values({
+      email: user.email,
+      ipAddress,
+      success: true,
+      reason: usedBackup ? 'mfa_backup' : 'mfa_totp',
+    })
+    await this.adapter.setActiveUserId(user.id)
+    await this.adapter.setActiveOrgOverride(null)
+    const session = await this.buildSessionUser(user.id)
     if (!session) throw new Error('Account has no active memberships')
     return { user: session }
   }
@@ -172,6 +260,8 @@ export class RealAuthService implements IAuthService {
 
   // --- password reset -----------------------------------------------------
   async requestPasswordReset(input: RequestPasswordResetInput): Promise<RequestPasswordResetResult> {
+    // W5-3 / ADR-0037: Zod-parse at the boundary (unauthenticated entry).
+    input = RequestPasswordResetInputSchema.parse(input)
     const db = getDb()
     const [row] = await db
       .select({ id: users.id, isActive: users.isActive })
@@ -190,6 +280,8 @@ export class RealAuthService implements IAuthService {
   }
 
   async resetPassword(input: ResetPasswordInput): Promise<AuthResult> {
+    // W5-3 / ADR-0037: Zod-parse at the boundary (unauthenticated entry).
+    input = ResetPasswordInputSchema.parse(input)
     const payload = await verifyTokenOfKind<ResetPayload>(input.token, 'reset')
     const newHash = await RealAuthService.hashPassword(input.newPassword)
     const db = getDb()
@@ -208,12 +300,21 @@ export class RealAuthService implements IAuthService {
 
   // --- invitations --------------------------------------------------------
   async previewInvite(token: string): Promise<InvitePreview> {
+    // W2-4: opaque hex tokens first (pending_invites table); fall back
+    // to legacy JWT for tokens minted before EH-H Part B.
+    const opaque = await tryPreviewOpaqueInvite(token)
+    if (opaque) return opaque
     const p = await verifyTokenOfKind<InvitePayload>(token, 'invite')
     return { email: p.email, organizationName: p.organizationName, role: p.role }
   }
 
   async acceptInvite(input: AcceptInviteInput): Promise<AuthResult> {
-    const p = await verifyTokenOfKind<InvitePayload>(input.token, 'invite')
+    // W5-3 / ADR-0037: Zod-parse at the boundary (unauthenticated entry).
+    input = AcceptInviteInputSchema.parse(input)
+    // W2-4: opaque-token path uses pending_invites; legacy JWT fallback.
+    const opaque = await tryConsumeOpaqueInvite(input.token)
+    const p: InvitePayload = opaque
+      ?? (await verifyTokenOfKind<InvitePayload>(input.token, 'invite'))
     const db = getDb()
     const passwordHash = await RealAuthService.hashPassword(input.password)
 
@@ -262,6 +363,13 @@ export class RealAuthService implements IAuthService {
 
     await this.adapter.setActiveUserId(userId)
     await this.adapter.setActiveOrgOverride(null)
+    // W2-4: seed default notification preferences for the new user.
+    // Idempotent: real impl uses onConflictDoNothing.
+    try {
+      await seedDefaultNotifications({ organizationId: p.organizationId, userId })
+    } catch {
+      // Don't block invite acceptance on notification seeding.
+    }
     const session = await this.buildSessionUser(userId)
     if (!session) throw new Error('Membership creation failed')
     return { user: session }
@@ -309,6 +417,69 @@ export class RealAuthService implements IAuthService {
       })),
     }
   }
+
+  // --- W2-5: attempt log + lockout state ----------------------------------
+  async getAttempts(input: GetAttemptsInput): Promise<{ attempts: AuthAttemptRow[] }> {
+    const db = getDb()
+    const limit = input.limit ?? 100
+    const conds = []
+    if (input.email) conds.push(eq(authAttempts.email, input.email.toLowerCase()))
+    // organizationId + userId are accepted by the contract for forward compat
+    // but auth_attempts is intentionally pre-tenant. We resolve userId → email
+    // when present.
+    if (input.userId) {
+      const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, input.userId)).limit(1)
+      if (u) conds.push(eq(authAttempts.email, u.email))
+    }
+    const rows = await db
+      .select()
+      .from(authAttempts)
+      .where(conds.length ? and(...conds) : undefined)
+      .orderBy(desc(authAttempts.occurredAt))
+      .limit(limit)
+    return {
+      attempts: rows.map((r) => ({
+        id: r.id,
+        email: r.email,
+        ipAddress: r.ipAddress,
+        success: r.success,
+        reason: r.reason,
+        occurredAt: r.occurredAt.toISOString(),
+      })),
+    }
+  }
+
+  async getLockoutState(input: { email: string }): Promise<LockoutState> {
+    const db = getDb()
+    const email = input.email.toLowerCase()
+    const windowStart = new Date(Date.now() - LOCKOUT_WINDOW_MS)
+    const rows = await db
+      .select()
+      .from(authAttempts)
+      .where(and(eq(authAttempts.email, email), gte(authAttempts.occurredAt, windowStart)))
+      .orderBy(desc(authAttempts.occurredAt))
+    // Count consecutive failures from most-recent backwards until a success.
+    let failures = 0
+    let lastFailureAt: Date | null = null
+    for (const r of rows) {
+      if (r.success) break
+      // Treat 'mfa_required' as a non-counting waypoint (password was correct).
+      if (r.reason === 'mfa_required') continue
+      failures++
+      lastFailureAt = lastFailureAt ?? r.occurredAt
+    }
+    if (failures >= LOCKOUT_THRESHOLD && lastFailureAt) {
+      const until = lastFailureAt.getTime() + LOCKOUT_DURATION_MS
+      if (until > Date.now()) {
+        return { locked: true, until, attemptsRemaining: 0 }
+      }
+    }
+    return {
+      locked: false,
+      until: null,
+      attemptsRemaining: Math.max(0, LOCKOUT_THRESHOLD - failures),
+    }
+  }
 }
 
 /**
@@ -332,4 +503,82 @@ export async function mintInviteToken(opts: {
     } satisfies InvitePayload,
     opts.ttlMs ?? INVITE_TTL_MS,
   )
+}
+
+// ---------------------------------------------------------------------------
+// W2-4 opaque-token invite path. The user-admin UI mints `randomBytes(32).hex`
+// tokens and stores `sha256(token)` in `pending_invites`. These helpers look
+// the token up so `acceptInvite` can consume it.
+// ---------------------------------------------------------------------------
+function hashInviteToken(raw: string): string {
+  return createHash('sha256').update(raw).digest('hex')
+}
+
+async function tryPreviewOpaqueInvite(token: string): Promise<InvitePreview | null> {
+  const db = getDb()
+  const hash = hashInviteToken(token)
+  const [row] = await db
+    .select({
+      email: pendingInvites.email,
+      role: pendingInvites.role,
+      organizationId: pendingInvites.organizationId,
+      expiresAt: pendingInvites.expiresAt,
+      acceptedAt: pendingInvites.acceptedAt,
+      revokedAt: pendingInvites.revokedAt,
+    })
+    .from(pendingInvites)
+    .where(eq(pendingInvites.tokenHash, hash))
+    .limit(1)
+  if (!row) return null
+  if (row.acceptedAt || row.revokedAt) {
+    throw new Error('This invite is no longer valid. Ask an admin for a new one.')
+  }
+  if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
+    throw new Error('This invite has expired. Ask an admin for a new one.')
+  }
+  const [org] = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, row.organizationId))
+    .limit(1)
+  return {
+    email: row.email,
+    role: row.role,
+    organizationName: org?.name ?? 'your organization',
+  }
+}
+
+async function tryConsumeOpaqueInvite(token: string): Promise<InvitePayload | null> {
+  const db = getDb()
+  const hash = hashInviteToken(token)
+  const [row] = await db
+    .select()
+    .from(pendingInvites)
+    .where(eq(pendingInvites.tokenHash, hash))
+    .limit(1)
+  if (!row) return null
+  if (row.acceptedAt || row.revokedAt) {
+    throw new Error('This invite is no longer valid. Ask an admin for a new one.')
+  }
+  if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
+    throw new Error('This invite has expired. Ask an admin for a new one.')
+  }
+  const [org] = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, row.organizationId))
+    .limit(1)
+  // Mark as accepted now — even if the upsert below fails, a partially
+  // consumed invite can't be re-used.
+  await db
+    .update(pendingInvites)
+    .set({ acceptedAt: new Date() })
+    .where(eq(pendingInvites.id, row.id))
+  return {
+    kind: 'invite',
+    email: row.email,
+    organizationId: row.organizationId,
+    organizationName: org?.name ?? 'your organization',
+    role: row.role,
+  }
 }

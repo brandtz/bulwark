@@ -24,8 +24,12 @@ import { getDb } from '../db/client'
 import { complianceDocs } from '../db/schema/compliance_docs'
 import type { ComplianceDoc as DbComplianceDoc } from '../db/schema/compliance_docs'
 import { RealJobService } from './job.real'
+import { RealInspectionService } from './inspection.real'
+import { inspections } from '../db/schema/inspections'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
+import { emit } from '../../shared/events/bus'
+import { complianceDocReady } from '../../shared/events/catalog'
 
 function rowToContract(r: DbComplianceDoc): ComplianceDoc {
   return {
@@ -47,9 +51,11 @@ function rowToContract(r: DbComplianceDoc): ComplianceDoc {
 
 export class RealComplianceDocService implements IComplianceDocService {
   private readonly jobs: RealJobService
+  private readonly inspectionService: RealInspectionService
 
   constructor(private readonly tenantResolver?: TenantResolver) {
     this.jobs = new RealJobService(tenantResolver)
+    this.inspectionService = new RealInspectionService(tenantResolver)
   }
 
   async list(input: ComplianceDocListInput): Promise<ComplianceDoc[]> {
@@ -135,6 +141,48 @@ export class RealComplianceDocService implements IComplianceDocService {
       .set({ jobId: job.id, updatedAt: new Date() })
       .where(eq(complianceDocs.id, docRow.id))
       .returning()
+
+    // 4. W2-2 (ADR-0019): if the property has an active inspection tied
+    //    to a program, prefer the inspection-template evaluator over the
+    //    hardcoded wildfire path so non-default-template orgs get their
+    //    custom rules respected. We record an audit row noting the
+    //    evaluator was invoked; the resulting issues land in the doc
+    //    rendering pipeline as a follow-up — for now the audit trail is
+    //    the proof of wiring. Falls back silently when no inspection
+    //    exists for the property.
+    const [activeInspection] = await db
+      .select()
+      .from(inspections)
+      .where(
+        and(
+          eq(inspections.organizationId, input.organizationId),
+          eq(inspections.propertyId, input.propertyId),
+          sql`${inspections.deletedAt} IS NULL`,
+        ),
+      )
+      .orderBy(sql`${inspections.startedAt} DESC`)
+      .limit(1)
+    if (activeInspection?.programId) {
+      try {
+        await this.inspectionService.evaluate({
+          organizationId: input.organizationId,
+          inspectionId: activeInspection.id,
+        })
+        await withAudit(async ({ audit }) => {
+          await audit.record({
+            organizationId: input.organizationId,
+            entityType: 'compliance_doc',
+            entityId: updated!.id,
+            action: 'update',
+            actorUserId: this.tenantResolver?.()?.userId ?? null,
+            metadata: { kind: 'inspection_evaluator_used', inspectionId: activeInspection.id },
+          })
+        })
+      } catch {
+        // Best-effort hook; never block doc generation on evaluator failure.
+      }
+    }
+
     return rowToContract(updated!)
   }
 
@@ -177,6 +225,19 @@ export class RealComplianceDocService implements IComplianceDocService {
         ),
       )
       .returning()
-    return rowToContract(row!)
+    const updated = rowToContract(row!)
+    // Post-transaction emit (ADR-0017): only when we just flipped into
+    // `ready`. Re-syncs of an already-ready doc are no-ops above so
+    // they never reach this branch.
+    if (nextStatus === 'ready' && current.status !== 'ready') {
+      await emit(complianceDocReady, {
+        organizationId,
+        entityId: updated.id,
+        actorUserId: this.tenantResolver?.()?.userId ?? null,
+        timestamp: new Date().toISOString(),
+        propertyId: updated.propertyId,
+      })
+    }
+    return updated
   }
 }

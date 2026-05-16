@@ -6,7 +6,7 @@
  * single UPDATE; a separate `work_order_trades` table buys nothing
  * at our scale.
  */
-import { pgTable, text, uuid, pgEnum, jsonb, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, pgEnum, jsonb, timestamp, doublePrecision } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { properties } from './properties'
 import { quotes } from './quotes'
@@ -19,6 +19,14 @@ export const workOrderStatusEnum = pgEnum('work_order_status', [
   'in_progress',
   'completed',
   'cancelled',
+])
+
+/** W2-3 / EH-G — dispatch priority. */
+export const workOrderPriorityEnum = pgEnum('work_order_priority', [
+  'low',
+  'normal',
+  'high',
+  'urgent',
 ])
 
 export const workOrders = pgTable('work_orders', {
@@ -34,6 +42,11 @@ export const workOrders = pgTable('work_orders', {
   materials: jsonb('materials').$type<MaterialItem[]>().notNull(),
   notes: text('notes'),
   createdById: uuid('created_by_id').notNull().references(() => users.id),
+  // W2-3 / EH-G — scheduling + priority + cost rollup.
+  estimatedHours: doublePrecision('estimated_hours').notNull().default(0),
+  actualHours: doublePrecision('actual_hours').notNull().default(0),
+  priority: workOrderPriorityEnum('priority').notNull().default('normal'),
+  dispatchNotes: text('dispatch_notes'),
   ...auditColumns,
 })
 

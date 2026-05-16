@@ -37,7 +37,9 @@ import {
 // ----------------------------------------------------------------------------
 // Status enum.
 // ----------------------------------------------------------------------------
-export const InvoiceStatusSchema = z.enum(['draft', 'sent', 'paid'])
+// W2-3 / EH-G: `partial` (between sent + paid) + `voided` (terminal).
+// Order is editorial — keeps the pipeline kanban left-to-right.
+export const InvoiceStatusSchema = z.enum(['draft', 'sent', 'partial', 'paid', 'voided'])
 export type InvoiceStatus = z.infer<typeof InvoiceStatusSchema>
 
 /** Computed views surfaced on top of the persisted status. */
@@ -82,6 +84,26 @@ export const InvoiceTotalsSchema = z.object({
 export type InvoiceTotals = z.infer<typeof InvoiceTotalsSchema>
 
 // ----------------------------------------------------------------------------
+// Payment terms enum (W2-3 / EH-G).
+// ----------------------------------------------------------------------------
+export const InvoiceTermsSchema = z.enum([
+  'due_on_receipt',
+  'net_15',
+  'net_30',
+  'net_60',
+  'custom',
+])
+export type InvoiceTerms = z.infer<typeof InvoiceTermsSchema>
+
+/** Days-from-issue corresponding to each enumerated `terms` value. */
+export const INVOICE_TERMS_DAYS: Record<Exclude<InvoiceTerms, 'custom'>, number> = {
+  due_on_receipt: 0,
+  net_15: 15,
+  net_30: 30,
+  net_60: 60,
+}
+
+// ----------------------------------------------------------------------------
 // Invoice record.
 // ----------------------------------------------------------------------------
 export const InvoiceSchema = z
@@ -103,6 +125,23 @@ export const InvoiceSchema = z
     taxPercent: z.number().min(0).max(50),
     notes: z.string().nullable(),
     totals: InvoiceTotalsSchema,
+    // W2-3 / EH-G additions. Optional for fixture compatibility.
+    /** Deposit required up-front (informational; not auto-applied to paid). */
+    depositRequiredCents: MoneyCentsSchema.optional(),
+    /** Deposit received so far. Counted toward balance. */
+    depositReceivedCents: MoneyCentsSchema.optional(),
+    /** Retainage withheld in basis points (e.g. 1000 = 10%). 0 = no retainage. */
+    retainageBps: z.number().int().min(0).max(10_000).optional(),
+    /** Retainage already released to the contractor. */
+    retainageReleasedCents: MoneyCentsSchema.optional(),
+    /** Payment terms — drives `dueDate` defaulting on issue. */
+    terms: InvoiceTermsSchema.optional(),
+    /** Hard due date (date-only ISO). Distinct from legacy `dueAt`. */
+    dueDate: z.string().datetime().nullable().optional(),
+    /** Timestamp the invoice was voided. */
+    voidedAt: z.string().datetime().nullable().optional(),
+    /** Free-text reason captured at void time. */
+    voidedReason: z.string().max(1000).nullable().optional(),
   })
   .merge(AuditFieldsSchema)
 export type Invoice = z.infer<typeof InvoiceSchema>
@@ -147,6 +186,34 @@ export interface IInvoiceService {
   markSent(id: string, organizationId: string): Promise<Invoice>
   /** Stamps `paidAt` + `paidAmountCents` and transitions to paid. Throws on draft. */
   markPaid(id: string, organizationId: string, paidAmountCents?: number): Promise<Invoice>
+  /**
+   * W2-3 / EH-G: record a payment ledger entry. Recomputes invoice
+   * balance and transitions status to `paid` (zero balance) or
+   * `partial` (non-zero, with at least one payment). Emits
+   * `invoiceMarkedPaid` IFF fully paid; `invoicePartialPaid` otherwise.
+   * The W1-4 property auto-transition is preserved: full payment of
+   * the LAST open invoice triggers `property.paid`.
+   */
+  recordPayment(input: {
+    invoiceId: string
+    organizationId: string
+    amountCents: number
+    method: import('./invoice-payment').InvoicePaymentMethod
+    reference?: string | null
+    notes?: string | null
+    receivedAt?: string
+    recordedByUserId?: string | null
+  }): Promise<Invoice>
+  /**
+   * W2-3 / EH-G: transition to `voided` (terminal). Records `voidedAt`
+   * + `voidedReason`. Emits `invoiceVoided`. Does NOT clear existing
+   * payments — the ledger is append-only.
+   */
+  voidInvoice(input: {
+    invoiceId: string
+    organizationId: string
+    reason: string
+  }): Promise<Invoice>
 }
 
 // ----------------------------------------------------------------------------
@@ -155,6 +222,8 @@ export interface IInvoiceService {
 export const INVOICE_VIEW_LABEL: Record<InvoiceView, string> = {
   draft: 'Draft',
   sent: 'Sent',
+  partial: 'Partial',
   paid: 'Paid',
+  voided: 'Voided',
   overdue: 'Overdue',
 }

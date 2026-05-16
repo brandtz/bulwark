@@ -28,7 +28,11 @@
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
 import { formatCents } from '~~/shared/utils/money'
-import type { QuoteStatus } from '~~/shared/contracts/quote'
+import type {
+  QuoteStatus,
+  QuoteTier,
+  QuoteRejectedReasonCode,
+} from '~~/shared/contracts/quote'
 
 definePageMeta({
   middleware: ['role'],
@@ -38,6 +42,7 @@ definePageMeta({
 useHead({ title: 'Quote preview' })
 
 const route = useRoute()
+const router = useRouter()
 const { session, ensureLoaded } = useSession()
 await ensureLoaded()
 
@@ -45,6 +50,7 @@ const property = useService('property')
 const client = useService('client')
 const quote = useService('quote')
 const { success: toastSuccess } = useToast()
+const { t: tLabel } = useLabel()
 
 const propertyId = computed(() => String(route.params.id))
 const quoteId = computed(() => String(route.params.quoteId))
@@ -84,8 +90,43 @@ const STATUS_LABEL: Record<QuoteStatus, string> = {
   expired: 'Expired',
 }
 
+function statusCopy(s: QuoteStatus): string {
+  return tLabel('status.quote', s, STATUS_LABEL[s])
+}
+function tierCopy(t: QuoteTier): string {
+  return tLabel('quote.tiers', t, t.charAt(0).toUpperCase() + t.slice(1))
+}
+
+const REASON_CODES: QuoteRejectedReasonCode[] = [
+  'price',
+  'scope',
+  'timing',
+  'competitor',
+  'unresponsive',
+  'other',
+]
+
+// Expiry banner state — derived from sent + expiryDate proximity.
+type ExpiryView = { kind: 'warning' | 'error'; message: string } | null
+const expiryView = computed<ExpiryView>(() => {
+  const q = bundle.value?.quote
+  if (!q || q.status !== 'sent' || !q.expiryDate) return null
+  const exp = new Date(q.expiryDate).getTime()
+  const now = Date.now()
+  const days = Math.ceil((exp - now) / 86_400_000)
+  if (days < 0) return { kind: 'error', message: `Expired ${-days} day${-days === 1 ? '' : 's'} ago` }
+  if (days <= 7) return { kind: 'warning', message: `Expires in ${days} day${days === 1 ? '' : 's'}` }
+  return null
+})
+
 const sending = ref(false)
 const accepting = ref(false)
+const revising = ref(false)
+const rejectOpen = ref(false)
+const rejecting = ref(false)
+const rejectReason = ref('')
+const rejectCode = ref<QuoteRejectedReasonCode>('price')
+const expiring = ref(false)
 const serverError = ref('')
 
 async function onSend() {
@@ -118,6 +159,70 @@ async function onAccept() {
       err instanceof Error ? err.message : 'Could not accept quote.'
   } finally {
     accepting.value = false
+  }
+}
+
+async function onRevise() {
+  if (!bundle.value?.quote) return
+  serverError.value = ''
+  revising.value = true
+  try {
+    const next = await quote.revise(bundle.value.quote.id, orgId.value)
+    toastSuccess('Revision created', `Now editing revision ${next.revisionNumber ?? '?'}.`)
+    await router.push(`/admin/properties/${propertyId.value}/quotes/${next.id}`)
+  } catch (err: unknown) {
+    serverError.value = err instanceof Error ? err.message : 'Could not revise.'
+  } finally {
+    revising.value = false
+  }
+}
+
+function openReject() {
+  rejectReason.value = ''
+  rejectCode.value = 'price'
+  rejectOpen.value = true
+}
+
+async function submitReject() {
+  if (!bundle.value?.quote) return
+  serverError.value = ''
+  rejecting.value = true
+  try {
+    await quote.reject({
+      id: bundle.value.quote.id,
+      organizationId: orgId.value,
+      reason: rejectReason.value.trim() || rejectCode.value,
+      reasonCode: rejectCode.value,
+    })
+    await refresh()
+    toastSuccess('Quote rejected', 'Reason captured.')
+    rejectOpen.value = false
+  } catch (err: unknown) {
+    serverError.value = err instanceof Error ? err.message : 'Could not reject.'
+  } finally {
+    rejecting.value = false
+  }
+}
+
+async function onExpireNow() {
+  if (!bundle.value?.quote) return
+  serverError.value = ''
+  expiring.value = true
+  try {
+    if (typeof (quote as { expire?: unknown }).expire === 'function') {
+      await (quote as unknown as {
+        expire: (id: string, orgId: string) => Promise<unknown>
+      }).expire(bundle.value.quote.id, orgId.value)
+    } else {
+      // Fallback to batch — service filters by expiryDate < now.
+      await quote.expireBatch({ organizationId: orgId.value })
+    }
+    await refresh()
+    toastSuccess('Quote expired', 'Marked as expired.')
+  } catch (err: unknown) {
+    serverError.value = err instanceof Error ? err.message : 'Could not expire.'
+  } finally {
+    expiring.value = false
   }
 }
 </script>
@@ -158,6 +263,22 @@ async function onAccept() {
           >
             For {{ bundle.client.fullName }}
           </p>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              class="inline-flex items-center rounded-pill bg-primary/10 text-primary px-2.5 py-0.5 text-tiny font-medium"
+              data-testid="quote-tier-badge"
+              :data-tier="bundle.quote.tier ?? 'custom'"
+            >
+              {{ tierCopy(bundle.quote.tier ?? 'custom') }}
+            </span>
+            <span
+              v-if="(bundle.quote.revisionNumber ?? 1) > 1"
+              class="inline-flex items-center rounded-pill bg-status-warning/10 text-status-warning px-2.5 py-0.5 text-tiny font-medium"
+              data-testid="quote-revision-badge"
+            >
+              Revision {{ bundle.quote.revisionNumber }}
+            </span>
+          </div>
         </div>
         <span
           :class="[
@@ -167,9 +288,24 @@ async function onAccept() {
           data-testid="quote-status"
           :data-status="bundle.quote.status"
         >
-          {{ STATUS_LABEL[bundle.quote.status] }}
+          {{ statusCopy(bundle.quote.status) }}
         </span>
       </header>
+
+      <!-- Expiry banner (W2-3b) -->
+      <div
+        v-if="expiryView"
+        :class="[
+          'mt-4 rounded-card px-3 py-2 text-small',
+          expiryView.kind === 'warning'
+            ? 'bg-status-warning/10 text-status-warning'
+            : 'bg-status-error/10 text-status-error',
+        ]"
+        data-testid="quote-expiry-banner"
+        :data-kind="expiryView.kind"
+      >
+        {{ expiryView.message }}
+      </div>
 
       <!-- Line items ------------------------------------------------ -->
       <section class="mt-6" data-testid="quote-line-items">
@@ -181,13 +317,31 @@ async function onAccept() {
               :key="li.id"
               class="p-3 md:p-4 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4"
               data-testid="preview-line-item"
+              :data-optional="li.optional ? 'true' : 'false'"
             >
               <div class="md:col-span-7">
                 <p class="text-body font-medium text-text-primary">
                   {{ li.description }}
+                  <span
+                    v-if="li.optional"
+                    class="ml-2 inline-flex items-center rounded-pill bg-surface-muted text-text-secondary px-1.5 py-0.5 text-tiny"
+                    data-testid="preview-line-optional"
+                  >Optional</span>
+                  <span
+                    v-if="(li.discountBps ?? 0) > 0"
+                    class="ml-2 inline-flex items-center rounded-pill bg-status-info/10 text-status-info px-1.5 py-0.5 text-tiny"
+                    data-testid="preview-line-discount"
+                  >−{{ ((li.discountBps ?? 0) / 100).toFixed(li.discountBps && li.discountBps % 100 ? 2 : 0) }}%</span>
                 </p>
                 <p class="text-tiny uppercase tracking-wide text-text-secondary mt-0.5">
-                  {{ li.kind }}
+                  {{ li.kind }}<span v-if="li.categorySlug"> · {{ li.categorySlug }}</span>
+                </p>
+                <p
+                  v-if="li.notes"
+                  class="mt-1 text-small text-text-secondary whitespace-pre-line"
+                  data-testid="preview-line-notes"
+                >
+                  {{ li.notes }}
                 </p>
               </div>
               <div class="md:col-span-2 flex md:justify-end items-baseline gap-2">
@@ -237,6 +391,35 @@ async function onAccept() {
         </BulwarkCard>
       </section>
 
+      <!-- Customer-visible notes ----------------------------------- -->
+      <section
+        v-if="bundle.quote.customerVisibleNotes"
+        class="mt-4"
+        data-testid="preview-customer-notes"
+      >
+        <h2 class="text-h2 mb-2">Customer-visible notes</h2>
+        <BulwarkCard padding="md">
+          <p class="text-body whitespace-pre-line">{{ bundle.quote.customerVisibleNotes }}</p>
+        </BulwarkCard>
+      </section>
+
+      <!-- Rejection details ---------------------------------------- -->
+      <section
+        v-if="bundle.quote.status === 'rejected' && (bundle.quote.rejectedReason || bundle.quote.rejectedReasonCode)"
+        class="mt-4"
+        data-testid="preview-rejection"
+      >
+        <h2 class="text-h2 mb-2">Rejection</h2>
+        <BulwarkCard padding="md">
+          <p v-if="bundle.quote.rejectedReasonCode" class="text-small text-text-secondary">
+            Reason: {{ tLabel('quote.reject-reasons', bundle.quote.rejectedReasonCode, bundle.quote.rejectedReasonCode) }}
+          </p>
+          <p v-if="bundle.quote.rejectedReason" class="text-body mt-1 whitespace-pre-line">
+            {{ bundle.quote.rejectedReason }}
+          </p>
+        </BulwarkCard>
+      </section>
+
       <!-- Actions --------------------------------------------------- -->
       <div class="mt-6 flex flex-col-reverse md:flex-row md:items-center md:justify-end gap-2">
         <NuxtLink
@@ -246,6 +429,42 @@ async function onAccept() {
         >
           Back to property
         </NuxtLink>
+
+        <!-- Revise — always available for sent/rejected/expired -->
+        <BulwarkButton
+          v-if="['sent', 'rejected', 'expired'].includes(bundle.quote.status)"
+          type="button"
+          variant="secondary"
+          :disabled="revising"
+          data-testid="revise-button"
+          @click="onRevise"
+        >
+          {{ revising ? 'Revising…' : 'Revise' }}
+        </BulwarkButton>
+
+        <!-- Reject — only from sent -->
+        <BulwarkButton
+          v-if="bundle.quote.status === 'sent'"
+          type="button"
+          variant="secondary"
+          data-testid="reject-button"
+          @click="openReject"
+        >
+          Reject
+        </BulwarkButton>
+
+        <!-- Expire now — sent + past expiryDate -->
+        <BulwarkButton
+          v-if="bundle.quote.status === 'sent' && bundle.quote.expiryDate && new Date(bundle.quote.expiryDate).getTime() < Date.now()"
+          type="button"
+          variant="secondary"
+          :disabled="expiring"
+          data-testid="expire-now-button"
+          @click="onExpireNow"
+        >
+          {{ expiring ? 'Expiring…' : 'Expire now' }}
+        </BulwarkButton>
+
         <BulwarkButton
           v-if="bundle.quote.status === 'draft'"
           type="button"
@@ -279,7 +498,7 @@ async function onAccept() {
           class="text-body text-text-secondary"
           data-testid="already-sent-note"
         >
-          Quote {{ STATUS_LABEL[bundle.quote.status].toLowerCase() }}.
+          Quote {{ statusCopy(bundle.quote.status).toLowerCase() }}.
         </p>
       </div>
 
@@ -291,5 +510,43 @@ async function onAccept() {
         {{ serverError }}
       </p>
     </template>
+
+    <!-- Reject modal --------------------------------------------- -->
+    <BulwarkModal v-model="rejectOpen" title="Reject quote" size="md">
+      <div data-testid="reject-modal" class="flex flex-col gap-3">
+        <BulwarkSelect
+          v-model="rejectCode"
+          label="Reason"
+          :options="REASON_CODES.map((c) => ({ value: c, label: tLabel('quote.reject-reasons', c, c) }))"
+          data-testid="reject-reason-code"
+        />
+        <BulwarkTextarea
+          v-model="rejectReason"
+          label="Notes (optional)"
+          :rows="3"
+          data-testid="reject-reason-text"
+        />
+      </div>
+      <template #footer>
+        <BulwarkButton
+          type="button"
+          variant="secondary"
+          :disabled="rejecting"
+          data-testid="reject-cancel-button"
+          @click="rejectOpen = false"
+        >
+          Cancel
+        </BulwarkButton>
+        <BulwarkButton
+          type="button"
+          variant="primary"
+          :disabled="rejecting"
+          data-testid="reject-submit-button"
+          @click="submitReject"
+        >
+          {{ rejecting ? 'Rejecting…' : 'Reject quote' }}
+        </BulwarkButton>
+      </template>
+    </BulwarkModal>
   </div>
 </template>

@@ -28,6 +28,15 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Agent scratch output (typecheck / vitest run logs from subagents)
+tc-*.txt
+tc-*.log
+vt-*.txt
+.tc.*
+.ut.*
+.gs.*
+eslint-out*.txt
+
 # Netlify
 .netlify/
 

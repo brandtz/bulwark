@@ -24,6 +24,8 @@ import { assessments } from '../db/schema/assessments'
 import type { Assessment as DbAssessment } from '../db/schema/assessments'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
+import { emit } from '../../shared/events/bus'
+import { assessmentSigned } from '../../shared/events/catalog'
 
 function rowToContract(r: DbAssessment): Assessment {
   return {
@@ -95,7 +97,7 @@ export class RealAssessmentService implements IAssessmentService {
 
   async create(input: AssessmentCreateInput): Promise<Assessment> {
     assertSameTenant(this.tenantResolver, input.organizationId)
-    return await withAudit(async ({ tx, audit }) => {
+    const created = await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(assessments)
         .values({
@@ -128,5 +130,18 @@ export class RealAssessmentService implements IAssessmentService {
       })
       return rowToContract(row!)
     })
+    // Post-transaction emit (ADR-0017). E4 does not yet have a
+    // separate "sign" mutation — capture-and-sign is one step in the
+    // current Wildfire inspection form. W2-2's inspection template
+    // engine may introduce a dedicated sign step; until then, the
+    // assessment row itself is the signed artifact.
+    await emit(assessmentSigned, {
+      organizationId: created.organizationId,
+      entityId: created.id,
+      actorUserId: this.tenantResolver?.()?.userId ?? input.assessedById,
+      timestamp: new Date().toISOString(),
+      propertyId: created.propertyId,
+    })
+    return created
   }
 }

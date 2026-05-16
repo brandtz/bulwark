@@ -24,6 +24,15 @@ import { workOrders } from '../db/schema/work_orders'
 import type { WorkOrder as DbWO } from '../db/schema/work_orders'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
+import { buildLikePatternForYear, formatSequentialNumber } from '../../shared/utils/numbering'
+import { RealOrgSettingsService } from './org-settings.real'
+import { emit } from '../../shared/events/bus'
+import {
+  workOrderCreated,
+  workOrderStarted,
+  workOrderCompleted,
+  workOrderScheduled,
+} from '../../shared/events/catalog'
 
 /**
  * Mirrors shared/mocks/work-order.mock.ts deriveEnvelopeStatus so the real
@@ -52,6 +61,10 @@ function rowToContract(r: DbWO): WorkOrder {
     materials: r.materials,
     notes: r.notes,
     createdById: r.createdById,
+    estimatedHours: r.estimatedHours,
+    actualHours: r.actualHours,
+    priority: r.priority,
+    dispatchNotes: r.dispatchNotes,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
@@ -98,7 +111,7 @@ export class RealWorkOrderService implements IWorkOrderService {
   async create(input: WorkOrderCreateInput): Promise<WorkOrder> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     const workOrderNumber = await this.nextWorkOrderNumber(input.organizationId)
-    return await withAudit(async ({ tx, audit }) => {
+    const created = await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(workOrders)
         .values({
@@ -113,6 +126,10 @@ export class RealWorkOrderService implements IWorkOrderService {
           materials: input.materials,
           notes: input.notes ?? null,
           createdById: input.createdById,
+          estimatedHours: input.estimatedHours ?? 0,
+          actualHours: input.actualHours ?? 0,
+          priority: input.priority ?? 'normal',
+          dispatchNotes: input.dispatchNotes ?? null,
         })
         .returning()
       await audit.record({
@@ -125,6 +142,18 @@ export class RealWorkOrderService implements IWorkOrderService {
       })
       return rowToContract(row!)
     })
+    // Post-transaction emit (ADR-0017). Drives the property's
+    // auto-status transition to `in_progress` via the subscriber in
+    // `_subscribers/property-status.ts`.
+    await emit(workOrderCreated, {
+      organizationId: created.organizationId,
+      entityId: created.id,
+      actorUserId: this.tenantResolver?.()?.userId ?? input.createdById,
+      timestamp: new Date().toISOString(),
+      propertyId: created.propertyId,
+      workOrderNumber: created.workOrderNumber,
+    })
+    return created
   }
 
   async assignTrade(
@@ -172,6 +201,144 @@ export class RealWorkOrderService implements IWorkOrderService {
     )
   }
 
+  async schedule(input: {
+    workOrderId: string
+    organizationId: string
+    scheduledStart: string | null
+    scheduledEnd: string | null
+  }): Promise<WorkOrder> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const result = await withAudit(async ({ tx, audit }) => {
+      const [before] = await tx
+        .select()
+        .from(workOrders)
+        .where(and(eq(workOrders.id, input.workOrderId), eq(workOrders.organizationId, input.organizationId)))
+        .limit(1)
+      if (!before) throw new Error('Work order not found')
+      const newStart = input.scheduledStart ? new Date(input.scheduledStart) : null
+      const newEnd = input.scheduledEnd ? new Date(input.scheduledEnd) : null
+      // Bump envelope status to scheduled when we set times on a draft.
+      const nextStatus: DbWO['status'] =
+        before.status === 'draft' && (newStart || newEnd) ? 'scheduled' : before.status
+      const [after] = await tx
+        .update(workOrders)
+        .set({
+          scheduledStart: newStart,
+          scheduledEnd: newEnd,
+          status: nextStatus,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(workOrders.id, input.workOrderId), eq(workOrders.organizationId, input.organizationId)))
+        .returning()
+      await audit.record({
+        organizationId: input.organizationId,
+        entityType: 'work_order',
+        entityId: input.workOrderId,
+        action: 'update',
+        actorUserId: this.tenantResolver?.()?.userId ?? null,
+        metadata: { kind: 'schedule', scheduledStart: input.scheduledStart, scheduledEnd: input.scheduledEnd },
+      })
+      return rowToContract(after!)
+    })
+    await emit(workOrderScheduled, {
+      organizationId: input.organizationId,
+      entityId: result.id,
+      actorUserId: this.tenantResolver?.()?.userId ?? null,
+      timestamp: new Date().toISOString(),
+      propertyId: result.propertyId,
+      workOrderNumber: result.workOrderNumber,
+      scheduledStart: result.scheduledStart,
+      scheduledEnd: result.scheduledEnd,
+    })
+    return result
+  }
+
+  async startSlot(input: {
+    workOrderId: string
+    tradeSlotId: string
+    organizationId: string
+  }): Promise<WorkOrder> {
+    return await this.mutateSlot(
+      input.workOrderId,
+      input.organizationId,
+      (slot) =>
+        slot.id === input.tradeSlotId
+          ? slot.status === 'completed' || slot.status === 'in_progress'
+            ? slot
+            : { ...slot, status: 'in_progress', actualStart: new Date().toISOString() }
+          : slot,
+      'state_change',
+      { kind: 'start_slot', tradeSlotId: input.tradeSlotId },
+    )
+  }
+
+  async completeSlot(input: {
+    workOrderId: string
+    tradeSlotId: string
+    organizationId: string
+    actualHours: number
+    notes?: string | null
+  }): Promise<WorkOrder> {
+    return await this.mutateSlot(
+      input.workOrderId,
+      input.organizationId,
+      (slot) =>
+        slot.id === input.tradeSlotId
+          ? {
+              ...slot,
+              status: 'completed',
+              actualCompletion: new Date().toISOString(),
+              actualHours: input.actualHours,
+              notes: input.notes ?? slot.notes,
+            }
+          : slot,
+      'state_change',
+      { kind: 'complete_slot', tradeSlotId: input.tradeSlotId, actualHours: input.actualHours },
+    )
+  }
+
+  async costRollup(input: {
+    workOrderId: string
+    organizationId: string
+  }): Promise<{ estimatedHours: number; actualHours: number; varianceHours: number }> {
+    const wo = await this.get(input.workOrderId, input.organizationId)
+    if (!wo) throw new Error('Work order not found')
+    const estimatedHours = wo.tradeSlots.reduce((acc, s) => acc + (s.estimatedHours ?? 0), 0)
+    const actualHours = wo.tradeSlots.reduce((acc, s) => acc + (s.actualHours ?? 0), 0)
+    return { estimatedHours, actualHours, varianceHours: actualHours - estimatedHours }
+  }
+
+  /**
+   * W2-3 / EH-G internal helper: append text to the `notes` column.
+   * Used by RealChangeOrderService.approve via factory hook.
+   */
+  async appendNote(workOrderId: string, organizationId: string, note: string): Promise<WorkOrder> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    return await withAudit(async ({ tx, audit }) => {
+      const [before] = await tx
+        .select()
+        .from(workOrders)
+        .where(and(eq(workOrders.id, workOrderId), eq(workOrders.organizationId, organizationId)))
+        .limit(1)
+      if (!before) throw new Error('Work order not found')
+      const merged = before.notes ? `${before.notes}\n${note}` : note
+      const [after] = await tx
+        .update(workOrders)
+        .set({ notes: merged, updatedAt: new Date() })
+        .where(and(eq(workOrders.id, workOrderId), eq(workOrders.organizationId, organizationId)))
+        .returning()
+      await audit.record({
+        organizationId,
+        entityType: 'work_order',
+        entityId: workOrderId,
+        action: 'update',
+        actorUserId: this.tenantResolver?.()?.userId ?? null,
+        metadata: { kind: 'append_note' },
+      })
+      return rowToContract(after!)
+    })
+  }
+
   // --- internals ----------------------------------------------------------
   private async mutateSlot(
     workOrderId: string,
@@ -180,7 +347,7 @@ export class RealWorkOrderService implements IWorkOrderService {
     auditAction: string,
     auditMeta: Record<string, unknown>,
   ): Promise<WorkOrder> {
-    return await withAudit(async ({ tx, audit }) => {
+    const { result, prevStatus } = await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()
         .from(workOrders)
@@ -204,19 +371,85 @@ export class RealWorkOrderService implements IWorkOrderService {
         actorUserId: this.tenantResolver?.()?.userId ?? null,
         metadata: { kind: auditAction, ...auditMeta },
       })
-      return rowToContract(after!)
+      return { result: rowToContract(after!), prevStatus: before.status }
     })
+    // Post-transaction emit on envelope-status transitions (ADR-0017).
+    if (prevStatus !== result.status) {
+      const base = {
+        organizationId,
+        entityId: result.id,
+        actorUserId: this.tenantResolver?.()?.userId ?? null,
+        timestamp: new Date().toISOString(),
+        propertyId: result.propertyId,
+        workOrderNumber: result.workOrderNumber,
+      }
+      if (result.status === 'in_progress') await emit(workOrderStarted, base)
+      else if (result.status === 'completed') await emit(workOrderCompleted, base)
+    }
+    return result
   }
 
   private async nextWorkOrderNumber(organizationId: string): Promise<string> {
+    // EH-H / W1-3: tenant-configurable format.
+    const settings = await new RealOrgSettingsService(this.tenantResolver).get(organizationId)
+    const format = settings.woNumberFormat
     const year = new Date().getUTCFullYear()
-    const prefix = `WO-${year}-`
+    const likePattern = buildLikePatternForYear(format, year)
     const db = getDb()
     const [row] = await db
       .select({ n: count() })
       .from(workOrders)
-      .where(and(eq(workOrders.organizationId, organizationId), like(workOrders.workOrderNumber, `${prefix}%`)))
+      .where(and(eq(workOrders.organizationId, organizationId), like(workOrders.workOrderNumber, likePattern)))
     const seq = Number(row?.n ?? 0) + 1
-    return `${prefix}${String(seq).padStart(4, '0')}`
+    return formatSequentialNumber({ format, year, seq })
+  }
+
+  /**
+   * W3-3 / EH-M (ADR-0029) — "My Day" feed for a field user.
+   *
+   * Returns WOs in the org that:
+   *   - are not deleted / cancelled
+   *   - have `scheduledStart` within `[dateFrom, dateTo)` (inclusive
+   *     start, exclusive end — caller passes a one-day window for
+   *     "today")
+   *
+   * # Decisions (ADR-0008)
+   *   - v1 scope: we do NOT yet link field users to specific WOs at
+   *     the slot level — `tradeSlots[].assignedSubcontractorId` is a
+   *     subcontractor company id, not a user id, and the contract has
+   *     no `assignedToUserId` field. Until that landing slot exists,
+   *     the field "My Day" surfaces every scheduled WO in the active
+   *     org for the requested day. The `userId` arg is accepted so
+   *     the call site stays stable when slot-level assignment lands
+   *     (see W3+ promotion note in ADR-0029).
+   *   - Tenant firewall via `assertSameTenant` mirrors the rest of
+   *     the file. Pure read — no audit row.
+   */
+  async listForFieldUser(input: {
+    organizationId: string
+    userId: string
+    dateFrom: string
+    dateTo: string
+  }): Promise<WorkOrder[]> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const db = getDb()
+    const from = new Date(input.dateFrom)
+    const to = new Date(input.dateTo)
+    const rows = await db
+      .select()
+      .from(workOrders)
+      .where(
+        and(
+          eq(workOrders.organizationId, input.organizationId),
+          sql`${workOrders.deletedAt} IS NULL`,
+          sql`${workOrders.status} <> 'cancelled'`,
+          sql`${workOrders.scheduledStart} >= ${from}`,
+          sql`${workOrders.scheduledStart} < ${to}`,
+        ),
+      )
+      .orderBy(workOrders.scheduledStart)
+    // userId is reserved for slot-level filter (see method header).
+    void input.userId
+    return rows.map(rowToContract)
   }
 }

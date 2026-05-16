@@ -76,6 +76,9 @@ export default defineNuxtConfig({
   css: [
     '~/assets/css/tokens.css',
     '~/assets/css/main.css',
+    // W2-6 / EH-L: global print stylesheet. Scoped to @media print so
+    // it has zero impact on screen rendering.
+    '~/assets/print.css',
   ],
 
   // -------------------------------------------------------------------------
@@ -99,8 +102,13 @@ export default defineNuxtConfig({
     },
 
     public: {
-      // Exposed to the client. ADR-0004: this flag flips mock vs real services.
-      backend: process.env.BULWARK_BACKEND || 'mock',
+      // Exposed to the client. ADR-0004 introduced the flag; ADR-0015
+      // (Phase 1 hardening / EH-C / D-H3) flipped the default from
+      // `mock` to `real`. Mock services survive ONLY in unit/integration
+      // tests; runtime defaults to the real Postgres + Drizzle backend.
+      // Set BULWARK_BACKEND=mock as an explicit opt-in for offline
+      // demos — it is no longer the implicit fallback.
+      backend: process.env.BULWARK_BACKEND || 'real',
       appName: 'Bulwark',
     },
   },
@@ -112,16 +120,22 @@ export default defineNuxtConfig({
     head: {
       title: 'Bulwark',
       titleTemplate: '%s · Bulwark',
-      meta: [
-        { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: 'Wildfire retrofit operations and compliance platform.' },
-      ],
       link: [
         // Inter font matches STYLE_GUIDE §3.1 — single font, no marketing display face
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' },
+        // W3-3 / EH-M (ADR-0029) — PWA manifest for the field surface.
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+      ],
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'description', content: 'Wildfire retrofit operations and compliance platform.' },
+        // PWA theme — must match manifest.webmanifest theme_color.
+        { name: 'theme-color', content: '#1d4ed8' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-title', content: 'Bulwark' },
       ],
     },
   },

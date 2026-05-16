@@ -12,7 +12,22 @@ import { workOrders } from './work_orders'
 import { quotes } from './quotes'
 import type { InvoiceLineItem, InvoiceTotals } from '../../../shared/contracts/invoice'
 
-export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'paid'])
+export const invoiceStatusEnum = pgEnum('invoice_status', [
+  'draft',
+  'sent',
+  'partial',
+  'paid',
+  'voided',
+])
+
+/** W2-3 / EH-G — payment terms enum (drives `dueDate` defaulting). */
+export const invoiceTermsEnum = pgEnum('invoice_terms', [
+  'due_on_receipt',
+  'net_15',
+  'net_30',
+  'net_60',
+  'custom',
+])
 
 export const invoices = pgTable('invoices', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -33,6 +48,15 @@ export const invoices = pgTable('invoices', {
   notes: text('notes'),
   totals: jsonb('totals').$type<InvoiceTotals>().notNull(),
   totalCents: integer('total_cents').notNull().default(0),
+  // W2-3 / EH-G — deposits, retainage, terms, void.
+  depositRequiredCents: integer('deposit_required_cents').notNull().default(0),
+  depositReceivedCents: integer('deposit_received_cents').notNull().default(0),
+  retainageBps: integer('retainage_bps').notNull().default(0),
+  retainageReleasedCents: integer('retainage_released_cents').notNull().default(0),
+  terms: invoiceTermsEnum('terms').notNull().default('net_30'),
+  dueDate: timestamp('due_date', { withTimezone: true }),
+  voidedAt: timestamp('voided_at', { withTimezone: true }),
+  voidedReason: text('voided_reason'),
   ...auditColumns,
 })
 

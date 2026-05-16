@@ -21,8 +21,14 @@ import type { WorkOrder } from '../contracts/work-order'
 import type { Invoice } from '../contracts/invoice'
 /** Build a deterministic UUID from a slug. */
 const mk = (slug: string): string => {
-  // Pad/truncate the slug to 32 hex-ish chars and shape into UUID form.
-  const hex = (slug.replace(/[^a-z0-9]/gi, '') + '00000000000000000000000000000000').slice(0, 32)
+  // Map every character to a hex digit so the resulting string passes
+  // `z.string().uuid()` validation (RFC 4122 requires hex). We use a
+  // simple modulo over the char code; collisions across slugs are not
+  // a concern for fixtures because each slug is hand-chosen unique.
+  const HEX = '0123456789abcdef'
+  const hexify = (s: string) =>
+    s.replace(/[^a-z0-9]/gi, '').split('').map(c => HEX[c.charCodeAt(0) % 16]).join('')
+  const hex = (hexify(slug) + '00000000000000000000000000000000').slice(0, 32)
   return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`
 }
 
@@ -130,6 +136,15 @@ export const FIXTURE_PROPERTIES: Property[] = propertySeed.map(([line1, status, 
   clientId: FIXTURE_CLIENTS[i % FIXTURE_CLIENTS.length]!.id,
   status,
   notes: null,
+  // W2-1 / EH-E — new metadata columns (ADR-0018). Seed fixtures with
+  // null defaults; real data lands once admins fill in the new UI.
+  lotSizeAcres: null,
+  parcelNumber: null,
+  yearBuilt: null,
+  accessNotes: null,
+  gateCode: null,
+  specialInstructions: null,
+  primaryContactId: null,
   createdAt: NOW,
   updatedAt: NOW,
   deletedAt: null,

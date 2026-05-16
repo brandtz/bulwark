@@ -116,6 +116,65 @@ export const SubcontractorUpdateInputSchema = SubcontractorSchema.pick({
 export type SubcontractorUpdateInput = z.infer<typeof SubcontractorUpdateInputSchema>
 
 // ----------------------------------------------------------------------------
+// W3-4 / EH-N — sub portal: membership + COI + assignment views.
+// ----------------------------------------------------------------------------
+export const SubcontractorUserSchema = z
+  .object({
+    id: UuidSchema,
+    organizationId: UuidSchema,
+    subcontractorId: UuidSchema,
+    userId: UuidSchema,
+    email: z.string().email(),
+    fullName: z.string(),
+    invitedAt: z.string().datetime(),
+    acceptedAt: z.string().datetime().nullable(),
+  })
+  .merge(AuditFieldsSchema)
+export type SubcontractorUser = z.infer<typeof SubcontractorUserSchema>
+
+export const SubInviteInputSchema = z.object({
+  organizationId: UuidSchema,
+  subcontractorId: UuidSchema,
+  email: z.string().email(),
+  fullName: z.string().min(1).max(120),
+  invitedByUserId: UuidSchema.nullable().optional(),
+})
+export type SubInviteInput = z.infer<typeof SubInviteInputSchema>
+
+export const SubInviteOutputSchema = z.object({
+  inviteId: UuidSchema,
+  membershipId: UuidSchema,
+  inviteUrl: z.string(),
+  inviteToken: z.string(),
+})
+export type SubInviteOutput = z.infer<typeof SubInviteOutputSchema>
+
+export const SubcontractorCoiDocSchema = z
+  .object({
+    id: UuidSchema,
+    organizationId: UuidSchema,
+    subcontractorId: UuidSchema,
+    fileUrl: z.string(),
+    fileName: z.string(),
+    expiresAt: z.string().datetime(),
+    uploadedByUserId: UuidSchema.nullable(),
+    uploadedAt: z.string().datetime(),
+    notes: z.string().nullable(),
+  })
+  .merge(AuditFieldsSchema)
+export type SubcontractorCoiDoc = z.infer<typeof SubcontractorCoiDocSchema>
+
+export const SubCoiUploadInputSchema = z.object({
+  organizationId: UuidSchema,
+  subcontractorId: UuidSchema,
+  fileUrl: z.string().min(1),
+  fileName: z.string().min(1).max(200),
+  expiresAt: z.string().datetime(),
+  notes: z.string().max(500).nullable().optional(),
+})
+export type SubCoiUploadInput = z.infer<typeof SubCoiUploadInputSchema>
+
+// ----------------------------------------------------------------------------
 // Service interface.
 // ----------------------------------------------------------------------------
 export interface ISubcontractorService {
@@ -127,4 +186,37 @@ export interface ISubcontractorService {
     input: SubcontractorUpdateInput,
     organizationId: string,
   ): Promise<Subcontractor>
+  /**
+   * W3-4 / EH-N — sub portal: list users attached to a sub. Used by
+   * the sub-settings page so an admin can see "who can sign in for
+   * this subcontractor".
+   */
+  listUsers(subcontractorId: string, organizationId: string): Promise<SubcontractorUser[]>
+  /** Invite a user to a sub. Creates `pending_invites` + `subcontractor_users`. */
+  inviteUser(input: SubInviteInput): Promise<SubInviteOutput>
+  /** Remove a sub-user membership (soft delete). */
+  removeUser(membershipId: string, organizationId: string): Promise<void>
+  /** Resolve which sub a given user belongs to (used by the sub-role middleware). */
+  resolveSubForUser(
+    userId: string,
+    organizationId: string,
+  ): Promise<{ subcontractorId: string } | null>
+  /** List WOs that have any slot assigned to the user's sub. */
+  listMyAssignments(userId: string, organizationId: string): Promise<unknown[]>
+  /** List quotes flagged as awaiting sub response for the user's sub. */
+  listMyQuotesRequested(userId: string, organizationId: string): Promise<unknown[]>
+  // ---- COI tracking ------------------------------------------------------
+  /** List COI documents for a sub (newest first). */
+  listCois(subcontractorId: string, organizationId: string): Promise<SubcontractorCoiDoc[]>
+  /** Upload a new COI for a sub. Emits `subCoiUploaded`. */
+  uploadCoi(input: SubCoiUploadInput): Promise<SubcontractorCoiDoc>
+  /**
+   * Scan COIs across the org for those expiring within `withinDays`
+   * (default 30). Emits `subCoiExpiringSoon` for each.
+   */
+  scanCoiExpiry(input: {
+    organizationId: string
+    withinDays?: number
+    nowIso?: string
+  }): Promise<SubcontractorCoiDoc[]>
 }

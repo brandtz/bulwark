@@ -19,6 +19,9 @@ export const quoteStatusEnum = pgEnum('quote_status', [
   'expired',
 ])
 
+/** W2-3 / EH-G — tiered quote pricing (good/better/best/custom). */
+export const quoteTierEnum = pgEnum('quote_tier', ['good', 'better', 'best', 'custom'])
+
 export const quotes = pgTable('quotes', {
   id: uuid('id').primaryKey().defaultRandom(),
   ...orgColumn,
@@ -39,6 +42,15 @@ export const quotes = pgTable('quotes', {
   totals: jsonb('totals').$type<QuoteTotals>().notNull(),
   // Mirror of totals.totalCents for cheap aggregations / list filters.
   totalCents: integer('total_cents').notNull().default(0),
+  // W2-3 / EH-G — tiering + revisions + rejection metadata.
+  tier: quoteTierEnum('tier').notNull().default('custom'),
+  revisionGroupId: uuid('revision_group_id'),
+  parentQuoteId: uuid('parent_quote_id'),
+  revisionNumber: integer('revision_number').notNull().default(1),
+  expiryDate: timestamp('expiry_date', { withTimezone: true }),
+  rejectedReason: text('rejected_reason'),
+  rejectedReasonCode: text('rejected_reason_code'),
+  customerVisibleNotes: text('customer_visible_notes'),
   ...auditColumns,
 })
 

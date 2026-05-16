@@ -71,7 +71,65 @@ export const AuditListInputSchema = z.object({
 })
 export type AuditListInput = z.infer<typeof AuditListInputSchema>
 
+export const TimelineForPropertyInputSchema = z.object({
+  organizationId: UuidSchema,
+  propertyId: UuidSchema,
+  limit: z.number().int().positive().max(500).default(200),
+})
+export type TimelineForPropertyInput = z.infer<typeof TimelineForPropertyInputSchema>
+
+// ----------------------------------------------------------------------------
+// W2-4 / EH-H Part B — filterable list + CSV export for the audit-log page.
+// ----------------------------------------------------------------------------
+export const AuditFilterInputSchema = z.object({
+  organizationId: UuidSchema,
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+  actorUserId: UuidSchema.optional(),
+  entityType: z.string().min(1).max(60).optional(),
+  action: AuditActionSchema.optional(),
+  entityId: UuidSchema.optional(),
+  search: z.string().min(1).max(200).optional(),
+  page: z.number().int().positive().default(1),
+  pageSize: z.number().int().positive().max(200).default(50),
+})
+export type AuditFilterInput = z.infer<typeof AuditFilterInputSchema>
+
+export const AuditFilterOutputSchema = z.object({
+  rows: z.array(AuditLogRowSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+})
+export type AuditFilterOutput = z.infer<typeof AuditFilterOutputSchema>
+
 export interface IAuditService {
   record(input: AuditRecordInput): Promise<AuditLogRow>
   list(input: AuditListInput): Promise<AuditLogRow[]>
+  /**
+   * Property-scoped activity feed. Returns audit rows for the property
+   * itself AND for every child entity that hangs off the property
+   * (quotes, work orders, invoices, assessments, compliance docs).
+   * Newest first. Used by EH-D property detail Activity tab.
+   */
+  timelineForProperty(input: TimelineForPropertyInput): Promise<AuditLogRow[]>
+  /** W2-4: paginated filterable list for the audit-log settings page. */
+  filter(input: AuditFilterInput): Promise<AuditFilterOutput>
+  /** W2-4: CSV string of the same filtered rows (no pagination). */
+  exportCsv(input: Omit<AuditFilterInput, 'page' | 'pageSize'>): Promise<string>
+  /**
+   * W3-5 / EH-Q (ADR-0034): record an operational error that is
+   * useful to surface in the audit timeline (jobs failed, webhook
+   * dispatch failed, etc.). Stored as a single `audit_log` row with
+   * `entityType='system'` and `action='state_change'`; the kind +
+   * message land in `metadata` so the filter UI can pivot on
+   * `metadata.kind`. Implementations MUST NOT throw; logging an
+   * error must never break the caller.
+   */
+  logSystemError(input: {
+    organizationId?: string
+    kind: string
+    message: string
+    metadata?: Record<string, unknown>
+  }): Promise<void>
 }

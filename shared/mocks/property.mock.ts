@@ -16,18 +16,39 @@
  *     as before. The factory wires a real resolver in production paths.
  */
 import type {
-  IPropertyService, Property, PropertyCreateInput, PropertyListInput,
+  IPropertyService, Property, PropertyCreateInput, PropertyDepth, PropertyListInput,
   PropertyListOutput, PropertyStatus, PropertyUpdateInput,
 } from '../contracts/property'
 import { FIXTURE_PROPERTIES } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
+import type { MockBuildingService } from './building.mock'
+import type { MockContactService } from './contact.mock'
+import type { MockPropertyPhotoService } from './property-photo.mock'
 
 const rows: Property[] = [...FIXTURE_PROPERTIES]
 const newId = () => crypto.randomUUID()
 const nowIso = () => new Date().toISOString()
 
 export class MockPropertyService implements IPropertyService {
+  // W2-1 / EH-E — `getWithDepth` needs to read from sibling mock services.
+  // The factory wires these in via `attachDepthSources` after all four
+  // mocks are constructed (the contact mock needs the property mock too,
+  // so we resolve the cycle with a setter rather than constructor args).
+  private buildingSvc: MockBuildingService | null = null
+  private contactSvc: MockContactService | null = null
+  private photoSvc: MockPropertyPhotoService | null = null
+
   constructor(private readonly tenantResolver?: TenantResolver) {}
+
+  attachDepthSources(deps: {
+    building: MockBuildingService
+    contact: MockContactService
+    photo: MockPropertyPhotoService
+  }): void {
+    this.buildingSvc = deps.building
+    this.contactSvc = deps.contact
+    this.photoSvc = deps.photo
+  }
 
   async list(input: PropertyListInput): Promise<PropertyListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -72,6 +93,13 @@ export class MockPropertyService implements IPropertyService {
       clientId: input.clientId ?? null,
       status: 'lead',
       notes: input.notes ?? null,
+      lotSizeAcres: input.lotSizeAcres ?? null,
+      parcelNumber: input.parcelNumber ?? null,
+      yearBuilt: input.yearBuilt ?? null,
+      accessNotes: input.accessNotes ?? null,
+      gateCode: input.gateCode ?? null,
+      specialInstructions: input.specialInstructions ?? null,
+      primaryContactId: input.primaryContactId ?? null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -102,5 +130,35 @@ export class MockPropertyService implements IPropertyService {
     r.status = status
     r.updatedAt = nowIso()
     return r
+  }
+
+  async getWithDepth(propertyId: string, organizationId: string): Promise<PropertyDepth | null> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const property = await this.get(propertyId, organizationId)
+    if (!property) return null
+    const buildings = this.buildingSvc
+      ? await this.buildingSvc.listForProperty(propertyId, organizationId)
+      : []
+    const buildingsWithSections = await Promise.all(
+      buildings.map(async (b) => ({
+        ...b,
+        sections: this.buildingSvc
+          ? await this.buildingSvc.listSections(b.id, organizationId)
+          : [],
+      })),
+    )
+    const contacts = this.contactSvc
+      ? await this.contactSvc.listForProperty(propertyId, organizationId)
+      : []
+    const photos = this.photoSvc
+      ? await this.photoSvc.listForProperty(propertyId, organizationId)
+      : []
+    const primaryPhotoUrl = photos[0]?.url ?? null
+    return {
+      property,
+      buildings: buildingsWithSections,
+      contacts,
+      primaryPhotoUrl,
+    }
   }
 }

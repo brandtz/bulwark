@@ -22,7 +22,7 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
-import type { WorkOrder, WorkOrderStatus } from '~~/shared/contracts/work-order'
+import type { WorkOrder, WorkOrderStatus, WorkOrderPriority } from '~~/shared/contracts/work-order'
 
 definePageMeta({
   middleware: ['role'],
@@ -38,6 +38,7 @@ await ensureLoaded()
 
 const workOrder = useService('workOrder')
 const property = useService('property')
+const { t: tLabel } = useLabel()
 
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
@@ -77,6 +78,13 @@ function setFilter(v: string) {
   router.push({ query: { ...route.query, status: v === 'all' ? undefined : v } })
 }
 
+// W4-1 / EH-P — saved-views integration.
+const currentFilters = computed(() => ({ status: activeFilter.value }))
+function applySavedView(payload: { filters: Record<string, unknown> }) {
+  const next = typeof payload.filters?.status === 'string' ? payload.filters.status : 'all'
+  setFilter(next)
+}
+
 const { data: bundle } = await useAsyncData(
   () => `work-orders-list-${orgId.value}-${activeFilter.value}`,
   async () => {
@@ -105,6 +113,33 @@ const { data: bundle } = await useAsyncData(
 function addressFor(w: WorkOrder): string {
   return bundle.value?.propMap.get(w.propertyId) ?? ''
 }
+
+const PRIORITY_TONE: Record<WorkOrderPriority, string> = {
+  low: 'bg-surface-muted text-text-secondary',
+  normal: 'bg-status-info/10 text-status-info',
+  high: 'bg-status-warning/10 text-status-warning',
+  urgent: 'bg-status-error/10 text-status-error',
+}
+function priorityCopy(p: WorkOrderPriority): string {
+  return tLabel('work-order.priority', p, p)
+}
+function statusCopy(s: WorkOrderStatus): string {
+  return tLabel('status.work_order', s, STATUS_LABEL[s])
+}
+function scheduledDateLabel(w: WorkOrder): string {
+  if (!w.scheduledStart) return ''
+  return new Date(w.scheduledStart).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+function dueInDays(w: WorkOrder): number | null {
+  if (!w.scheduledStart) return null
+  if (w.status === 'in_progress' || w.status === 'completed' || w.status === 'cancelled') return null
+  const ms = new Date(w.scheduledStart).getTime() - Date.now()
+  if (Number.isNaN(ms)) return null
+  return Math.ceil(ms / 86_400_000)
+}
 </script>
 
 <template>
@@ -127,7 +162,7 @@ function addressFor(w: WorkOrder): string {
       </NuxtLink>
     </header>
 
-    <div class="mt-4">
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
       <BulwarkSegmentedControl
         :model-value="activeFilter"
         :options="STATUS_FILTERS"
@@ -135,9 +170,19 @@ function addressFor(w: WorkOrder): string {
         data-testid="work-order-status-filter"
         @update:model-value="setFilter"
       />
+      <SavedViewsMenu
+        entity-type="work-order"
+        :current-filters="currentFilters"
+        @apply="applySavedView"
+      />
     </div>
 
-    <div v-if="!bundle || bundle.rows.length === 0" class="mt-6">
+    <div v-if="!bundle" class="mt-6" data-testid="work-orders-loading">
+      <!-- W2-6 / EH-L: shimmer rows during the client-side fetch. -->
+      <BulwarkTableSkeleton :rows="6" :cols="4" />
+    </div>
+
+    <div v-else-if="bundle.rows.length === 0" class="mt-6">
       <EmptyState
         icon="·"
         title="No work orders here yet"
@@ -168,7 +213,35 @@ function addressFor(w: WorkOrder): string {
                   {{ addressFor(w) }}
                 </p>
               </div>
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-3 flex-wrap">
+                <span
+                  class="inline-flex items-center rounded-pill px-2 py-0.5 text-tiny font-medium whitespace-nowrap"
+                  :class="PRIORITY_TONE[(w.priority ?? 'normal') as WorkOrderPriority]"
+                  data-testid="work-order-row-priority"
+                  :data-priority="w.priority ?? 'normal'"
+                >{{ priorityCopy((w.priority ?? 'normal') as WorkOrderPriority) }}</span>
+                <span
+                  v-if="scheduledDateLabel(w)"
+                  class="text-small text-text-secondary"
+                  data-testid="work-order-row-scheduled"
+                >{{ scheduledDateLabel(w) }}</span>
+                <span
+                  v-if="dueInDays(w) !== null"
+                  class="inline-flex items-center rounded-pill px-2 py-0.5 text-tiny font-medium whitespace-nowrap"
+                  :class="(dueInDays(w) ?? 0) < 0
+                    ? 'bg-status-error/10 text-status-error'
+                    : (dueInDays(w) ?? 0) <= 2
+                      ? 'bg-status-warning/10 text-status-warning'
+                      : 'bg-surface-muted text-text-secondary'"
+                  data-testid="work-order-row-due-in"
+                >
+                  <template v-if="(dueInDays(w) ?? 0) < 0">
+                    Overdue {{ -(dueInDays(w) ?? 0) }}d
+                  </template>
+                  <template v-else>
+                    Due in {{ dueInDays(w) }}d
+                  </template>
+                </span>
                 <span
                   :class="[
                     'inline-flex items-center rounded-pill px-2.5 py-1 text-tiny font-medium whitespace-nowrap',
@@ -177,7 +250,7 @@ function addressFor(w: WorkOrder): string {
                   data-testid="work-order-row-status"
                   :data-status="w.status"
                 >
-                  {{ STATUS_LABEL[w.status] }}
+                  {{ statusCopy(w.status) }}
                 </span>
                 <span class="text-small text-text-secondary">
                   {{ w.tradeSlots.length }} trade{{ w.tradeSlots.length === 1 ? '' : 's' }}

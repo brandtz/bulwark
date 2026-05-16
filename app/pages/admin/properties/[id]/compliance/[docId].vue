@@ -24,6 +24,7 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
+import { safeUrl } from '~/utils/safeUrl'
 import { isTerminalComplianceDocStatus } from '~~/shared/contracts/compliance'
 
 definePageMeta({
@@ -168,7 +169,7 @@ watch(doc, (next) => {
             </p>
           </div>
           <a
-            :href="doc.resultUrl"
+            :href="safeUrl(doc.resultUrl) ?? '#'"
             target="_blank"
             rel="noopener noreferrer"
             class="inline-flex h-input items-center rounded-input bg-primary px-4 text-body font-medium text-white hover:bg-primary-hover transition"
@@ -178,7 +179,7 @@ watch(doc, (next) => {
           </a>
         </div>
         <iframe
-          :src="doc.resultUrl"
+          :src="safeUrl(doc.resultUrl) ?? 'about:blank'"
           class="mt-4 h-[480px] w-full rounded border border-border-subtle bg-surface-base"
           sandbox=""
           referrerpolicy="no-referrer"

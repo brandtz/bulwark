@@ -9,6 +9,7 @@
 -->
 <script setup lang="ts">
 import { navItemsForRole, type NavItem } from '~~/shared/nav/nav.config'
+import type { IconName } from '~/components/ui/icon-names'
 
 const { session } = useSession()
 const route = useRoute()
@@ -57,7 +58,10 @@ function isActive(to: string): boolean {
                   : 'text-sidebar-text hover:bg-sidebar-active/60 hover:text-white',
               ]"
             >
-              <span class="w-5 h-5 inline-block rounded bg-white/10 shrink-0" aria-hidden="true" />
+              <!-- W2-6 / EH-L: real glyph from the sprite. Names in
+                   nav.config.ts are aligned with the ICON_NAMES
+                   registry; the unit test enforces parity. -->
+              <BulwarkIcon :name="(item.icon as IconName)" size="md" class="shrink-0" />
               <span>{{ item.label }}</span>
             </NuxtLink>
           </li>

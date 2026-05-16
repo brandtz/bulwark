@@ -35,6 +35,53 @@ export const AuthResultSchema = z.object({
 })
 export type AuthResult = z.infer<typeof AuthResultSchema>
 
+// --- MFA-aware login result (W2-5 / ADR-0024) -------------------------------
+//
+// When the account has MFA enabled, `login()` returns a "step-up" envelope
+// instead of a session: a short-lived JWT proves the password step succeeded,
+// the client posts back to `verifyMfa()` with a 6-digit TOTP code (or a
+// backup code). The discriminant `kind` keeps the wire shape unambiguous.
+export const MfaChallengeResultSchema = z.object({
+  kind: z.literal('mfa_required'),
+  mfaToken: z.string().min(1),
+  /** Echo back so the UI can show "Code for drew@…" without re-asking. */
+  email: z.string().email(),
+})
+export type MfaChallengeResult = z.infer<typeof MfaChallengeResultSchema>
+
+export const AuthLoginResultSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('session') }).merge(AuthResultSchema),
+  MfaChallengeResultSchema,
+])
+export type AuthLoginResult = z.infer<typeof AuthLoginResultSchema>
+
+// --- Auth attempt log (W2-5 / ADR-0023) -------------------------------------
+export const AuthAttemptRowSchema = z.object({
+  id: UuidSchema,
+  email: z.string().email(),
+  ipAddress: z.string().nullable(),
+  success: z.boolean(),
+  reason: z.string().nullable(),
+  occurredAt: z.string().datetime(),
+})
+export type AuthAttemptRow = z.infer<typeof AuthAttemptRowSchema>
+
+export const GetAttemptsInputSchema = z.object({
+  organizationId: UuidSchema.optional(),
+  email: z.string().email().optional(),
+  userId: UuidSchema.optional(),
+  limit: z.number().int().positive().max(500).optional(),
+})
+export type GetAttemptsInput = z.infer<typeof GetAttemptsInputSchema>
+
+export const LockoutStateSchema = z.object({
+  locked: z.boolean(),
+  /** Epoch milliseconds; null when not locked. */
+  until: z.number().nullable(),
+  attemptsRemaining: z.number().int().nonnegative(),
+})
+export type LockoutState = z.infer<typeof LockoutStateSchema>
+
 // --- Password reset & invitation flows (E2-S2) -------------------------------
 //
 // Why the issued/decoded "token" is part of the contract surface
@@ -82,7 +129,17 @@ export const AcceptInviteInputSchema = z.object({
 export type AcceptInviteInput = z.infer<typeof AcceptInviteInputSchema>
 
 export interface IAuthService {
-  login(input: LoginInput): Promise<AuthResult>
+  /**
+   * Password-step login. Returns either a real session OR an MFA challenge.
+   * The H3 API route forwards `ipAddress` (from `getRequestIP`) so the
+   * service can write to `auth_attempts` and enforce lockouts.
+   */
+  login(input: LoginInput, opts?: { ipAddress?: string | null }): Promise<AuthLoginResult>
+  /**
+   * MFA-step login. Consumes a short-lived mfa token + a 6-digit TOTP
+   * OR a backup code. On success the real session is issued.
+   */
+  verifyMfa(mfaToken: string, code: string, opts?: { ipAddress?: string | null }): Promise<AuthResult>
   logout(): Promise<void>
   currentUser(): Promise<SessionUser | null>
   switchActiveOrg(organizationId: string): Promise<SessionUser>
@@ -94,4 +151,8 @@ export interface IAuthService {
   // Invitations.
   previewInvite(token: string): Promise<InvitePreview>
   acceptInvite(input: AcceptInviteInput): Promise<AuthResult>
+
+  // W2-5 — admin-visible attempt log + pre-auth lockout state.
+  getAttempts(input: GetAttemptsInput): Promise<{ attempts: AuthAttemptRow[] }>
+  getLockoutState(input: { email: string }): Promise<LockoutState>
 }

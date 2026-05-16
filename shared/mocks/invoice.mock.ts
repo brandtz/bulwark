@@ -28,10 +28,12 @@ import type {
   InvoiceListOutput,
   InvoiceLineItem,
 } from '../contracts/invoice'
+import type { InvoicePaymentMethod } from '../contracts/invoice-payment'
 import type { QuoteLineItem } from '../contracts/quote'
 import { computeQuoteTotals } from '../utils/money'
 import { assertSameTenant, type TenantResolver } from './tenant'
 import { FIXTURE_INVOICES } from './fixtures'
+import { MockInvoicePaymentService } from './invoice-payment.mock'
 
 const rows: Invoice[] = [...FIXTURE_INVOICES]
 const newId = () => crypto.randomUUID()
@@ -61,7 +63,11 @@ function totalsFor(items: ReadonlyArray<InvoiceLineItem>, markupPercent: number,
 }
 
 export class MockInvoiceService implements IInvoiceService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  constructor(
+    private readonly tenantResolver?: TenantResolver,
+    /** W2-3 / EH-G: shared payment ledger. Factory injects the singleton. */
+    private readonly payments?: MockInvoicePaymentService,
+  ) {}
 
   async list(input: InvoiceListInput): Promise<InvoiceListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -156,6 +162,89 @@ export class MockInvoiceService implements IInvoiceService {
       status: 'paid',
       paidAt: now,
       paidAmountCents: paidAmountCents ?? current.totals.totalCents,
+      updatedAt: now,
+    }
+    rows[idx] = updated
+    return updated
+  }
+
+  // --- W2-3 / EH-G additions --------------------------------------------
+  async recordPayment(input: {
+    invoiceId: string
+    organizationId: string
+    amountCents: number
+    method: InvoicePaymentMethod
+    reference?: string | null
+    notes?: string | null
+    receivedAt?: string
+    recordedByUserId?: string | null
+  }): Promise<Invoice> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const idx = rows.findIndex(
+      (r) => r.id === input.invoiceId && r.organizationId === input.organizationId && !r.deletedAt,
+    )
+    if (idx < 0) throw new Error('Invoice not found')
+    const current = rows[idx]!
+    if (current.status === 'draft') {
+      throw new Error('Cannot record payment on a draft invoice; mark it sent first.')
+    }
+    if (current.status === 'voided') {
+      throw new Error('Cannot record payment on a voided invoice')
+    }
+    // Append the ledger row (no-op if payment service absent).
+    if (this.payments) {
+      await this.payments.recordPayment({
+        organizationId: input.organizationId,
+        invoiceId: input.invoiceId,
+        amountCents: input.amountCents,
+        method: input.method,
+        reference: input.reference ?? null,
+        notes: input.notes ?? null,
+        receivedAt: input.receivedAt,
+        recordedByUserId: input.recordedByUserId ?? null,
+      })
+    }
+    const ledgerSum = this.payments
+      ? (await this.payments.listForInvoice(input.invoiceId, input.organizationId)).reduce(
+          (s, p) => s + p.amountCents,
+          0,
+        )
+      : current.paidAmountCents + input.amountCents
+    const totalDue = current.totals.totalCents
+    const now = nowIso()
+    const fullyPaid = ledgerSum >= totalDue
+    const updated: Invoice = {
+      ...current,
+      paidAmountCents: ledgerSum,
+      paidAt: fullyPaid ? now : current.paidAt,
+      status: fullyPaid ? 'paid' : 'partial',
+      updatedAt: now,
+    }
+    rows[idx] = updated
+    return updated
+  }
+
+  async voidInvoice(input: {
+    invoiceId: string
+    organizationId: string
+    reason: string
+  }): Promise<Invoice> {
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const idx = rows.findIndex(
+      (r) => r.id === input.invoiceId && r.organizationId === input.organizationId && !r.deletedAt,
+    )
+    if (idx < 0) throw new Error('Invoice not found')
+    const current = rows[idx]!
+    if (current.status === 'paid') {
+      throw new Error('Cannot void a paid invoice; issue a credit memo instead.')
+    }
+    if (current.status === 'voided') return current
+    const now = nowIso()
+    const updated: Invoice = {
+      ...current,
+      status: 'voided',
+      voidedAt: now,
+      voidedReason: input.reason,
       updatedAt: now,
     }
     rows[idx] = updated

@@ -4,7 +4,7 @@
  * Every assessment, quote, work order, compliance doc, and invoice ties back
  * to a property. Pipeline status is the kanban column on /admin/pipeline (E3).
  */
-import { pgTable, text, uuid, pgEnum, integer } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, pgEnum, integer, numeric } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 
 export const propertyStatusEnum = pgEnum('property_status', [
@@ -46,6 +46,19 @@ export const properties = pgTable('properties', {
   // Geo (Phase 2 — populated by geocoding job)
   latitude: integer('latitude'), // microdegrees (lat * 1e6)
   longitude: integer('longitude'),
+
+  // W2-1 / EH-E — richer property metadata (ADR-0018). All nullable so
+  // legacy rows survive the migration; UI surfaces them as "—" when blank.
+  lotSizeAcres: numeric('lot_size_acres', { precision: 12, scale: 4 }),
+  parcelNumber: text('parcel_number'),
+  yearBuilt: integer('year_built'),
+  accessNotes: text('access_notes'),
+  gateCode: text('gate_code'),
+  specialInstructions: text('special_instructions'),
+  // Soft FK to contacts.id — intentionally NOT a Drizzle reference because
+  // contacts.propertyId points back here and a hard FK would form a cycle
+  // that breaks bulk delete order. Service layer validates the link.
+  primaryContactId: uuid('primary_contact_id'),
 
   ...auditColumns,
 })

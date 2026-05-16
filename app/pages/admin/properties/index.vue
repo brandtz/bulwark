@@ -116,6 +116,15 @@ async function onChangeStatus(propertyId: string, status: PropertyStatus) {
   await property.updateStatus(propertyId, status, orgId.value)
   await refreshNuxtData(`properties-${orgId.value}`)
 }
+
+// W4-1 / EH-P — saved-views integration. The only persistable state on
+// this page today is the kanban/list view toggle; future filters (column
+// visibility, search) append to `currentFilters` and `applySavedView`.
+const currentFilters = computed(() => ({ view: view.value }))
+function applySavedView(payload: { filters: Record<string, unknown> }) {
+  const v = payload.filters?.view
+  if (v === 'kanban' || v === 'list') view.value = v
+}
 </script>
 
 <template>
@@ -136,6 +145,11 @@ async function onChangeStatus(propertyId: string, status: PropertyStatus) {
           aria-label="Pipeline view"
           data-testid="pipeline-view-toggle"
         />
+        <SavedViewsMenu
+          entity-type="property"
+          :current-filters="currentFilters"
+          @apply="applySavedView"
+        />
         <NuxtLink
           to="/admin/properties/new"
           data-testid="new-property-button"
@@ -146,7 +160,12 @@ async function onChangeStatus(propertyId: string, status: PropertyStatus) {
       </div>
     </header>
 
-    <div v-if="view === 'kanban'" class="flex-1 overflow-x-auto">
+    <div v-if="!list" class="p-4 md:p-6" data-testid="properties-loading">
+      <!-- W2-6 / EH-L: shimmer rows for re-fetches / cold client navs. -->
+      <BulwarkTableSkeleton :rows="8" :cols="4" />
+    </div>
+
+    <div v-else-if="view === 'kanban'" class="flex-1 overflow-x-auto">
       <div class="flex gap-3 p-4 md:p-6 min-w-max">
         <PipelineColumn
           v-for="status in COLUMN_ORDER"

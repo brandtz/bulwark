@@ -4,16 +4,22 @@
  * Pages call `const { $services } = useNuxtApp()` or the `useService(name)`
  * helper composable (app/composables/useService.ts). ADR-0004.
  *
- * # Decisions (E11-S13)
+ * # Decisions (E11-S13, ADR-0015 / EH-C)
+ *   - Real backend is now the runtime DEFAULT (ADR-0015). The plugin
+ *     installs the RPC proxy unless BULWARK_BACKEND=mock is explicitly
+ *     set. Mock services back unit/integration tests only — they no
+ *     longer power any developer's `pnpm dev` by accident.
  *   - Mock backend: in-process factory, cookie-backed persona adapter.
+ *     Retained for offline development demos and unit tests.
  *   - Real backend: a tiny RPC proxy. Every method dispatches to
  *     `POST /api/services/[service]/[method]` with the input as the
  *     body. The server side runs `createRealServices(event)` which
  *     does the actual DB work.
  *   - Plugin runs both server + client. To avoid pulling Drizzle/pg
  *     into the client bundle, we NEVER import the real factory here —
- *     the proxy talks HTTP. On SSR, Nuxt's `$fetch` short-circuits to
- *     in-memory dispatch, so there's no real network round-trip.
+ *     the proxy talks HTTP. On SSR we use `useRequestFetch()` so the
+ *     incoming `nuxt-session` cookie is forwarded to internal API
+ *     calls (otherwise `auth.currentUser()` returns null on SSR nav).
  *
  * # Decision cast down
  *   - Per-domain mock-vs-real toggling at runtime. Rejected — flipping

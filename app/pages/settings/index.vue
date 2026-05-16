@@ -17,6 +17,7 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
+import type { IconName } from '~/components/ui/icon-names'
 
 definePageMeta({
   middleware: ['role'],
@@ -32,19 +33,33 @@ interface SettingsCard {
   to: string
   title: string
   body: string
+  icon: string
   superAdminOnly?: boolean
 }
 
+// W2-6 / EH-L: each card gets a sprite glyph for visual scan speed.
+// Names come from app/components/ui/icon-names.ts (unit-test enforced).
 const CARDS: SettingsCard[] = [
-  { to: '/settings/company', title: 'Company', body: 'Org profile, GC license, and branding.' },
-  { to: '/settings/users', title: 'Users & roles', body: 'Memberships and role assignments.' },
-  { to: '/settings/standards', title: 'Compliance standards', body: 'Per-tenant overrides for the WUI evaluator.' },
-  { to: '/settings/workflow', title: 'Workflow', body: 'Pipeline statuses and trade list.' },
-  { to: '/settings/catalog', title: 'Catalog', body: 'Materials and labor rate defaults.' },
-  { to: '/settings/templates', title: 'Document templates', body: 'Quote, compliance, and invoice PDFs.' },
-  { to: '/settings/api-keys', title: 'API keys', body: 'Issue, view, and revoke programmatic credentials.' },
-  { to: '/settings/audit-log', title: 'Audit log', body: 'Read-only history of writes across the org.' },
-  { to: '/settings/feature-flags', title: 'Feature flags', body: 'Per-tenant toggles (super_admin only).', superAdminOnly: true },
+  { to: '/settings/company', title: 'Company', body: 'Org profile, GC license, and branding.', icon: 'building' },
+  { to: '/settings/branding', title: 'Branding', body: 'Logo, colors, footer text, and locale defaults.', icon: 'image' },
+  { to: '/settings/labels', title: 'Labels', body: 'Override status names, trade names, and other user-facing copy.', icon: 'edit' },
+  { to: '/settings/pipelines', title: 'Status pipelines', body: 'Editable status slugs and allowed transitions per entity.', icon: 'list' },
+  { to: '/settings/trades', title: 'Trades', body: 'Tenant catalog of trades for WO scaffolding.', icon: 'wrench' },
+  { to: '/settings/numbering-defaults', title: 'Numbering & defaults', body: 'Quote/WO/invoice number formats and SLA defaults.', icon: 'clipboard' },
+  { to: '/settings/programs', title: 'Programs', body: 'Inspection & service programs.', icon: 'flame' },
+  { to: '/settings/inspection-templates', title: 'Inspection templates', body: 'Author and edit the field-capture forms per program.', icon: 'file-text' },
+  { to: '/settings/users', title: 'Users & roles', body: 'Memberships and role assignments.', icon: 'users' },
+  { to: '/settings/standards', title: 'Compliance standards', body: 'Per-tenant overrides for the WUI evaluator.', icon: 'shield' },
+  { to: '/settings/workflow', title: 'Workflow', body: 'Pipeline statuses and trade list.', icon: 'refresh' },
+  { to: '/settings/catalog', title: 'Catalog', body: 'Materials and labor rate defaults.', icon: 'list' },
+  { to: '/settings/templates', title: 'Document templates', body: 'Quote, compliance, and invoice PDFs.', icon: 'file' },
+  { to: '/settings/api-keys', title: 'API keys', body: 'Issue, view, and revoke programmatic credentials.', icon: 'shield' },
+  { to: '/settings/providers', title: 'Providers', body: 'Configure email, SMS, storage, and PDF providers.', icon: 'settings' },
+  { to: '/settings/webhooks', title: 'Webhooks', body: 'Outbound HTTP subscriptions for org events.', icon: 'external-link' },
+  { to: '/settings/audit-log', title: 'Audit log', body: 'Read-only history of writes across the org.', icon: 'eye' },
+  { to: '/settings/saved-views', title: 'Saved views', body: 'Manage your private and shared list views.', icon: 'list' },
+  { to: '/settings/permissions', title: 'Permissions', body: 'Per-role overrides for fine-grained capabilities.', icon: 'shield' },
+  { to: '/settings/feature-flags', title: 'Feature flags', body: 'Per-tenant toggles (super_admin only).', icon: 'alert-triangle', superAdminOnly: true },
 ]
 
 const visibleCards = computed(() =>
@@ -67,8 +82,14 @@ const visibleCards = computed(() =>
       <li v-for="card in visibleCards" :key="card.to" data-testid="settings-card">
         <NuxtLink :to="card.to" class="block">
           <BulwarkCard padding="md" clickable>
-            <p class="text-body font-medium text-text-primary">{{ card.title }}</p>
-            <p class="text-small text-text-secondary mt-1">{{ card.body }}</p>
+            <div class="flex items-start gap-3">
+              <!-- W2-6 / EH-L: scan glyph from the sprite. -->
+              <BulwarkIcon :name="(card.icon as IconName)" size="lg" class="mt-0.5 text-primary shrink-0" />
+              <div class="min-w-0">
+                <p class="text-body font-medium text-text-primary">{{ card.title }}</p>
+                <p class="text-small text-text-secondary mt-1">{{ card.body }}</p>
+              </div>
+            </div>
           </BulwarkCard>
         </NuxtLink>
       </li>

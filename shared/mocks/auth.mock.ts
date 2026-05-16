@@ -20,6 +20,10 @@
 import type {
   IAuthService,
   AuthResult,
+  AuthLoginResult,
+  AuthAttemptRow,
+  GetAttemptsInput,
+  LockoutState,
   LoginInput,
   SessionUser,
   RequestPasswordResetInput,
@@ -139,7 +143,7 @@ const ONE_HOUR_MS = 60 * 60 * 1000
 export class MockAuthService implements IAuthService {
   constructor(private readonly adapter: MockAuthSessionAdapter) {}
 
-  async login(input: LoginInput): Promise<AuthResult> {
+  async login(input: LoginInput): Promise<AuthLoginResult> {
     const key = input.email.toLowerCase()
     // Unknown emails fall back to the org_admin persona for demo convenience.
     // RealAuthService (E11-S2) MUST reject unknown emails.
@@ -149,7 +153,23 @@ export class MockAuthService implements IAuthService {
     // Reset any prior org override — fresh login starts on the user's
     // default org.
     this.adapter.setActiveOrgOverride?.(null)
+    return { kind: 'session', user: u }
+  }
+
+  // Mock backend doesn't enforce MFA — the verifyMfa step just returns the
+  // current session. Tests that exercise the MFA path use the real service.
+  async verifyMfa(_mfaToken: string, _code: string): Promise<AuthResult> {
+    const u = await this.currentUser()
+    if (!u) throw new Error('Not signed in')
     return { user: u }
+  }
+
+  async getAttempts(_input: GetAttemptsInput): Promise<{ attempts: AuthAttemptRow[] }> {
+    return { attempts: [] }
+  }
+
+  async getLockoutState(_input: { email: string }): Promise<LockoutState> {
+    return { locked: false, until: null, attemptsRemaining: 5 }
   }
 
   async logout(): Promise<void> {

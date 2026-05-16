@@ -24,24 +24,91 @@
     to avoid the "I have to click" annoyance.
 -->
 <script setup lang="ts">
+import { formatRetryAfter } from '~/composables/login-flow-helpers'
+
 definePageMeta({ layout: false })
 useHead({ title: 'Sign in · Bulwark' })
 
 const route = useRoute()
-const { login, loading, error } = useAuth()
+const { loginEx, verifyMfa, loading, error } = useAuth()
+const { t } = useLabel()
+
+type Step =
+  | { kind: 'idle' }
+  | { kind: 'mfa'; mfaToken: string; email: string; useBackup: boolean }
+  | { kind: 'locked'; until: number }
 
 const email = ref('')
 const password = ref('')
+const code = ref('')
+const step = ref<Step>({ kind: 'idle' })
+const now = ref(Date.now())
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer)
+  countdownTimer = setInterval(() => {
+    now.value = Date.now()
+    if (step.value.kind === 'locked' && now.value >= step.value.until) {
+      step.value = { kind: 'idle' }
+      stopCountdown()
+    }
+  }, 1000)
+}
+function stopCountdown() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+}
+onBeforeUnmount(stopCountdown)
+
+const retrySecondsLeft = computed(() => {
+  if (step.value.kind !== 'locked') return 0
+  return Math.max(0, Math.ceil((step.value.until - now.value) / 1000))
+})
+const retryAfterDisplay = computed(() => formatRetryAfter(retrySecondsLeft.value))
 
 async function submit() {
-  if (!email.value || !password.value) {
+  if (!email.value || !password.value) return
+  const r = await loginEx({ email: email.value, password: password.value })
+  if (r.ok && r.kind === 'session') {
+    const next = typeof route.query.next === 'string' ? route.query.next : '/'
+    await navigateTo(next)
     return
   }
-  const ok = await login({ email: email.value, password: password.value })
+  if (r.ok && r.kind === 'mfa_required') {
+    step.value = { kind: 'mfa', mfaToken: r.mfaToken, email: r.email, useBackup: false }
+    code.value = ''
+    return
+  }
+  if (!r.ok && r.kind === 'locked') {
+    step.value = { kind: 'locked', until: Date.now() + r.retryAfterSeconds * 1000 }
+    now.value = Date.now()
+    startCountdown()
+    return
+  }
+  // 'error' kind — useAuth already set `error.value`; stay on idle.
+}
+
+async function submitMfa() {
+  if (step.value.kind !== 'mfa' || !code.value.trim()) return
+  const ok = await verifyMfa(step.value.mfaToken, code.value.trim())
   if (ok) {
     const next = typeof route.query.next === 'string' ? route.query.next : '/'
     await navigateTo(next)
   }
+}
+
+function toggleBackupCodeMode() {
+  if (step.value.kind !== 'mfa') return
+  step.value = { ...step.value, useBackup: !step.value.useBackup }
+  code.value = ''
+}
+
+function cancelMfa() {
+  step.value = { kind: 'idle' }
+  code.value = ''
 }
 
 // Dev-only quick logins so sponsors and tests don't have to remember mock creds.
@@ -52,14 +119,10 @@ const personas = [
 ]
 async function quickLogin(personaEmail: string) {
   email.value = personaEmail
-  // Use the seed demo password so the quick-pick works against the real
-  // backend too (the mock backend ignores the password). All seeded
-  // personas share this password by design (scripts/db-seed.mjs).
   password.value = 'BulwarkDemo!1'
   await submit()
 }
 
-// Persona quick-pick is dev/preview only; production builds (E11+) hide it.
 const showDevPersonas = import.meta.dev
 </script>
 
@@ -74,14 +137,83 @@ const showDevPersonas = import.meta.dev
         </div>
       </div>
 
+      <!-- Locked banner ------------------------------------------------ -->
+      <div
+        v-if="step.kind === 'locked'"
+        role="alert"
+        class="mb-4 rounded-card border border-status-warning/40 bg-status-warning/10 px-4 py-3 text-small text-text-primary"
+        data-testid="login-locked-banner"
+      >
+        <p class="font-medium">{{ t('login.locked', 'title', 'Account temporarily locked') }}</p>
+        <p class="mt-1 text-text-secondary" data-testid="login-locked-retry">
+          Try again in <span class="font-mono">{{ retryAfterDisplay }}</span>.
+        </p>
+      </div>
+
+      <!-- MFA panel ---------------------------------------------------- -->
       <form
+        v-if="step.kind === 'mfa'"
         class="space-y-4 bg-surface rounded-card p-6 shadow"
+        data-testid="login-mfa-form"
+        @submit.prevent="submitMfa"
+      >
+        <h1 class="text-h2 text-text-primary">{{ t('login.mfa', 'title', 'Two-factor required') }}</h1>
+        <p class="text-small text-text-secondary">
+          Enter the {{ step.useBackup ? 'backup code' : '6-digit code' }} for
+          <span class="font-medium text-text-primary">{{ step.email }}</span>.
+        </p>
+
+        <div
+          v-if="error"
+          role="alert"
+          class="rounded-input border border-status-error/30 bg-status-error/5 px-3 py-2 text-small text-status-error"
+        >{{ error }}</div>
+
+        <BulwarkInput
+          v-model="code"
+          :label="step.useBackup ? 'Backup code' : 'Code'"
+          :placeholder="step.useBackup ? 'XXXX-XXXX' : '123456'"
+          autocomplete="one-time-code"
+          inputmode="numeric"
+          required
+          data-testid="login-mfa-input"
+        />
+
+        <BulwarkButton
+          type="submit"
+          variant="primary"
+          :loading="loading"
+          class="w-full"
+          data-testid="login-mfa-submit"
+        >Verify</BulwarkButton>
+
+        <div class="flex items-center justify-between text-small">
+          <button
+            type="button"
+            class="text-primary hover:underline"
+            data-testid="login-mfa-toggle-backup"
+            @click="toggleBackupCodeMode"
+          >{{ step.useBackup ? 'Use authenticator code' : 'Use backup code' }}</button>
+          <button
+            type="button"
+            class="text-text-secondary hover:underline"
+            data-testid="login-mfa-cancel"
+            @click="cancelMfa"
+          >Cancel</button>
+        </div>
+      </form>
+
+      <!-- Default email/password form --------------------------------- -->
+      <form
+        v-else
+        class="space-y-4 bg-surface rounded-card p-6 shadow"
+        :class="{ 'opacity-60 pointer-events-none': step.kind === 'locked' }"
         @submit.prevent="submit"
       >
         <h1 class="text-h2 text-text-primary">Sign in</h1>
 
         <div
-          v-if="error"
+          v-if="error && step.kind !== 'locked'"
           role="alert"
           class="rounded-input border border-status-error/30 bg-status-error/5 px-3 py-2 text-small text-status-error"
         >{{ error }}</div>
@@ -106,13 +238,14 @@ const showDevPersonas = import.meta.dev
           type="submit"
           variant="primary"
           :loading="loading"
+          :disabled="step.kind === 'locked'"
           class="w-full"
         >
           Sign in
         </BulwarkButton>
       </form>
 
-      <div v-if="showDevPersonas" class="mt-6 rounded-card border border-border bg-surface p-4">
+      <div v-if="showDevPersonas && step.kind !== 'mfa'" class="mt-6 rounded-card border border-border bg-surface p-4">
         <p class="text-small font-medium text-text-primary">Demo personas (mock auth)</p>
         <p class="text-tiny text-text-secondary mt-0.5 mb-3">
           Click any persona to sign in instantly. The mock backend ignores the password.

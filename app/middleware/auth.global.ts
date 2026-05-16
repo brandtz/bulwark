@@ -26,6 +26,11 @@ const PUBLIC_ROUTES: ReadonlyArray<string | RegExp> = [
   '/reset-password',
   '/accept-invite',
   '/403',
+  // W5-4 (ADR-0038): public legal pages + goodbye page after deletion.
+  '/privacy',
+  '/terms',
+  '/dpa',
+  '/goodbye',
   /^\/dev(\/|$)/,
   /^\/_/,
 ]

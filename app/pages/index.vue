@@ -18,7 +18,9 @@ const target = computed(() => {
     case 'field':
       return '/field/dashboard'
     case 'sub_contractor':
-      return '/sub/dashboard'
+      return '/sub'
+    case 'homeowner':
+      return '/homeowner'
     default:
       return '/admin/dashboard'
   }

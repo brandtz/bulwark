@@ -6,6 +6,7 @@
 -->
 <script setup lang="ts">
 import { mobileNavItemsForRole } from '~~/shared/nav/nav.config'
+import type { IconName } from '~/components/ui/icon-names'
 
 const { session } = useSession()
 const route = useRoute()
@@ -33,7 +34,8 @@ function isActive(to: string): boolean {
         isActive(item.to) ? 'text-primary' : 'text-text-secondary',
       ]"
     >
-      <span class="w-5 h-5 rounded bg-current opacity-80" aria-hidden="true" />
+      <!-- W2-6 / EH-L: real glyph from the sprite. -->
+      <BulwarkIcon :name="(item.icon as IconName)" size="md" />
       <span>{{ item.label }}</span>
     </NuxtLink>
   </nav>
