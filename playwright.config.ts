@@ -46,7 +46,10 @@ export default defineConfig({
     command: 'pnpm dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    // Cold-start of Nuxt 3.21 dev with 60+ routes + Vite scan regularly
+    // exceeds 2 minutes on dev hardware; bump to 5 minutes so the e2e
+    // suite isn't gated by webServer-spawn latency.
+    timeout: 300_000,
     env: {
       // ADR-0015 / EH-C: real backend is the runtime default. Mock survives
       // as an explicit opt-in (BULWARK_BACKEND=mock) for offline dev runs.
