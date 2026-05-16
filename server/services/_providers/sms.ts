@@ -69,7 +69,7 @@ export async function sendSms(input: SendSmsInput): Promise<SendSmsResult> {
   }
   const cfg = await resolveActiveProvider(input.organizationId)
   if (!cfg) {
-    // eslint-disable-next-line no-console
+     
     console.log(`[sms] (stub) to=${input.to} body=${input.body}`)
     return { id: `stub-${randomUUID()}`, stub: true, provider: 'stub' }
   }
@@ -79,7 +79,7 @@ export async function sendSms(input: SendSmsInput): Promise<SendSmsResult> {
     const authToken = typeof cfg.config.authToken === 'string' ? cfg.config.authToken : ''
     const from = typeof cfg.config.from === 'string' ? cfg.config.from : ''
     if (!accountSid || !authToken || !from) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[sms] twilio provider missing credentials; falling back to stub')
       return { id: `stub-${randomUUID()}`, stub: true, provider: 'twilio' }
     }
@@ -96,20 +96,20 @@ export async function sendSms(input: SendSmsInput): Promise<SendSmsResult> {
         body: params.toString(),
       })
       if (!res.ok) {
-        // eslint-disable-next-line no-console
+         
         console.warn(`[sms] twilio non-2xx status=${res.status}`)
         return { id: `stub-${randomUUID()}`, stub: true, provider: 'twilio' }
       }
       const body = (await res.json().catch(() => ({}))) as { sid?: string }
       return { id: body.sid ?? `twilio-${randomUUID()}`, stub: false, provider: 'twilio' }
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[sms] twilio send failed', (err as Error).message)
       return { id: `stub-${randomUUID()}`, stub: true, provider: 'twilio' }
     }
   }
 
-  // eslint-disable-next-line no-console
+   
   console.log(`[sms] (stub) provider=${cfg.provider} to=${input.to}`)
   return { id: `stub-${randomUUID()}`, stub: true, provider: cfg.provider }
 }

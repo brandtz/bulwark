@@ -59,6 +59,10 @@ const inspectionService = useService('inspection')
 const templateService = useService('inspectionTemplate')
 const { session, ensureLoaded } = useSession()
 const { t } = useLabel()
+// `flushSave` is a hoisted function declaration (line ~179). Vue requires
+// defineExpose to run before any top-level `await`, otherwise the call is
+// silently dropped because component context is lost during suspension.
+defineExpose({ flushSave })
 await ensureLoaded()
 if (!session.value) throw createError({ statusCode: 401, statusMessage: 'Not signed in' })
 const organizationId = session.value.activeOrganizationId
@@ -164,7 +168,7 @@ function removeInstance(section: InspectionTemplateSection, key: string): void {
   const next = current.filter((k) => k !== key)
   instances.value = { ...instances.value, [section.slug]: next }
   const r = { ...responses.value }
-  delete r[key]
+  Reflect.deleteProperty(r, key)
   responses.value = r
   scheduleAutoSave()
 }
@@ -246,8 +250,6 @@ const statusLabel = computed(() => {
 
 const issueSeverityClass = (sev: string) =>
   sev === 'error' ? 'text-status-error' : 'text-status-warning'
-
-defineExpose({ flushSave })
 </script>
 
 <template>

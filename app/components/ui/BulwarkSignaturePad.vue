@@ -69,8 +69,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', v: string): void
-  (e: 'save', v: string): void
+  (e: 'update:modelValue' | 'save', v: string): void
   (e: 'clear'): void
 }>()
 

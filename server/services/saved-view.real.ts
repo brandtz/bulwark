@@ -235,8 +235,12 @@ export class RealSavedViewService implements ISavedViewService {
     })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
+  // Drizzle's PgTransaction generic signature is unstable across point
+  // releases; using the inferred parameter type from `db.transaction` here
+  // would require importing internals that aren't part of the public API.
   private async clearSiblingDefaultsTx(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see comment above
     tx: any,
     keepId: string,
     organizationId: string,

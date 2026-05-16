@@ -224,11 +224,11 @@ async function onTest(row: Webhook) {
                 data-testid="webhook-event-option"
               >
                 <input
+                  v-model="draft.eventTypes"
                   type="checkbox"
                   :value="e.eventType"
-                  v-model="draft.eventTypes"
                   class="mt-1"
-                />
+                >
                 <span>
                   <span class="font-medium">{{ e.label }}</span>
                   <span class="block text-tiny text-text-secondary">{{ e.eventType }}</span>

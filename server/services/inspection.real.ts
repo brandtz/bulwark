@@ -26,9 +26,9 @@ import type {
   InspectionResponse,
   InspectionSignInput,
   InspectionWithResponses,
-  SaveResponsesInput,
+  SaveResponsesInput, InspectionStatus 
 } from '../../shared/contracts/inspection'
-import type { InspectionStatus } from '../../shared/contracts/inspection'
+
 import { evaluateInspection } from '../../shared/utils/inspection-evaluator'
 import { getDb } from '../db/client'
 import { inspections } from '../db/schema/inspections'

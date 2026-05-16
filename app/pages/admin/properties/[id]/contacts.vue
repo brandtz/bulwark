@@ -329,7 +329,7 @@ useHead({ title: 'Contacts — Bulwark' })
             type="checkbox"
             class="rounded border-border-default"
             data-testid="contact-is-primary"
-          />
+          >
           Primary contact for this property
         </label>
         <BulwarkTextarea v-model="draft.notes" label="Notes" :rows="2" />

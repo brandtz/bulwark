@@ -45,7 +45,7 @@ test.describe('Invoice partial payments (W2-3b)', () => {
     // Read the remaining balance string ($1,234.56), parse, and split it 40/60.
     const remainingText = (await page.getByTestId('balance-remaining').textContent()) ?? '$0.00'
     const remainingCents = Math.round(
-      Number(remainingText.replace(/[^0-9.\-]/g, '')) * 100,
+      Number(remainingText.replace(/[^0-9.-]/g, '')) * 100,
     )
     expect(remainingCents).toBeGreaterThan(0)
     const firstPayment = Math.round(remainingCents * 0.4)

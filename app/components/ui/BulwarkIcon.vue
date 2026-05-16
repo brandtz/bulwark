@@ -34,66 +34,12 @@
       another bug surface.
 -->
 <script setup lang="ts">
-/**
- * Canonical glyph names. Keep in sync with public/icons/sprite.svg —
- * the unit test cross-references this list against the sprite's
- * `<symbol id="bw-...">` entries.
- */
-export const ICON_NAMES = [
-  'alert-circle',
-  'alert-triangle',
-  'arrow-left',
-  'arrow-right',
-  'bell',
-  'briefcase',
-  'building',
-  'calendar',
-  'camera',
-  'check',
-  'check-circle',
-  'chevron-down',
-  'chevron-left',
-  'chevron-right',
-  'chevron-up',
-  'clipboard',
-  'clock',
-  'dollar-sign',
-  'download',
-  'edit',
-  'external-link',
-  'eye',
-  'eye-off',
-  'file',
-  'file-text',
-  'filter',
-  'flame',
-  'home',
-  'image',
-  'info',
-  'list',
-  'map-pin',
-  'menu',
-  'minus',
-  'more-horizontal',
-  'pencil',
-  'phone',
-  'plus',
-  'printer',
-  'refresh',
-  'search',
-  'settings',
-  'shield',
-  'tool',
-  'trash',
-  'upload',
-  'user',
-  'users',
-  'wrench',
-  'x',
-  'x-circle',
-] as const
+// Canonical glyph names live in ./icon-names.ts. `<script setup>` cannot
+// contain ES module exports, so the source of truth is the sibling file —
+// the unit test cross-references that list against public/icons/sprite.svg.
+import { ICON_NAMES, type IconName } from './icon-names'
 
-export type IconName = (typeof ICON_NAMES)[number]
+void ICON_NAMES // referenced via `IconName` type only; keeps tree-shaking honest
 
 type Size = 'sm' | 'md' | 'lg' | 'xl'
 

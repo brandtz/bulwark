@@ -125,7 +125,7 @@ void NOTIFICATION_DEFAULTS
                 :disabled="saving === evt.eventType + ':inApp'"
                 data-testid="channel-inApp"
                 @change="toggle(evt.eventType, 'inApp')"
-              />
+              >
             </td>
             <td class="p-3 text-center">
               <input
@@ -134,7 +134,7 @@ void NOTIFICATION_DEFAULTS
                 :disabled="saving === evt.eventType + ':email'"
                 data-testid="channel-email"
                 @change="toggle(evt.eventType, 'email')"
-              />
+              >
             </td>
             <td class="p-3 text-center">
               <input
@@ -143,7 +143,7 @@ void NOTIFICATION_DEFAULTS
                 :disabled="saving === evt.eventType + ':sms'"
                 data-testid="channel-sms"
                 @change="toggle(evt.eventType, 'sms')"
-              />
+              >
             </td>
           </tr>
         </tbody>

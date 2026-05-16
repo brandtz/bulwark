@@ -88,6 +88,7 @@ export class RealAccountService implements IAccountService {
   // Accept tenantResolver for factory-parity with sibling services, but discard it:
   // account export/delete are intentionally user-scoped (cross-tenant for users with
   // multi-org membership). Underscore-prefix satisfies noUnusedParameters.
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor -- preserves factory signature parity (see services-factory.ts)
   constructor(_tenantResolver?: TenantResolver) {}
 
   async exportPersonalData(userId: string): Promise<AccountExport> {

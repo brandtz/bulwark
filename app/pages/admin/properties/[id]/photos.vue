@@ -207,7 +207,7 @@ useHead({ title: 'Photos — Bulwark' })
               v-model="captionDraft"
               class="w-full text-small border border-border-default rounded-input px-2 py-1"
               data-testid="photo-caption-input"
-            />
+            >
             <div class="flex justify-end gap-2 mt-1">
               <button
                 type="button"

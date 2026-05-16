@@ -14,7 +14,7 @@
  */
 import { z } from 'zod'
 import { createRealServices } from '~~/server/utils/services-factory'
-import { RealWorkOrderService } from '~~/server/services/work-order.real'
+import type { RealWorkOrderService } from '~~/server/services/work-order.real'
 
 // W5-3 / ADR-0037: validate the date param at the boundary.
 const QuerySchema = z.object({

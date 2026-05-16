@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { MockSubcontractorService, __resetSubcontractorMock } from '~~/shared/mocks/subcontractor.mock'
 import { MockQuoteService } from '~~/shared/mocks/quote.mock'
-import { type TenantResolver } from '~~/shared/mocks/tenant'
+import type { TenantResolver } from '~~/shared/mocks/tenant'
 import {
   FIXTURE_ORG_ID,
   FIXTURE_USER_ADMIN,

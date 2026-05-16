@@ -120,7 +120,7 @@ export async function emit<T>(event: DomainEvent<T>, payload: T): Promise<void> 
   ])
   for (const r of results) {
     if (r.status === 'rejected') {
-      // eslint-disable-next-line no-console
+       
       console.error(`[bulwark.events] subscriber rejected on '${event.name}':`, r.reason)
     }
   }

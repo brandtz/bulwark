@@ -221,7 +221,7 @@ async function doDisable() {
             alt="MFA QR code"
             class="w-48 h-48 border border-border rounded-card"
             data-testid="mfa-qr-image"
-          />
+          >
           <div class="flex-1 min-w-0">
             <p class="text-small text-text-secondary">Or enter this secret manually:</p>
             <code

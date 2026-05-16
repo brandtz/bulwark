@@ -133,7 +133,7 @@ function entityTypeLabel(t: string): string {
               autocomplete="off"
               spellcheck="false"
               @input="onInput"
-            />
+            >
             <button
               type="button"
               class="text-tiny text-text-secondary px-2 py-0.5 rounded border border-border"

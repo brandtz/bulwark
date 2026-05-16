@@ -128,7 +128,7 @@ export function useLabel(): {
   // Guarded by `ready` so subsequent `useLabel()` calls in already-loaded
   // components don't restart the request storm.
   if (!entry().value.ready && !inflight.value[orgId.value]) {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+     
     reload()
   }
 
@@ -138,7 +138,7 @@ export function useLabel(): {
   watch(orgId, (next, prev) => {
     if (next === prev) return
     if (!entry().value.ready && !inflight.value[next]) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+       
       reload()
     }
   })

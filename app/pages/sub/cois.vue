@@ -95,13 +95,13 @@ async function upload(): Promise<void> {
       <h2 class="text-body font-semibold">Upload a new COI</h2>
       <form class="mt-3 space-y-3" @submit.prevent="upload">
         <label class="block text-small">File URL
-          <input v-model="form.fileUrl" type="url" required class="mt-1 w-full h-input rounded-input border border-border px-2" data-testid="sub-coi-file-url" />
+          <input v-model="form.fileUrl" type="url" required class="mt-1 w-full h-input rounded-input border border-border px-2" data-testid="sub-coi-file-url" >
         </label>
         <label class="block text-small">File name
-          <input v-model="form.fileName" type="text" required class="mt-1 w-full h-input rounded-input border border-border px-2" data-testid="sub-coi-file-name" />
+          <input v-model="form.fileName" type="text" required class="mt-1 w-full h-input rounded-input border border-border px-2" data-testid="sub-coi-file-name" >
         </label>
         <label class="block text-small">Expires
-          <input v-model="form.expiresAt" type="date" required class="mt-1 w-full h-input rounded-input border border-border px-2" data-testid="sub-coi-expires" />
+          <input v-model="form.expiresAt" type="date" required class="mt-1 w-full h-input rounded-input border border-border px-2" data-testid="sub-coi-expires" >
         </label>
         <label class="block text-small">Notes
           <textarea v-model="form.notes" class="mt-1 w-full rounded-input border border-border px-2 py-1" rows="2" />

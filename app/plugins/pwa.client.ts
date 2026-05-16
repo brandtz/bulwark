@@ -30,7 +30,7 @@ export default defineNuxtPlugin(() => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .catch((err: unknown) => {
-        // eslint-disable-next-line no-console
+         
         console.warn('[bulwark] service worker registration failed', err)
       })
   })

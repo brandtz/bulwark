@@ -386,7 +386,7 @@ const compliance = computed(() => {
                   alt="Property photo"
                   class="w-full aspect-video object-cover rounded-card"
                   loading="lazy"
-                />
+                >
               </NuxtLink>
             </BulwarkCard>
 

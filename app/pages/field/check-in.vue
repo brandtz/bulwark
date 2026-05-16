@@ -99,12 +99,12 @@ async function check(kind: 'in' | 'out'): Promise<void> {
           ]"
         >
           <input
+            v-model="selected"
             type="radio"
             :value="p.id"
-            v-model="selected"
             class="sr-only"
             :data-testid="`field-check-in-property-${p.id}`"
-          />
+          >
           <div class="flex-1 min-w-0">
             <p class="text-small font-semibold truncate">{{ p.addressLine1 }}</p>
             <p class="text-tiny text-text-secondary truncate">

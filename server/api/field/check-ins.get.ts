@@ -9,7 +9,7 @@
  */
 import { z } from 'zod'
 import { createRealServices } from '~~/server/utils/services-factory'
-import { RealAuditService } from '~~/server/services/audit.real'
+import type { RealAuditService } from '~~/server/services/audit.real'
 
 const QuerySchema = z.object({
   workOrderId: z.string().uuid(),

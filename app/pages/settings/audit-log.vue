@@ -153,15 +153,15 @@ function formatTimestamp(iso: string): string {
       <form class="grid grid-cols-1 md:grid-cols-4 gap-3" @submit.prevent="onApplyFilters">
         <div>
           <label class="block text-tiny font-medium text-text-secondary mb-1">From</label>
-          <input v-model="form.dateFrom" type="date" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small" data-testid="audit-filter-from" />
+          <input v-model="form.dateFrom" type="date" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small" data-testid="audit-filter-from" >
         </div>
         <div>
           <label class="block text-tiny font-medium text-text-secondary mb-1">To</label>
-          <input v-model="form.dateTo" type="date" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small" data-testid="audit-filter-to" />
+          <input v-model="form.dateTo" type="date" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small" data-testid="audit-filter-to" >
         </div>
         <div>
           <label class="block text-tiny font-medium text-text-secondary mb-1">Entity type</label>
-          <input v-model="form.entityType" type="text" placeholder="quote" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small" data-testid="audit-filter-entity-type" />
+          <input v-model="form.entityType" type="text" placeholder="quote" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small" data-testid="audit-filter-entity-type" >
         </div>
         <div>
           <label class="block text-tiny font-medium text-text-secondary mb-1">Action</label>
@@ -175,15 +175,15 @@ function formatTimestamp(iso: string): string {
         </div>
         <div>
           <label class="block text-tiny font-medium text-text-secondary mb-1">Actor user ID</label>
-          <input v-model="form.actorUserId" type="text" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small font-mono" data-testid="audit-filter-actor" />
+          <input v-model="form.actorUserId" type="text" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small font-mono" data-testid="audit-filter-actor" >
         </div>
         <div>
           <label class="block text-tiny font-medium text-text-secondary mb-1">Entity ID</label>
-          <input v-model="form.entityId" type="text" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small font-mono" data-testid="audit-filter-entity-id" />
+          <input v-model="form.entityId" type="text" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small font-mono" data-testid="audit-filter-entity-id" >
         </div>
         <div class="md:col-span-2">
           <label class="block text-tiny font-medium text-text-secondary mb-1">Search</label>
-          <input v-model="form.search" type="text" placeholder="full-text across metadata" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small" data-testid="audit-filter-search" />
+          <input v-model="form.search" type="text" placeholder="full-text across metadata" class="w-full rounded-input border border-border-default bg-surface-base px-2 py-1 text-small" data-testid="audit-filter-search" >
         </div>
         <div class="md:col-span-4 flex justify-end gap-2">
           <BulwarkButton type="button" variant="secondary" size="sm" @click="onClear">Clear</BulwarkButton>

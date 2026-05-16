@@ -125,7 +125,7 @@ async function transitionPropertyTo(args: TransitionArgs): Promise<void> {
   if (check) {
     const ok = await Promise.resolve(check(organizationId, 'property', before.status, to))
     if (!ok) {
-      // eslint-disable-next-line no-console
+       
       console.warn(
         `[bulwark.events] pipeline blocked ${before.status} → ${to} for property ${propertyId}`,
       )
@@ -170,7 +170,7 @@ async function safeTransition(args: TransitionArgs): Promise<void> {
   try {
     await transitionPropertyTo(args)
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error(
       `[bulwark.events] auto-transition failed for property ${args.propertyId}:`,
       err,

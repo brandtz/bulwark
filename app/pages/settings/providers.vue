@@ -138,7 +138,7 @@ async function saveEdit() {
               :type="field.toLowerCase().includes('key') || field === 'authToken' ? 'password' : 'text'"
               class="w-full rounded-input border border-border-default bg-surface-base px-3 py-2"
               :data-testid="`provider-field-${field}`"
-            />
+            >
           </div>
           <p
             v-if="PROVIDER_FIELDS[editing.provider].length === 0"

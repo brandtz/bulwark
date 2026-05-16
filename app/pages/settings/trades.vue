@@ -213,13 +213,16 @@ async function onDelete(t: TradeRecord) {
                   data-testid="trade-builtin-badge"
                   class="inline-flex items-center rounded-pill bg-info-light text-info px-2 py-0.5 text-tiny font-medium"
                 >Built-in</span>
-                <span v-else
+                <span
+v-else
                   class="inline-flex items-center rounded-pill bg-surface-muted text-text-secondary px-2 py-0.5 text-tiny font-medium"
                 >Custom</span>
-                <span v-if="t.isActive"
+                <span
+v-if="t.isActive"
                   class="inline-flex items-center rounded-pill bg-success-light text-success-dark px-2 py-0.5 text-tiny font-medium"
                 >Active</span>
-                <span v-else
+                <span
+v-else
                   class="inline-flex items-center rounded-pill bg-blocked-light text-blocked px-2 py-0.5 text-tiny font-medium"
                 >Inactive</span>
               </div>
@@ -282,7 +285,7 @@ async function onDelete(t: TradeRecord) {
           @update:model-value="(v: string) => (form.sortOrder = Number(v) || 0)"
         />
         <label class="inline-flex items-center gap-2 text-small">
-          <input type="checkbox" v-model="form.isActive" /> Active
+          <input v-model="form.isActive" type="checkbox" > Active
         </label>
         <p v-if="formError" class="text-small text-status-error" role="alert">{{ formError }}</p>
         <footer class="flex items-center justify-end gap-2">

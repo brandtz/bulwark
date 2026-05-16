@@ -236,13 +236,13 @@ void refresh
             type="date"
             class="text-small px-2 py-1.5 rounded-md border border-border bg-surface"
             data-testid="report-range-custom-from"
-          />
+          >
           <input
             v-model="customTo"
             type="date"
             class="text-small px-2 py-1.5 rounded-md border border-border bg-surface"
             data-testid="report-range-custom-to"
-          />
+          >
         </template>
         <BulwarkButton
           size="md"

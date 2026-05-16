@@ -236,7 +236,7 @@ async function submitSave() {
             type="checkbox"
             class="rounded border-border"
             data-testid="saved-view-default-toggle"
-          />
+          >
           Make default
         </label>
         <label class="inline-flex items-center gap-2 text-small">
@@ -245,7 +245,7 @@ async function submitSave() {
             type="checkbox"
             class="rounded border-border"
             data-testid="saved-view-shared-toggle"
-          />
+          >
           Share with org
         </label>
         <p v-if="saveError" class="text-small text-status-error">{{ saveError }}</p>

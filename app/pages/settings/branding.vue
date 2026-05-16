@@ -67,7 +67,7 @@ const DATE_FORMATS = [
 
 async function onSave() {
   serverError.value = ''
-  for (const k of Object.keys(fieldErrors)) delete fieldErrors[k]
+  for (const k of Object.keys(fieldErrors)) Reflect.deleteProperty(fieldErrors, k)
   const parse = BrandingUpdateInputSchema.safeParse({
     organizationId: orgId.value,
     logoUrl: form.logoUrl,

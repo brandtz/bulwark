@@ -15,7 +15,7 @@ import { MockPropertyService } from '~~/shared/mocks/property.mock'
 import { MockBuildingService, __resetBuildingMock } from '~~/shared/mocks/building.mock'
 import { MockContactService, __resetContactMock } from '~~/shared/mocks/contact.mock'
 import { MockPropertyPhotoService, __resetPropertyPhotoMock } from '~~/shared/mocks/property-photo.mock'
-import { type TenantResolver } from '~~/shared/mocks/tenant'
+import type { TenantResolver } from '~~/shared/mocks/tenant'
 import { FIXTURE_ORG_ID, FIXTURE_USER_ADMIN, FIXTURE_PROPERTIES } from '~~/shared/mocks/fixtures'
 
 const adminCtxResolver: TenantResolver = () => ({

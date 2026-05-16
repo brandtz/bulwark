@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { MockContactService, __resetContactMock } from '~~/shared/mocks/contact.mock'
-import { type TenantResolver } from '~~/shared/mocks/tenant'
+import type { TenantResolver } from '~~/shared/mocks/tenant'
 import { FIXTURE_ORG_ID, FIXTURE_USER_ADMIN, FIXTURE_PROPERTIES } from '~~/shared/mocks/fixtures'
 
 const adminCtxResolver: TenantResolver = () => ({

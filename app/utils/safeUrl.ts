@@ -59,7 +59,8 @@ export function safeUrl(input: string | null | undefined): string | null {
   if (input == null) return null
   // Strip ASCII whitespace + control chars (incl. tab, NL, CR, NUL).
   // Browsers ignore them inside URL schemes; an allow-list that
-  // didn't would be trivially bypassable.
+  // didn't strip them would be trivially bypassable.
+  // eslint-disable-next-line no-control-regex -- intentional: must match NUL..0x1f to defeat scheme-obfuscation
   const cleaned = String(input).replace(/[\u0000-\u001f\u007f-\u009f\s]/gu, '')
   if (cleaned.length === 0) return null
 

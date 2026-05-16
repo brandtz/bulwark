@@ -89,7 +89,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   }
   const cfg = await resolveActiveProvider(input.organizationId)
   if (!cfg) {
-    // eslint-disable-next-line no-console
+     
     console.log(`[email] (stub) to=${input.to} subject=${input.subject}`)
     return { id: `stub-${randomUUID()}`, stub: true, provider: 'stub' }
   }
@@ -98,7 +98,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     const apiKey = typeof cfg.config.apiKey === 'string' ? cfg.config.apiKey : ''
     const from = typeof cfg.config.from === 'string' ? cfg.config.from : 'notifications@bulwark.local'
     if (!apiKey) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[email] resend provider missing apiKey; falling back to stub')
       return { id: `stub-${randomUUID()}`, stub: true, provider: 'resend' }
     }
@@ -118,21 +118,21 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         }),
       })
       if (!res.ok) {
-        // eslint-disable-next-line no-console
+         
         console.warn(`[email] resend non-2xx status=${res.status}`)
         return { id: `stub-${randomUUID()}`, stub: true, provider: 'resend' }
       }
       const body = (await res.json().catch(() => ({}))) as { id?: string }
       return { id: body.id ?? `resend-${randomUUID()}`, stub: false, provider: 'resend' }
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[email] resend send failed', (err as Error).message)
       return { id: `stub-${randomUUID()}`, stub: true, provider: 'resend' }
     }
   }
 
   // Unknown provider — log + stub. Phase 2 may add postmark / sendgrid.
-  // eslint-disable-next-line no-console
+   
   console.log(`[email] (stub) provider=${cfg.provider} to=${input.to}`)
   return { id: `stub-${randomUUID()}`, stub: true, provider: cfg.provider }
 }

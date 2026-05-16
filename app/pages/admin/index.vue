@@ -219,13 +219,13 @@ void refreshKpis
             type="date"
             class="text-small px-2 py-1.5 rounded-md border border-border bg-surface"
             data-testid="range-custom-from"
-          />
+          >
           <input
             v-model="customTo"
             type="date"
             class="text-small px-2 py-1.5 rounded-md border border-border bg-surface"
             data-testid="range-custom-to"
-          />
+          >
         </template>
       </div>
     </div>

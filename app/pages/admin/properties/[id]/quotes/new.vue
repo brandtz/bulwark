@@ -458,7 +458,7 @@ async function onSubmit() {
                   type="checkbox"
                   class="h-4 w-4 rounded border-border-default"
                   :data-testid="`line-item-${idx}-optional`"
-                />
+                >
                 <label
                   :for="`opt-${li.id}`"
                   class="text-small text-text-secondary"

@@ -38,8 +38,8 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { onAny } from '../../../shared/events/bus'
 import { getDb } from '../../db/client'
-import { users } from '../../db/schema/users'
-import { memberships } from '../../db/schema/users'
+import { users, memberships  } from '../../db/schema/users'
+
 import { notificationSubscriptions } from '../../db/schema/notification_subscriptions'
 import { notifications } from '../../db/schema/notifications'
 import { auditLog } from '../../db/schema/audit_log'

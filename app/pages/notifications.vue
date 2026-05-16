@@ -105,7 +105,7 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize))
             v-model="unreadOnly"
             type="checkbox"
             data-testid="notifications-filter-unread"
-          />
+          >
           Unread only
         </label>
         <button

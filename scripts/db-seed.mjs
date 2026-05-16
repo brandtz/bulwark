@@ -74,7 +74,6 @@ const mk = (slug) => {
   return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-${variant}${h.slice(17,20)}-${h.slice(20,32)}`
 }
 
-const NOW = '2026-05-03T20:00:00.000Z'
 const PAST_ISO = '2026-04-15T17:00:00.000Z'
 const NEAR_FUTURE_ISO = '2026-05-30T17:00:00.000Z'
 

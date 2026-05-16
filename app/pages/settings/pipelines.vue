@@ -248,15 +248,15 @@ async function onSave() {
                   :checked="n.isInitial"
                   data-testid="pipeline-node-initial"
                   @change="setInitial(idx)"
-                />
+                >
                 Initial
               </label>
               <label class="inline-flex items-center gap-2 text-small">
                 <input
-                  type="checkbox"
                   v-model="n.isTerminal"
+                  type="checkbox"
                   data-testid="pipeline-node-terminal"
-                />
+                >
                 Terminal
               </label>
             </div>

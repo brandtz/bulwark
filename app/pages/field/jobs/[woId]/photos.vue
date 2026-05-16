@@ -159,7 +159,7 @@ onMounted(() => {
         :disabled="uploading"
         data-testid="field-photos-input"
         @change="onPick"
-      />
+      >
       {{ uploading ? 'Uploading…' : 'Take photo' }}
     </label>
 
@@ -181,7 +181,7 @@ onMounted(() => {
           :src="safeUrl(photo.thumbnailUrl ?? photo.url) ?? '/icons/sprite.svg#bw-image'"
           :alt="photo.caption ?? 'Site photo'"
           class="w-full h-full object-cover"
-        />
+        >
         <button
           type="button"
           class="absolute top-1 right-1 min-h-tap min-w-tap inline-flex items-center justify-center bg-surface/80 rounded-full text-status-error text-tiny font-bold"

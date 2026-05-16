@@ -33,7 +33,7 @@ import type { QuoteLineItem } from '../contracts/quote'
 import { computeQuoteTotals } from '../utils/money'
 import { assertSameTenant, type TenantResolver } from './tenant'
 import { FIXTURE_INVOICES } from './fixtures'
-import { MockInvoicePaymentService } from './invoice-payment.mock'
+import type { MockInvoicePaymentService } from './invoice-payment.mock'
 
 const rows: Invoice[] = [...FIXTURE_INVOICES]
 const newId = () => crypto.randomUUID()
