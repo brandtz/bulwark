@@ -54,6 +54,12 @@ export default defineConfig({
       // ADR-0015 / EH-C: real backend is the runtime default. Mock survives
       // as an explicit opt-in (BULWARK_BACKEND=mock) for offline dev runs.
       BULWARK_BACKEND: process.env.BULWARK_BACKEND || 'real',
+      // W5-1 / EH-R: the login rate-limiter (5/min per IP) hammers the e2e
+      // suite, which authenticates as ~12 personas back-to-back. Default
+      // the bypass ON in playwright so specs don't have to sleep; explicit
+      // opt-out with BULWARK_RATE_LIMIT_DISABLED=0 if a spec wants to
+      // exercise the limiter itself.
+      BULWARK_RATE_LIMIT_DISABLED: process.env.BULWARK_RATE_LIMIT_DISABLED ?? '1',
       ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
       ...(process.env.NUXT_SESSION_PASSWORD ? { NUXT_SESSION_PASSWORD: process.env.NUXT_SESSION_PASSWORD } : {}),
       ...(process.env.JWT_SECRET ? { JWT_SECRET: process.env.JWT_SECRET } : {}),

@@ -392,14 +392,23 @@ try {
   // in other orgs aren't affected and reset-victim's password gets restored
   // by the upsert below.
   const DEMO_ORG_IDS = [ORG_BULWARK.id, ORG_ACME.id]
+  // Dependents the seeder doesn't itself insert but other test setups
+  // (e.g. tests/setup/seed-homeowner-portal.ts) do. Must wipe before the
+  // tables they FK into, or `_reseed.ts` between specs trips on
+  // `homeowner_users_property_id_properties_id_fk` (and friends).
+  await sql`DELETE FROM invoice_payments WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM change_orders WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM compliance_docs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM jobs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM invoices WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM work_orders WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM quotes WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM assessments WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM homeowner_users WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM properties WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM clients WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM subcontractor_coi_docs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM subcontractor_users WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM subcontractors WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM api_keys WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM compliance_standards WHERE organization_id = ANY(${DEMO_ORG_IDS})`
@@ -565,6 +574,10 @@ try {
   // existing during e2e specs. Custom programs created by tests should
   // start fresh — wipe + ON CONFLICT keeps re-runs idempotent.
   await sql`DELETE FROM program_memberships WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  // inspection_templates.program_id references programs(id); custom templates
+  // bound to a previous run's program would block the delete below. Null the
+  // FK first so the programs wipe is unconditional.
+  await sql`UPDATE inspection_templates SET program_id = NULL WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM programs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
 
   const WILDFIRE_TRADE_SLOTS = [
