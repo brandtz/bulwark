@@ -48,6 +48,7 @@ import type {
   RequestPasswordResetInput,
   RequestPasswordResetResult,
   ResetPasswordInput,
+  ChangePasswordInput,
   AcceptInviteInput,
   InvitePreview,
 } from '../../shared/contracts/auth'
@@ -56,6 +57,7 @@ import {
   LoginInputSchema,
   RequestPasswordResetInputSchema,
   ResetPasswordInputSchema,
+  ChangePasswordInputSchema,
 } from '../../shared/contracts/auth'
 import { getDb } from '../db/client'
 import { users, memberships } from '../db/schema/users'
@@ -296,6 +298,30 @@ export class RealAuthService implements IAuthService {
     const session = await this.buildSessionUser(updated.id)
     if (!session) throw new Error('Account has no active memberships')
     return { user: session }
+  }
+
+  // --- Authenticated password change (E11 profile completion) -------------
+  //
+  // The user is signed in. We re-verify the current password (bcrypt
+  // compare) as a knowledge factor before applying the new hash, so an
+  // attacker who finds an unattended browser cannot pivot. Failures are
+  // generic ("Current password is incorrect") to avoid timing leaks; the
+  // bcrypt.compare itself dominates the timing envelope.
+  async changePassword(input: ChangePasswordInput): Promise<void> {
+    input = ChangePasswordInputSchema.parse(input)
+    const userId = await this.adapter.getActiveUserId()
+    if (!userId) throw new Error('Not authenticated')
+    const db = getDb()
+    const [row] = await db
+      .select({ id: users.id, hash: users.passwordHash, active: users.isActive })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+    if (!row || !row.active) throw new Error('Account not found or inactive')
+    const ok = await bcrypt.compare(input.currentPassword, row.hash ?? '')
+    if (!ok) throw new Error('Current password is incorrect')
+    const newHash = await RealAuthService.hashPassword(input.newPassword)
+    await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, row.id))
   }
 
   // --- invitations --------------------------------------------------------

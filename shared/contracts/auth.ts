@@ -114,6 +114,18 @@ export const ResetPasswordInputSchema = z.object({
 })
 export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>
 
+// --- Change password (E11 profile completion) -------------------------------
+//
+// Authenticated user changing their own password. Requires the current
+// password as a knowledge-factor check (defence against an unattended
+// browser session). Real backend re-hashes via bcrypt and writes
+// users.password_hash. Mock accepts any non-empty current password.
+export const ChangePasswordInputSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password required'),
+  newPassword: PasswordPolicy,
+})
+export type ChangePasswordInput = z.infer<typeof ChangePasswordInputSchema>
+
 export const InvitePreviewSchema = z.object({
   email: z.string().email(),
   organizationName: z.string(),
@@ -147,6 +159,9 @@ export interface IAuthService {
   // Password reset.
   requestPasswordReset(input: RequestPasswordResetInput): Promise<RequestPasswordResetResult>
   resetPassword(input: ResetPasswordInput): Promise<AuthResult>
+
+  // Authenticated password change (profile page).
+  changePassword(input: ChangePasswordInput): Promise<void>
 
   // Invitations.
   previewInvite(token: string): Promise<InvitePreview>

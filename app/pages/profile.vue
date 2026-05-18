@@ -5,8 +5,9 @@
     - Cross-role page: the nav config exposes /profile to every
       authenticated role. v1 is read-only — name, email, active
       organization, role badge, sign-out CTA.
-    - Editing (avatar upload, password change, MFA enrol) lands
-      in E11 with the real auth backend.
+    - E11: password change wired to RealAuthService.changePassword.
+      Avatar upload and MFA enrolment land alongside (R2 client +
+      users.totp_secret column).
 
   # Decision cast down
     - Rejected: per-role profile pages. The data is identical
@@ -46,6 +47,49 @@ async function onSignOut() {
     signingOut.value = false
   }
 }
+
+// --- Change password ------------------------------------------------------
+// Three-field form: current / new / confirm. Submit calls
+// auth.changePassword which re-verifies the current password server-side
+// and writes a fresh bcrypt hash. We clear the inputs on success and show
+// a transient banner; the session stays valid (no re-login needed).
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const pwError = ref('')
+const pwSuccess = ref(false)
+const pwSubmitting = ref(false)
+const pwMismatch = computed(
+  () => confirmPassword.value.length > 0 && newPassword.value !== confirmPassword.value,
+)
+
+async function onChangePassword() {
+  pwError.value = ''
+  pwSuccess.value = false
+  if (pwMismatch.value) {
+    pwError.value = 'Passwords do not match'
+    return
+  }
+  if (newPassword.value.length < 8) {
+    pwError.value = 'Password must be at least 8 characters'
+    return
+  }
+  pwSubmitting.value = true
+  try {
+    await auth.changePassword({
+      currentPassword: currentPassword.value,
+      newPassword: newPassword.value,
+    })
+    pwSuccess.value = true
+    currentPassword.value = ''
+    newPassword.value = ''
+    confirmPassword.value = ''
+  } catch (err) {
+    pwError.value = err instanceof Error ? err.message : 'Could not change password'
+  } finally {
+    pwSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -78,12 +122,66 @@ async function onSignOut() {
       </dl>
     </BulwarkCard>
 
-    <BulwarkCard padding="md" class="mt-4" data-testid="profile-coming-soon">
-      <p class="text-body font-medium">More coming with the real backend (E11)</p>
-      <p class="text-small text-text-secondary mt-1">
-        Avatar upload, password change, and MFA enrolment land when the
-        production auth service is wired in.
-      </p>
+    <BulwarkCard padding="md" class="mt-4" data-testid="profile-change-password">
+      <form class="space-y-3" @submit.prevent="onChangePassword">
+        <div>
+          <p class="text-body font-medium">Change password</p>
+          <p class="text-small text-text-secondary mt-1">
+            Enter your current password and a new one (8 characters minimum).
+          </p>
+        </div>
+
+        <div
+          v-if="pwError"
+          role="alert"
+          data-testid="profile-pw-error"
+          class="rounded-input border border-status-error/30 bg-status-error/5 px-3 py-2 text-small text-status-error"
+        >{{ pwError }}</div>
+        <div
+          v-if="pwSuccess"
+          role="status"
+          data-testid="profile-pw-success"
+          class="rounded-input border border-status-success/30 bg-status-success/5 px-3 py-2 text-small text-status-success"
+        >Password updated.</div>
+
+        <BulwarkInput
+          v-model="currentPassword"
+          type="password"
+          label="Current password"
+          autocomplete="current-password"
+          required
+          data-testid="profile-current-password"
+        />
+        <BulwarkInput
+          v-model="newPassword"
+          type="password"
+          label="New password"
+          autocomplete="new-password"
+          required
+          data-testid="profile-new-password"
+        />
+        <BulwarkInput
+          v-model="confirmPassword"
+          type="password"
+          label="Confirm new password"
+          autocomplete="new-password"
+          :error="pwMismatch ? 'Passwords do not match' : ''"
+          required
+          data-testid="profile-confirm-password"
+        />
+
+        <div class="flex justify-end">
+          <BulwarkButton
+            type="submit"
+            variant="primary"
+            :loading="pwSubmitting"
+            :disabled="pwSubmitting || pwMismatch || !currentPassword || !newPassword"
+            data-testid="profile-pw-submit"
+          >
+            Update password
+          </BulwarkButton>
+        </div>
+      </form>
     </BulwarkCard>
 
     <div class="mt-6 flex justify-end">

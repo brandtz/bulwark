@@ -29,6 +29,7 @@ import type {
   RequestPasswordResetInput,
   RequestPasswordResetResult,
   ResetPasswordInput,
+  ChangePasswordInput,
   AcceptInviteInput,
   InvitePreview,
 } from '../contracts/auth'
@@ -237,6 +238,19 @@ export class MockAuthService implements IAuthService {
     const u = userByEmail[payload.email.toLowerCase()] ?? FIXTURE_USER_ADMIN
     this.adapter.setActivePersonaEmail(payload.email.toLowerCase())
     return { user: u }
+  }
+
+  // --- Authenticated password change -------------------------------------
+  // Mock keeps no password store; we just enforce that *something* was typed
+  // for the current password and that the new one meets the policy (Zod
+  // does the latter at the boundary in the real impl; here we accept any
+  // length-≥8 string to mirror the contract's `PasswordPolicy`).
+  async changePassword(input: ChangePasswordInput): Promise<void> {
+    if (!input.currentPassword) throw new Error('Current password required')
+    if (!input.newPassword || input.newPassword.length < 8) {
+      throw new Error('Password must be at least 8 characters')
+    }
+    // No-op: mock backend doesn't persist credentials.
   }
 
   // --- Invitations ------------------------------------------------------
