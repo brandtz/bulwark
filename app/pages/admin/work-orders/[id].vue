@@ -652,6 +652,7 @@ async function rejectCO(id: string) {
                   :status="slot.status"
                   :has-assignment="slot.assignedSubcontractorId !== null"
                   :busy="progressBusySlot === slot.id"
+                  :photos-href="`/admin/properties/${bundle.workOrder.propertyId}/photos`"
                   @update="(next) => onProgressUpdate(slot.id, next)"
                 />
               </div>

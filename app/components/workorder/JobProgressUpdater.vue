@@ -12,13 +12,17 @@
       how to persist the change (mocked in S4, real RPC later). This
       keeps the test surface tight and avoids smuggling service calls
       down the tree.
-    - Photo capture is intentionally a disabled placeholder. ADR will
-      revisit when the file-upload surface (E10 audit/photo storage)
-      lands. Caption is visible so we don't pretend the feature ships.
+    - Photo capture is delegated to a target page via the optional
+      `photosHref` prop. Field surfaces point at
+      `/field/jobs/{woId}/photos` (camera-first capture); admin
+      surfaces point at `/admin/properties/{propertyId}/photos`
+      (gallery + upload). When `photosHref` is absent we render
+      nothing for photos — keeps the component honest about whether
+      a capture path exists in this context.
 
   # Decision cast down
     - Rejected: a state machine library. Five states, one terminal,
-      one block-side branch \u2014 a hand-rolled `nextActions` map is
+      one block-side branch — a hand-rolled `nextActions` map is
       legible and avoids the dependency.
 -->
 <script setup lang="ts">
@@ -28,10 +32,17 @@ interface Props {
   status: TradeSlotStatus
   hasAssignment: boolean
   busy?: boolean
+  /**
+   * Where the "Add photo" button should send the user. Typically a
+   * property-photos page (admin) or the field photo-capture route.
+   * When undefined the photo button is omitted entirely.
+   */
+  photosHref?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   busy: false,
+  photosHref: undefined,
 })
 
 const emit = defineEmits<{
@@ -124,16 +135,15 @@ const actions = computed<Action[]>(() => {
       Assign a subcontractor to start tracking progress.
     </span>
 
-    <!-- Photo placeholder (E10 will wire real capture). -->
-    <button
-      type="button"
-      class="inline-flex items-center gap-1 rounded-input border border-border-default px-3 py-1.5 text-small text-text-disabled bg-surface-muted/40 cursor-not-allowed"
-      disabled
-      data-testid="progress-photo-placeholder"
-      title="Photo capture lands in E10"
+    <!-- Photo capture: shown only when the parent supplies a target route. -->
+    <NuxtLink
+      v-if="props.photosHref"
+      :to="props.photosHref"
+      class="inline-flex items-center gap-1 rounded-input border border-border-default px-3 py-1.5 text-small text-text-primary bg-surface hover:bg-surface-muted/40"
+      data-testid="progress-photo-link"
     >
-      <span aria-hidden="true">·</span>
-      Add photo (coming soon)
-    </button>
+      <span aria-hidden="true">+</span>
+      Add photo
+    </NuxtLink>
   </div>
 </template>

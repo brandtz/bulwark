@@ -184,6 +184,24 @@ async function onChangePassword() {
       </form>
     </BulwarkCard>
 
+    <BulwarkCard padding="md" class="mt-4" data-testid="profile-security-link">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-body font-medium">Two-factor authentication</p>
+          <p class="text-small text-text-secondary mt-1">
+            Add an authenticator app and backup codes to protect your account.
+          </p>
+        </div>
+        <NuxtLink
+          to="/profile/security"
+          class="inline-flex items-center rounded-input border border-border-default px-3 py-1.5 text-small text-text-primary bg-surface hover:bg-surface-muted/40"
+          data-testid="profile-security-nav"
+        >
+          Manage
+        </NuxtLink>
+      </div>
+    </BulwarkCard>
+
     <div class="mt-6 flex justify-end">
       <BulwarkButton
         variant="secondary"
