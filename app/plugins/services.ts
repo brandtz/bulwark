@@ -26,7 +26,6 @@
  *     the env var requires a restart, which is fine for the mock-vs-
  *     real split. A finer-grained flag would multiply the test matrix.
  */
-import { createMockServices } from '~~/shared/mocks/factory'
 import type { BulwarkServices, ServiceName } from '~~/shared/contracts/services'
 
 interface FetchErrorShape {
@@ -72,7 +71,7 @@ function makeRpcProxy(): BulwarkServices {
   })
 }
 
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin(async () => {
   const config = useRuntimeConfig()
   const backend = config.public.backend
 
@@ -84,9 +83,17 @@ export default defineNuxtPlugin(() => {
      * Cookie-backed adapter so SSR + client + middleware all read the same
      * "who's signed in?" state. No default email — each persona switch
      * writes the cookie explicitly. See E2-S1 / login.vue persona block.
+     *
+     * IMPORTANT: dynamic import. The mock factory transitively imports
+     * `node:crypto` in several mock services (mfa, permission, saved-view).
+     * Vite externalises `node:crypto` for the browser and access to
+     * createHash/randomBytes throws on hydration — which silently kills
+     * every Vue event handler on the page. Only load the mock factory
+     * when the runtime actually selects the mock backend.
      */
     const COOKIE = 'bulwark.mock.persona'
     const ORG_COOKIE = 'bulwark.mock.activeOrg'
+    const { createMockServices } = await import('~~/shared/mocks/factory')
     services = createMockServices({
       getActivePersonaEmail: () => useCookie<string | null>(COOKIE, { sameSite: 'lax' }).value ?? null,
       setActivePersonaEmail: (email) => {
