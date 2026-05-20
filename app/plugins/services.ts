@@ -75,8 +75,18 @@ export default defineNuxtPlugin(async () => {
   const config = useRuntimeConfig()
   const backend = config.public.backend
 
+  // Defense-in-depth: mock services are dev/test-only. If production is
+  // misconfigured with BULWARK_BACKEND=mock, fail closed to the real RPC
+  // backend instead of silently enabling permissive mock auth behavior.
+  const forceRealInProd = process.env.NODE_ENV === 'production' && backend !== 'real'
+  const selectedBackend = forceRealInProd ? 'real' : backend
+
+  if (forceRealInProd) {
+    console.error('[services] BULWARK_BACKEND=mock is forbidden in production; forcing real backend')
+  }
+
   let services: BulwarkServices
-  if (backend === 'real') {
+  if (selectedBackend === 'real') {
     services = makeRpcProxy()
   } else {
     /*
