@@ -47,8 +47,14 @@ export function useAuth() {
     loading.value = true
     error.value = null
     try {
-      await auth.login(input)
-      await refresh()
+      const r: AuthLoginResult = await auth.login(input)
+      if (r.kind !== 'session') {
+        error.value = 'Two-factor authentication required'
+        return false
+      }
+      // Set optimistic in-memory session immediately. Cookie/session roundtrip
+      // can lag one tick in some browsers; this avoids false unauth redirects.
+      session.value = r.user
       return true
     } catch (e: unknown) {
       // Mock backend never throws today, but RealAuthService will. Normalise.
@@ -73,7 +79,8 @@ export function useAuth() {
       if (r.kind === 'mfa_required') {
         return { ok: true, kind: 'mfa_required', mfaToken: r.mfaToken, email: r.email }
       }
-      await refresh()
+      // Set in-memory session first; refresh can still run later via layout.
+      session.value = r.user
       return { ok: true, kind: 'session' }
     } catch (e: unknown) {
       if (e instanceof Error && e.message === 'account_locked') {
@@ -94,8 +101,8 @@ export function useAuth() {
     loading.value = true
     error.value = null
     try {
-      await auth.verifyMfa(mfaToken, code)
-      await refresh()
+      const r = await auth.verifyMfa(mfaToken, code)
+      session.value = r.user
       return true
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Verification failed'
