@@ -90,6 +90,82 @@ async function onChangePassword() {
     pwSubmitting.value = false
   }
 }
+
+// --- Avatar upload --------------------------------------------------------
+// Client-side resize-to-256-square via <canvas>, encode as JPEG data URL,
+// POST to /api/account/avatar which validates + persists into users.avatar_url.
+// We then refresh the session so the new URL surfaces in the nav.
+const { refresh: refreshSession } = useSession()
+const avatarFile = ref<HTMLInputElement | null>(null)
+const avatarBusy = ref(false)
+const avatarError = ref('')
+const initials = computed(() => {
+  const name = session.value?.fullName ?? ''
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
+  return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()
+})
+
+function pickAvatar() {
+  avatarError.value = ''
+  avatarFile.value?.click()
+}
+
+async function resizeToDataUrl(file: File, size = 256): Promise<string> {
+  const bitmap = await createImageBitmap(file)
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas 2D unavailable')
+    // Center-crop to a square, then draw into the canvas.
+    const srcSize = Math.min(bitmap.width, bitmap.height)
+    const sx = (bitmap.width - srcSize) / 2
+    const sy = (bitmap.height - srcSize) / 2
+    ctx.drawImage(bitmap, sx, sy, srcSize, srcSize, 0, 0, size, size)
+    return canvas.toDataURL('image/jpeg', 0.82)
+  } finally {
+    bitmap.close?.()
+  }
+}
+
+async function onAvatarChange(ev: Event) {
+  const input = ev.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // allow re-selecting the same file
+  if (!file) return
+  if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) {
+    avatarError.value = 'Choose a PNG, JPEG, or WEBP image'
+    return
+  }
+  avatarBusy.value = true
+  avatarError.value = ''
+  try {
+    const dataUrl = await resizeToDataUrl(file)
+    await $fetch('/api/account/avatar', { method: 'POST', body: { dataUrl } })
+    await refreshSession()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Upload failed'
+    avatarError.value = msg.replace(/^.*?:\s*/, '')
+  } finally {
+    avatarBusy.value = false
+  }
+}
+
+async function onAvatarRemove() {
+  avatarBusy.value = true
+  avatarError.value = ''
+  try {
+    await $fetch('/api/account/avatar', { method: 'POST', body: { dataUrl: null } })
+    await refreshSession()
+  } catch (err) {
+    avatarError.value = err instanceof Error ? err.message : 'Could not remove avatar'
+  } finally {
+    avatarBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -120,6 +196,63 @@ async function onChangePassword() {
           <dd>{{ session?.activeRole ?? '—' }}</dd>
         </div>
       </dl>
+    </BulwarkCard>
+
+    <BulwarkCard padding="md" class="mt-4" data-testid="profile-avatar">
+      <div class="flex items-center gap-4">
+        <div
+          class="h-16 w-16 rounded-full bg-surface-muted/60 border border-border-default overflow-hidden flex items-center justify-center text-text-secondary text-body font-medium"
+          data-testid="profile-avatar-preview"
+        >
+          <img
+            v-if="session?.avatarUrl"
+            :src="session.avatarUrl"
+            alt="Avatar"
+            class="h-full w-full object-cover"
+          >
+          <span v-else>{{ initials }}</span>
+        </div>
+        <div class="flex-1">
+          <p class="text-body font-medium">Profile photo</p>
+          <p class="text-small text-text-secondary mt-1">
+            PNG, JPEG, or WEBP. Resized to 256×256 on upload.
+          </p>
+          <div
+            v-if="avatarError"
+            role="alert"
+            data-testid="profile-avatar-error"
+            class="mt-2 rounded-input border border-status-error/30 bg-status-error/5 px-3 py-1.5 text-small text-status-error"
+          >{{ avatarError }}</div>
+        </div>
+        <div class="flex flex-col gap-2">
+          <BulwarkButton
+            variant="primary"
+            :loading="avatarBusy"
+            :disabled="avatarBusy"
+            data-testid="profile-avatar-upload"
+            @click="pickAvatar"
+          >
+            {{ session?.avatarUrl ? 'Change' : 'Upload' }}
+          </BulwarkButton>
+          <BulwarkButton
+            v-if="session?.avatarUrl"
+            variant="secondary"
+            :disabled="avatarBusy"
+            data-testid="profile-avatar-remove"
+            @click="onAvatarRemove"
+          >
+            Remove
+          </BulwarkButton>
+        </div>
+        <input
+          ref="avatarFile"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          class="hidden"
+          data-testid="profile-avatar-input"
+          @change="onAvatarChange"
+        >
+      </div>
     </BulwarkCard>
 
     <BulwarkCard padding="md" class="mt-4" data-testid="profile-change-password">
