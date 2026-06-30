@@ -56,6 +56,9 @@ re-raised:
 | 3.1.3 | MEDIUM | AUTO | Avatars stored inline as base64 data URLs in `users.avatar_url`. | [avatar.post.ts](server/api/account/avatar.post.ts). Acceptable interim; migrate to storage service. |
 | 3.1.4 | MEDIUM | AUTO | Branding logo is a manual URL field; no upload. | [settings/branding.vue](app/pages/settings/branding.vue#L10). |
 | 3.1.5 | HIGH | AUTO | No production guard rejecting `local://`/`data:` persisted URLs. | new validator in storage service. |
+| 3.1.6 | HIGH | AUTO | A presigned PUT can't bind body size, so presign-time `sizeBytes` is advisory. **Mitigated (L01-S2):** a server `finalize` HEADs + enforces the real size/content-type, deleting on violation. Hardening follow-up: presigned-POST `content-length-range` + an R2 lifecycle sweep of never-finalized objects. | L01-S2 / L17 (lifecycle). |
+| 3.1.7 | MEDIUM | AUTO | Generic `/api/storage/presign-download` is ORG-scoped only (no per-entity RBAC). Sensitive per-entity downloads must be minted by owning services after an ownership check; insurer (L15) downloads must use entity-scoped methods. | L02 / L15. |
+| 3.1.8 | MEDIUM | AUTO | Finalize is TOCTOU: a presigned PUT URL is reusable for its TTL, so an object can be re-PUT after finalize. **Mitigated:** upload TTL cut to 300s. **Close before L02 persists keys:** finalize returns the object etag → owning service stores + re-verifies at read (or copy-on-finalize / presigned-POST). | L02 (blocking precondition). |
 
 ### 3.2 Comms — email / SMS — **L03**
 | # | Severity | Auto | Finding | Evidence |

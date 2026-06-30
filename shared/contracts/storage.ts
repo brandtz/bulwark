@@ -47,7 +47,9 @@ export const STORAGE_ENTITY_RULES: Record<StorageEntityKind, StorageEntityRule> 
   },
   avatar: { mimeAllow: ['image/jpeg', 'image/png', 'image/webp'], maxBytes: 2 * MB },
   branding_logo: {
-    mimeAllow: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
+    // SVG intentionally excluded: a malicious SVG is stored-XSS if ever served
+    // inline same-origin. Raster logos only. (L01-S2 skeptic P2-3.)
+    mimeAllow: ['image/jpeg', 'image/png', 'image/webp'],
     maxBytes: 2 * MB,
   },
   document: { mimeAllow: ['application/pdf'], maxBytes: 25 * MB },
@@ -58,7 +60,6 @@ export const MIME_EXTENSION: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
-  'image/svg+xml': 'svg',
   'application/pdf': 'pdf',
 }
 
@@ -107,6 +108,25 @@ export const PresignDownloadOutputSchema = z.object({
   expiresAt: z.string().datetime(),
 })
 export type PresignDownloadOutput = z.infer<typeof PresignDownloadOutputSchema>
+
+// ----------------------------------------------------------------------------
+// Finalize. A SigV4 presigned PUT cannot bind body size, so the client-declared
+// `sizeBytes` at presign time is only advisory. After the client PUTs, the server
+// HEADs the stored object and enforces the entity's real size + content-type rule
+// (deleting on violation). Owning services persist the key only after finalize ok.
+// ----------------------------------------------------------------------------
+export const FinalizeUploadInputSchema = z.object({
+  organizationId: UuidSchema,
+  key: StorageObjectKeySchema,
+})
+export type FinalizeUploadInput = z.infer<typeof FinalizeUploadInputSchema>
+
+export const FinalizeUploadOutputSchema = z.object({
+  key: StorageObjectKeySchema,
+  size: z.number().int().nonnegative(),
+  contentType: z.string(),
+})
+export type FinalizeUploadOutput = z.infer<typeof FinalizeUploadOutputSchema>
 
 // ----------------------------------------------------------------------------
 // Upload validation — shared by the presign endpoint and the client widgets.

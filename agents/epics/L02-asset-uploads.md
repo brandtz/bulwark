@@ -13,9 +13,22 @@ stores **keys**, with reads served via short-lived signed URLs.
 - Each owning service stores the storage **key** in its existing URL column; a
   read-time mapper swaps the key for a signed GET URL in the contract output (so
   client code that expects a URL is unchanged).
-- Client upload widgets switch to: request presign → PUT bytes → submit key.
+- Client upload widgets switch to: request presign → PUT bytes → **finalize** (server HEAD-
+  verifies real size/content-type, deleting on violation) → submit the finalized key to the
+  owning service.
 - A one-time **backfill script** re-homes any legacy inline `data:` rows into storage
   and rewrites the column to a key (idempotent; dry-run by default).
+
+## Preconditions (blocking — from L01-S2 skeptic)
+Before any owning service persists a client-supplied storage key, BOTH must be closed:
+- **NEW-1 (finalize TOCTOU):** a presigned PUT URL is reusable for its TTL, so an object can
+  be overwritten AFTER finalize. Close it: have `finalize` return the object **etag**, store it
+  with the key, and re-verify (HEAD + etag compare) at read — OR copy-on-finalize into an
+  immutable key — OR adopt presigned-POST `content-length-range` + short TTL (gap §3.1.6/3.1.8).
+  (Upload TTL already cut to 300s as interim mitigation.)
+- **P1-1 (entity RBAC):** the owning service MUST verify the caller may access the specific
+  entity before minting a download URL; the generic `/api/storage/presign-download` is
+  org-scoped only (gap §3.1.7).
 
 ## Stories
 

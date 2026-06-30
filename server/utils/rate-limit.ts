@@ -74,6 +74,14 @@ export const RATE_LIMIT_RULES: RateLimitRule[] = [
     method: 'POST',
     perIp: { capacity: 20, windowMs: 60_000 },
   },
+  {
+    // L01-S2: presign + finalize endpoints. Cheap to serve, but cap per-IP so an
+    // authenticated client cannot spam URL minting / finalize calls.
+    key: 'storage.presign',
+    pattern: /^\/api\/storage\/(?:presign-upload|presign-download|finalize-upload)$/,
+    method: 'POST',
+    perIp: { capacity: 60, windowMs: 60_000 },
+  },
 ]
 
 // ---------------------------------------------------------------------------

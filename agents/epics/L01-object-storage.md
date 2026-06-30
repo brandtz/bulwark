@@ -45,13 +45,19 @@ for production and a **filesystem** driver for dev/test, plus a contract guard t
 - **Acceptance:** `pnpm typecheck` + new unit suite green; prod env with no R2 creds
   throws a clear startup error (not a silent stub).
 
-### L01-S2 — Presign endpoints + tenant firewall
-- **Server:** `server/api/storage/presign-upload.post.ts` and
-  `presign-download.post.ts` — authenticated, tenant-scoped (`assertSameTenant` on the
-  embedded `tenantId`), MIME allow-list + max-size per entity kind, rate-limited.
-- **Tests:** e2e — unauthenticated → 401; cross-tenant key → 403; oversize/MIME reject
-  → 400; happy path returns a URL that expires.
-- **Acceptance:** presign round-trip works on FsDriver in CI; negative cases covered.
+### L01-S2 — Presign + finalize endpoints + tenant firewall
+- **Server:** `server/api/storage/presign-upload.post.ts`, `presign-download.post.ts`, and
+  `finalize-upload.post.ts` — authenticated, tenant-scoped (active org is authoritative),
+  MIME allow-list + size cap per entity. Because a presigned PUT cannot bind body size, the
+  client declares `sizeBytes` (advisory) at presign, then calls **finalize**, which HEADs the
+  stored object and enforces the REAL size + content-type, deleting on violation. Rate-limited.
+- **Tests:** unit — full presign/finalize authz matrix (org-mismatch 403, cross-tenant 403,
+  MIME/size 400, key minting). e2e — 401 unauth; 403 cross-tenant; 400 bad MIME; happy
+  presign→PUT→finalize→download→GET round-trip; oversize PUT → finalize 400 + object deleted.
+- **Acceptance:** round-trip + real size enforcement on FsDriver; negative cases covered.
+- **Known follow-up:** a presigned-POST `content-length-range` policy would reject oversize at
+  upload time (no transient landing) + an R2 lifecycle rule sweeps never-finalized objects —
+  tracked in gap-register §3.1.
 
 ### L01-S3 — `assertStorableUrlOrKey` prod guard + rollout shim
 - **Server:** `shared/utils/storage-url.ts` validator; wire into property-photo,

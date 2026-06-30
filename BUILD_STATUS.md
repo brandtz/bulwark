@@ -16,10 +16,16 @@
 
 ## Active story
 
-**L01-S2 — Presign endpoints + tenant firewall.** Next action: add
-`server/api/storage/presign-upload.post.ts` + `presign-download.post.ts` (authenticated,
-tenant-scoped via `assertSameTenant`, MIME/size validation via `validateUpload`, rate-limited)
-returning signed URLs from `getStorage()`.
+**L01-S3 — `assertStorableUrlOrKey` prod guard + rollout shim.** Next action: add
+`shared/utils/storage-url.ts` (reject `data:`/`local://` when `NODE_ENV=production`), wire into
+the photo/attachment/avatar/branding persist paths, unit-test prod-vs-dev.
+
+**L01-S2 — DONE (2026-06-30):** presign-upload / presign-download / **finalize-upload** +
+pure `presign-policy` (authz matrix unit-tested) + `storage.presign` rate rule. Skeptic found a
+real P0 (presigned PUT can't bind body size → declared `sizeBytes` advisory); fixed with a
+server **finalize** (HEAD + real size/content-type enforce, delete on violation). P1/P2 fixed.
+Re-review SAFE-TO-COMMIT; NEW-1 (finalize TOCTOU) + P1-1 (entity RBAC) logged as **blocking L02
+preconditions** (gap §3.1.7/3.1.8). 36 unit tests green; eslint clean; e2e spec authored.
 
 **L01-S1 — DONE (2026-06-30):** storage contract ([storage.ts](shared/contracts/storage.ts)),
 driver interface + `FsDriver` (HMAC-signed dev URLs) + `R2Driver` (presigned PUT/GET, fail-

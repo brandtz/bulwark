@@ -105,7 +105,8 @@ export class FsDriver implements StorageDriver {
   }
 
   async getSignedUploadUrl(input: SignedUploadInput): Promise<SignedUploadResult> {
-    const { url, expiresAt } = signedRelativeUrl(input.key, input.expiresInSeconds ?? 900)
+    // Short upload TTL narrows the finalize-TOCTOU window (L01-S2 NEW-1).
+    const { url, expiresAt } = signedRelativeUrl(input.key, input.expiresInSeconds ?? 300)
     return { url, method: 'PUT', headers: { 'content-type': input.contentType }, expiresAt }
   }
 

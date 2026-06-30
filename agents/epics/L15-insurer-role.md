@@ -78,6 +78,10 @@ execution, no writes at all).
 - **Client:** `app/layouts/insurer.vue` + pages: `/insurer` (portfolio dashboard: property
   ×compliance×invoice-status matrix, filters, date range, **Export CSV**), `/insurer/properties/[id]`
   (read-only compliance + document downloads via signed URLs), `/insurer/reports`.
+- **Server (downloads):** insurer document downloads are minted by **entity-scoped** insurer
+  service methods that verify the document belongs to a linked property — NOT the generic
+  org-scoped `/api/storage/presign-download` (which only checks the org prefix; see storage
+  L01-S2 P1-1 / gap-register §3.1.7).
 - **Tests:** e2e — insurer sees the portfolio of linked properties, opens one, downloads a
   compliance doc; sees **no** create/edit controls anywhere.
 

@@ -37,6 +37,17 @@ function requireR2Env(): void {
   }
 }
 
+/**
+ * Build a safe Content-Disposition. The ASCII fallback strips quotes / control
+ * chars so the header can't be malformed; `filename*` carries the real UTF-8 name
+ * (RFC 5987). (L01-S2 skeptic P2-2.)
+ */
+function contentDisposition(filename: string): string {
+  const ascii = filename.replace(/[^\w.\- ]+/g, '_').slice(0, 200)
+  const encoded = encodeURIComponent(filename)
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`
+}
+
 export class R2Driver implements StorageDriver {
   readonly name = 'r2' as const
 
@@ -60,7 +71,8 @@ export class R2Driver implements StorageDriver {
 
   async getSignedUploadUrl(input: SignedUploadInput): Promise<SignedUploadResult> {
     const client = getR2Client()
-    const expiresIn = input.expiresInSeconds ?? 900
+    // Short upload TTL narrows the finalize-TOCTOU window (L01-S2 NEW-1).
+    const expiresIn = input.expiresInSeconds ?? 300
     const url = await getSignedUrl(
       client,
       new PutObjectCommand({
@@ -85,7 +97,7 @@ export class R2Driver implements StorageDriver {
       Bucket: getR2Bucket(),
       Key: input.key,
       ...(input.downloadFilename
-        ? { ResponseContentDisposition: `attachment; filename="${input.downloadFilename}"` }
+        ? { ResponseContentDisposition: contentDisposition(input.downloadFilename) }
         : {}),
     })
     const url = await getSignedUrl(client, command, { expiresIn })

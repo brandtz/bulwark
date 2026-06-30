@@ -10,6 +10,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   evaluateRateLimit,
+  matchRateLimitRule,
   __resetRateLimitForTests,
   RATE_LIMIT_RULES,
 } from '~~/server/utils/rate-limit'
@@ -134,6 +135,15 @@ describe('rule registry sanity', () => {
     expect(keys).toContain('auth.accept-invite')
     expect(keys).toContain('auth.forgot-password')
     expect(keys).toContain('auth.catch-all')
+    expect(keys).toContain('storage.presign')
+  })
+
+  it('matches the storage presign + finalize paths to the storage rule', () => {
+    expect(matchRateLimitRule('/api/storage/presign-upload', 'POST')?.key).toBe('storage.presign')
+    expect(matchRateLimitRule('/api/storage/presign-download', 'POST')?.key).toBe('storage.presign')
+    expect(matchRateLimitRule('/api/storage/finalize-upload', 'POST')?.key).toBe('storage.presign')
+    // GET is not covered by the POST-only rule.
+    expect(matchRateLimitRule('/api/storage/presign-upload', 'GET')?.key).not.toBe('storage.presign')
   })
 })
 
