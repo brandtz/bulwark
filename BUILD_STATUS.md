@@ -16,9 +16,15 @@
 
 ## Active story
 
-**L01-S1 — Storage driver interface + FsDriver + R2Driver.** Next action: define
-`shared/contracts/storage.ts` + `server/services/storage/` with a filesystem dev/test
-driver and an R2 prod driver, env-selected and prod-fail-closed.
+**L01-S2 — Presign endpoints + tenant firewall.** Next action: add
+`server/api/storage/presign-upload.post.ts` + `presign-download.post.ts` (authenticated,
+tenant-scoped via `assertSameTenant`, MIME/size validation via `validateUpload`, rate-limited)
+returning signed URLs from `getStorage()`.
+
+**L01-S1 — DONE (2026-06-30):** storage contract ([storage.ts](shared/contracts/storage.ts)),
+driver interface + `FsDriver` (HMAC-signed dev URLs) + `R2Driver` (presigned PUT/GET, fail-
+closed env) + env selector (`selectStorageDriverName`, prod→r2) + dev serve/store handlers +
+14 unit tests (green). eslint + typecheck clean; `.data/` gitignored.
 
 ## Wave plan (autonomous-first)
 

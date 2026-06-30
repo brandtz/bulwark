@@ -16,6 +16,9 @@ dist/
 build/
 coverage/
 
+# Local object-storage driver artifacts (fs storage driver — L01)
+.data/
+
 # Env
 .env
 .env.*
