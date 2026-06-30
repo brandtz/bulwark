@@ -16,9 +16,16 @@
 
 ## Active story
 
-**L01-S3 — `assertStorableUrlOrKey` prod guard + rollout shim.** Next action: add
-`shared/utils/storage-url.ts` (reject `data:`/`local://` when `NODE_ENV=production`), wire into
-the photo/attachment/avatar/branding persist paths, unit-test prod-vs-dev.
+**L01-S4 — Storage health check + legacy-asset report.** Next action: add
+`server/api/health/storage.get.ts` (admin) — driver + bucket/fs reachability + a read-only
+count of legacy `data:`/`local://` rows per asset table.
+
+**L01-S3 — DONE (2026-06-30):** `shared/utils/storage-url.ts` prod guard (rejects data:/
+local://blob:, scheme-robust, maps to 400) wired into photo (url+thumbnail, create+update),
+attachment, branding logo, COI fileUrl. Avatars + signatures **excluded** (intentionally
+inline). Skeptic found a P0 (avatar guard would 500 prod avatar set) — fixed by exclusion; 2
+passes → SAFE-TO-COMMIT. Latent inspection value_json path logged (gap §3.1.9). 4 unit tests +
+no regressions; eslint clean.
 
 **L01-S2 — DONE (2026-06-30):** presign-upload / presign-download / **finalize-upload** +
 pure `presign-policy` (authz matrix unit-tested) + `storage.presign` rate rule. Skeptic found a

@@ -51,6 +51,8 @@ Before any owning service persists a client-supplied storage key, BOTH must be c
   (still client-resized to ≤256²); persists key; session/user mapper returns signed URL.
 - **Client:** `profile.vue` avatar widget uses presign flow; keeps client resize.
 - **Migration:** drop the 64 KB base64 path; add backfill for existing inline avatars.
+- **Guard:** add `assertStorableUrlOrKey` here once the persisted value is a key — avatar is
+  currently intentionally inline + excluded from the L01-S3 guard like signatures (gap §3.1.3).
 - **Tests:** e2e change/remove avatar; unit for resize+key submit.
 
 ### L02-S4 — Branding logo upload

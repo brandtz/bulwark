@@ -19,6 +19,7 @@ import { propertyAttachments } from '../db/schema/property_attachments'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { dbPropertyAttachmentToContract } from './_row-mappers'
+import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
 
 export class RealPropertyAttachmentService implements IPropertyAttachmentService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -77,9 +78,11 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
     return row ? dbPropertyAttachmentToContract(row) : null
   }
 
-  // TODO(W3-1): swap for sealed-secret S3/R2 signed-URL upload.
+  // L01-S3: reject placeholder asset URLs in prod. L02-S2 migrates this to a
+  // storage key minted via the object-storage service (presign + finalize).
   async create(input: PropertyAttachmentCreateInput): Promise<PropertyAttachment> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    assertStorableUrlOrKey(input.url)
     return await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(propertyAttachments)

@@ -53,12 +53,13 @@ re-raised:
 |---|---|---|---|---|
 | 3.1.1 | HIGH | AUTO | Property photos persist `data:`/`local://` URLs; no real signed upload. | [property-photo.real.ts](server/services/property-photo.real.ts#L115) `TODO swap to R2`. |
 | 3.1.2 | HIGH | AUTO | Property attachments — same stub seam, stores `input.url` unvalidated. | [property-attachment.real.ts](server/services/property-attachment.real.ts#L80). |
-| 3.1.3 | MEDIUM | AUTO | Avatars stored inline as base64 data URLs in `users.avatar_url`. | [avatar.post.ts](server/api/account/avatar.post.ts). Acceptable interim; migrate to storage service. |
+| 3.1.3 | MEDIUM | AUTO | Avatars stored inline as base64 data URLs in `users.avatar_url` (intentional, ≤48KB) — like signatures, **excluded** from the L01-S3 prod guard until L02-S3 migrates them to storage (then guarded). | [avatar.post.ts](server/api/account/avatar.post.ts). |
 | 3.1.4 | MEDIUM | AUTO | Branding logo is a manual URL field; no upload. | [settings/branding.vue](app/pages/settings/branding.vue#L10). |
 | 3.1.5 | HIGH | AUTO | No production guard rejecting `local://`/`data:` persisted URLs. | new validator in storage service. |
 | 3.1.6 | HIGH | AUTO | A presigned PUT can't bind body size, so presign-time `sizeBytes` is advisory. **Mitigated (L01-S2):** a server `finalize` HEADs + enforces the real size/content-type, deleting on violation. Hardening follow-up: presigned-POST `content-length-range` + an R2 lifecycle sweep of never-finalized objects. | L01-S2 / L17 (lifecycle). |
 | 3.1.7 | MEDIUM | AUTO | Generic `/api/storage/presign-download` is ORG-scoped only (no per-entity RBAC). Sensitive per-entity downloads must be minted by owning services after an ownership check; insurer (L15) downloads must use entity-scoped methods. | L02 / L15. |
 | 3.1.8 | MEDIUM | AUTO | Finalize is TOCTOU: a presigned PUT URL is reusable for its TTL, so an object can be re-PUT after finalize. **Mitigated:** upload TTL cut to 300s. **Close before L02 persists keys:** finalize returns the object etag → owning service stores + re-verifies at read (or copy-on-finalize / presigned-POST). | L02 (blocking precondition). |
+| 3.1.9 | LOW | AUTO | Inspection-template **photo-field** values persist in `inspection_responses.value_json` (client-supplied), bypassing the scalar-column `assertStorableUrlOrKey` guard. Latent (real inspection photo upload is unwired). Close when Wave-3 wires inspection photos: guard photo-kind values at the inspection save boundary. | Wave 3 / inspection photos. |
 
 ### 3.2 Comms — email / SMS — **L03**
 | # | Severity | Auto | Finding | Evidence |

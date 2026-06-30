@@ -51,6 +51,7 @@ import type { LabelRow as DbLabelRow } from '../db/schema/labels'
 import type { OrgBrandingRow as DbBrandingRow } from '../db/schema/org_branding'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
+import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
 
 function rowToContract(r: DbLabelRow): Label {
   return {
@@ -261,6 +262,9 @@ export class RealLabelService implements ILabelService {
 
   async updateBranding(input: BrandingUpdateInput): Promise<Branding> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    // L01-S3: a logo must be a storage key or http(s) URL in prod, never a
+    // data:/local:// placeholder. L02-S4 wires real logo upload.
+    if (input.logoUrl !== undefined && input.logoUrl !== null) assertStorableUrlOrKey(input.logoUrl)
     return await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()

@@ -14,7 +14,8 @@ Introduce one server-side **storage service** with a `StorageDriver` interface
 dev/test driver = **filesystem**. Driver selected by `BULWARK_STORAGE_DRIVER`,
 **failing closed to `r2` in production**. Clients use **presigned PUT** then submit a
 **key**; services store keys; reads mint short-lived **signed GET** URLs. A shared
-`assertStorableUrlOrKey()` **throws on `data:`/`local://` in production**.
+`assertStorableUrlOrKey()` **throws on `data:`/`local://`/`blob:` placeholder schemes in
+production** (intentionally-inline values like avatars + canvas signatures are excluded).
 
 ## Consequences
 - DB stores compact keys, not bytes; bucket layout + creds stay server-side.

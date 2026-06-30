@@ -23,6 +23,7 @@ import { propertyPhotos } from '../db/schema/property_photos'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { dbPropertyPhotoToContract } from './_row-mappers'
+import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
 
 export class RealPropertyPhotoService implements IPropertyPhotoService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -112,9 +113,12 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
     return row ? dbPropertyPhotoToContract(row) : null
   }
 
-  // TODO(W3-1): swap for sealed-secret S3/R2 signed-URL upload.
+  // L01-S3: reject placeholder asset URLs in prod. L02-S1 migrates this to a
+  // storage key minted via the object-storage service (presign + finalize).
   async create(input: PropertyPhotoCreateInput): Promise<PropertyPhoto> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    assertStorableUrlOrKey(input.url)
+    assertStorableUrlOrKey(input.thumbnailUrl)
     return await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(propertyPhotos)
@@ -145,6 +149,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
 
   async update(input: PropertyPhotoUpdateInput): Promise<PropertyPhoto> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    assertStorableUrlOrKey(input.thumbnailUrl)
     return await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()

@@ -34,6 +34,7 @@ import { workOrders } from '../db/schema/work_orders'
 import { quotes } from '../db/schema/quotes'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
+import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
 import { emit } from '../../shared/events/bus'
 import { subCoiUploaded, subCoiExpiringSoon } from '../../shared/events/catalog'
 
@@ -412,6 +413,8 @@ export class RealSubcontractorService implements ISubcontractorService {
 
   async uploadCoi(input: SubCoiUploadInput): Promise<SubcontractorCoiDoc> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    // L01-S3: reject placeholder asset URLs in prod. L13-S4 migrates COI docs to storage.
+    assertStorableUrlOrKey(input.fileUrl)
     const row = await withAudit(async ({ tx, audit }) => {
       const [r] = await tx
         .insert(subcontractorCoiDocs)
