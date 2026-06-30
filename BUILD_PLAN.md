@@ -1,184 +1,153 @@
-# Bulwark — Build Plan
+# Bulwark — Production Launch Plan (v2)
 
-> **Status**: Living document. Maintained by the agentic team; reviewed by the human sponsor (Matthew).
-> **Last updated**: 2026-05-03
-> **Supersedes**: nothing — this is the first end-to-end execution plan.
-
----
-
-## 1. Purpose
-
-This document is the master execution plan for turning Bulwark from a working demo
-([`demo/`](demo/)) into the real product described in [`docs/BULWARK_BRD.md`](docs/BULWARK_BRD.md)
-and [`docs/BULWARK_TECH.md`](docs/BULWARK_TECH.md).
-
-It enumerates **every epic**, the **dependency order** between them, and the
-**slice strategy** that lets the human sponsor diagnose progress visually before
-any backend code exists.
+> **Status:** Active master plan. Supersedes the v1 build plan
+> ([archived](agents/archive/v1-BUILD_PLAN.md)).
+> **Created:** 2026-06-30 · **Owner:** agentic delivery team · reviewed by sponsor (Matthew).
+> **Cursor:** [`BUILD_STATUS.md`](BUILD_STATUS.md) · **Evidence:** [`PRODUCTION_GAP_REGISTER.md`](PRODUCTION_GAP_REGISTER.md)
 
 ---
 
-## 2. Top-Level Decisions (locked in this plan)
+## 1. Purpose & launch definition
 
-| # | Decision | Rationale | Alternative considered |
-|---|---|---|---|
-| D1 | **Frontend-first build sequence** | BRD §11 mandates it. Lets sponsor steer UX before backend assumptions calcify. | Backend-first — rejected: produces invisible progress. |
-| D2 | **Real app lives at repo root** (not in `demo/`). `demo/` stays as a frozen vaporware sandbox for investor demos. | Two artifacts, one repo. Demo never breaks because product code never touches it. | Replace demo in place — rejected: loses the investor asset and conflates two audiences. |
-| D3 | **Stack: Nuxt 3 + TS strict + Tailwind v3 + Drizzle + Neon Postgres + Pinia + Playwright + Vitest + JOSE + nuxt-auth-utils** | Locked by [`docs/BULWARK_TECH.md`](docs/BULWARK_TECH.md) §1. | Next.js (the boilerplate's stack) — rejected: violates the BRD's locked stack and would require rewriting all type/server contracts. |
-| D4 | **MockService layer** — every domain service has a `Mock<X>Service` and a `Real<X>Service` that satisfy the same Zod-validated contract from [`CONTRACTS.md`](CONTRACTS.md). The UI imports a `useService('property')` composable that resolves to mock during E0–E10 and real from E11 onward. | Lets us ship FE without DB. Same contract = no rewrite when wiring backend. | Stub data inline per-component — rejected: untestable, drifts from contract, leaves orphaned fixtures everywhere. |
-| D5 | **Single `AppLayout` shell** owns nav. No page declares its own sidebar/topbar/bottom-nav. Permission-gated nav lives in one declarative `nav.config.ts` file. | Solves the inconsistency the sponsor flagged in the demo (sidebar disappears between pages, dark-vs-light flips). One layout, one nav, one source of truth. | Per-page layout — rejected: causes exactly the inconsistency we're fixing. |
-| D6 | **Every configurable thing has an Admin screen.** "Configurable" is enumerated in §6 below — including statuses, material lists, trades, document templates, compliance standards, notification preferences, API keys, roles, and feature flags. | Sponsor explicit requirement. Prevents config drift into code constants. | Config-as-code — rejected for tenant-facing tunables; retained only for system-level constants (rate limits, page sizes). |
-| D7 | **Playwright test required for every UI-affecting story.** A story is not "done" until it has a passing Playwright spec covering happy path + at least one negative. CI blocks merge on Playwright failure. | Sponsor explicit requirement. Enables fearless regression as scope grows. | Snapshot tests only — rejected: don't catch interaction regressions (the kind that broke nav consistency in the demo). |
-| D8 | **Comment density floor**: every non-trivial file (>40 lines) has a top-of-file *natural language* block explaining purpose, key decisions, and decisions-not-taken. Every non-trivial function has a docblock with the same. We code as though the next maintainer is a human armed with an agentic copilot — not a single-author ninja. | Sponsor explicit requirement. Agent-authored code is high-volume and looks confident even when wrong; rich rationale comments are the only way a human reviewer can audit "why." | Standard JSDoc — rejected as too thin; doesn't capture rejected alternatives. |
-| D9 | **Boilerplate** at [`boilerplate/`](boilerplate/) is Next.js (PM dashboard). We **do not** fork its app code (wrong framework). We **do** adopt its `agents/` governance pattern: [epic-template](boilerplate/agents/templates/epic-template.md), [story-template](boilerplate/agents/templates/story-template.md), handoff and review standards. Those are stack-agnostic. | Lets us reuse battle-tested process discipline without dragging in a Next.js app shell. | Re-derive from scratch — rejected: wastes the work captured in the boilerplate. |
-| D10 | **Slice contract: every story is "shippable on its own."** A story may not depend on the *next* story's code to render. If a slice produces an unusable screen, the slice was scoped wrong. | Sponsor diagnoses progress per merge. | Big-bang epic merges — rejected: hides regressions. |
+v1 took Bulwark from demo to a **feature-complete pre-production app** (42 services,
+all role portals, ~140 e2e tests). This plan takes it to a **real production launch
+for a first customer**: a single general-contractor organization running the full
+quote-to-cash + compliance workflow, with all four role portals **plus** a net-new
+insurer surface, real money movement, and enterprise-grade non-functionals.
 
-ADRs that formalize these live in [`DECISIONS.md`](DECISIONS.md).
-
----
-
-## 3. Repo Layout (after E0 lands)
-
-```
-bulwark/
-├── app/                         # Nuxt 3 source (real product)
-│   ├── pages/                   # File-based routes
-│   ├── layouts/                 # default.vue (AppShell), auth.vue, public.vue
-│   ├── components/
-│   │   ├── ui/                  # Button, Input, Card, StatusBadge… (UI-CONTRACTS.md)
-│   │   └── nav/                 # Sidebar, BottomNav, TopBar, Breadcrumbs
-│   ├── composables/             # useAuth, useService, usePermissions
-│   ├── stores/                  # Pinia stores
-│   ├── middleware/              # auth.global.ts, role-based guards
-│   ├── plugins/                 # services.client.ts (mock vs real switch)
-│   └── assets/css/
-│       └── tokens.css           # ALL design tokens from STYLE_GUIDE
-├── server/                      # Nitro server — built E11
-│   ├── api/
-│   ├── services/                # Real<X>Service classes
-│   ├── db/schema/               # Drizzle tables — built E0
-│   ├── errors/                  # Error taxonomy — built E0
-│   ├── middleware/
-│   └── utils/
-├── shared/
-│   ├── contracts/               # Zod schemas — built E0, single source of truth
-│   ├── types/                   # Inferred from Zod
-│   ├── mocks/                   # MockService + fixture data — built E0
-│   └── nav/                     # nav.config.ts — built E1
-├── tests/
-│   ├── e2e/                     # Playwright — one spec per story
-│   ├── unit/                    # Vitest
-│   └── fixtures/                # Test data factories
-├── agents/
-│   ├── epics/                   # E00–E13.md — built right now
-│   ├── stories/                 # E0X-S0Y-<slug>.md — built per epic
-│   ├── handoffs/                # Per-session handoff notes
-│   ├── decisions/               # ADRs (ADR-NNNN-<slug>.md)
-│   ├── wireframes/              # (existing) UX Pilot exports
-│   └── standards/               # Symlink/mirror of boilerplate standards we adopt
-├── demo/                        # Frozen investor demo — do not touch
-├── docs/                        # BRD, TECH, STYLE_GUIDE, etc. — pre-existing
-├── boilerplate/                 # Vendored agentic-team boilerplate — do not touch
-├── BUILD_PLAN.md                # this file
-├── CONTRACTS.md                 # API + service contracts — built E0
-├── DECISIONS.md                 # ADR index — built E0
-├── UI-CONTRACTS.md              # Component prop contracts — built E0
-├── BUILD_STATUS.md              # Live state of which epic/story is in flight
-├── CONVENTIONS.md               # already in docs/, lifted to root in E0
-├── nuxt.config.ts
-├── drizzle.config.ts
-├── playwright.config.ts
-├── package.json
-└── tsconfig.json
-```
+### Launch scope (locked — see interview 2026-06-30)
+- **Tenancy:** one real GC org at go-live (multi-tenant remains; no scale stress test).
+- **Portals required:** Admin web · Field PWA · Subcontractor · Homeowner · **+ NEW
+  Insurance Company Representative** (read-only, multi-property reporting).
+- **Compliance:** Oregon now, **data-driven seam** for other states (no hardcoding).
+- **Payments:** **Stripe** online invoice payments (checkout + webhooks + reconciliation).
+- **Integrations (credential-ready now; sponsor supplies secrets):** Cloudflare R2,
+  Email (Resend/SES), managed Postgres (Neon/Render), Twilio SMS, Sentry.
+- **Offline:** online-only acceptable at launch (offline = fast-follow).
+- **No hard deadline:** optimize for correctness and **autonomous throughput**.
 
 ---
 
-## 4. Epic Catalog
+## 2. Launch quality gates (the non-negotiable DoD for GA)
 
-Each epic file lives at `agents/epics/E<NN>-<slug>.md`. Stories under each epic
-live at `agents/stories/E<NN>/E<NN>-S<NN>-<slug>.md`.
+A build is **launch-ready** only when ALL hold:
 
-| ID | Epic | Status | Phase | Approx slice count |
-|---|---|---|---|---|
-| [E0](agents/epics/E00-spec-and-scaffold.md) | Spec & Scaffold | not-started | Phase 0 | 8 |
-| [E1](agents/epics/E01-design-system-and-app-shell.md) | Design System + Persistent App Shell | not-started | Phase 1 | 9 |
-| [E2](agents/epics/E02-auth-and-tenancy.md) | Auth Foundation + Tenant Firewall | not-started | Phase 1 | 8 |
-| [E3](agents/epics/E03-properties.md) | Property Pipeline + Intake + Detail Hub | not-started | Phase 1 | 7 |
-| [E4](agents/epics/E04-assessments-and-compliance.md) | Assessment + Compliance Evaluator | not-started | Phase 1 | 5 |
-| [E5](agents/epics/E05-quotes.md) | Quotes | not-started | Phase 1 | 5 |
-| [E6](agents/epics/E06-work-orders-and-subs.md) | Work Orders + Subcontractor Assignment | not-started | Phase 1 | 6 |
-| [E7](agents/epics/E07-compliance-docs.md) | Compliance Documents (async PDF) | not-started | Phase 1 | 4 |
-| [E8](agents/epics/E08-invoices.md) | Invoices | not-started | Phase 1 | 4 |
-| [E9](agents/epics/E09-admin-config-hub.md) | Admin Config Hub | not-started | Phase 1 | 9 |
-| [E10](agents/epics/E10-contractor-mobile.md) | Contractor / Field Mobile Polish + Field-Only Screens | not-started | Phase 1 | 6 |
-| [E11](agents/epics/E11-backend-wiring.md) | Backend Wiring (services + DB) | not-started | Phase 1→2 | 12 |
-| [E12](agents/epics/E12-subcontractor-portal.md) | Subcontractor Portal | not-started | Phase 2 | 5 |
-| [E13](agents/epics/E13-homeowner-portal.md) | Homeowner Portal | not-started | Phase 2 | 8 |
-
-Total: ~96 stories. Stories are sized so each is mergeable in a single agent
-session and produces a visible UI delta.
+| Gate | Bar |
+|---|---|
+| **Functional** | Every required portal flow works end-to-end against the **real** backend (no mock fallback) for the first-customer org. |
+| **Security** | OWASP Top-10 review complete; automated SAST + dependency scan green in CI; CSRF protection on all state-changing requests; secrets sealed at rest; tenant firewall test-enforced; no `data:`/`local://` persisted asset URLs in prod. |
+| **Accessibility** | WCAG 2.1 AA: automated axe-core gate green on every page; manual keyboard + focus pass on primary flows. |
+| **Performance** | API p95 < 400 ms on primary list/detail endpoints; Lighthouse ≥ 90 (perf + a11y + best-practices) on the top 10 routes, enforced in CI. |
+| **Reliability** | pg-boss retry/backoff on all jobs; crons scheduled + monitored; orphaned-state reconciliation; health/readiness endpoint; migration-drift startup check. |
+| **Observability** | Error tracking (Sentry) capturing 5xx; structured logs with redaction; metrics exposition; uptime monitor. |
+| **Per story** | Zod contract for every new shape; real service + mock parity; unit + Playwright (happy + ≥1 negative + permission-gating); typecheck + eslint + vitest + e2e green. |
+| **Data** | UNIQUE constraints on user-facing sequences (quote/invoice #); composite indexes on hot tables; no known N+1 on list endpoints. |
 
 ---
 
-## 5. Per-Slice Definition of Done
+## 3. Locked decisions (formalized as fresh ADRs in `agents/decisions/`)
 
-Every story must satisfy **all** of the following before being marked complete:
-
-1. **Code lands** behind the agreed file paths in §3.
-2. **Top-of-file rationale block** present on every new file >40 lines (D8).
-3. **Zod contract** exists in `shared/contracts/` for any new data shape — no
-   ad-hoc inline shapes.
-4. **MockService method** implemented (E0–E10) or **RealService method**
-   implemented (E11+) — never both at once.
-5. **Playwright spec** in `tests/e2e/` covering happy path + ≥1 negative.
-6. **CI green**: typecheck, eslint, playwright, vitest.
-7. **Permission gating** verified — story must explicitly state which roles
-   see the new UI and Playwright must prove non-permitted roles do not.
-8. **Persistent nav** unaffected: no story may add a layout or replace the
-   sidebar/bottom-nav. Nav additions go through `nav.config.ts` only.
-9. **Handoff note** at `agents/handoffs/S-YYYY-MM-DD-<n>-<slug>.md` summarizing
-   what shipped and what the next agent needs to know.
-10. **BUILD_STATUS.md** updated to advance the cursor.
-
----
-
-## 6. Configuration Inventory (D6 — every item below has an Admin screen)
-
-| Configurable | Owning Epic | Admin Screen |
+| # | Decision | ADR |
 |---|---|---|
-| Compliance standards (materials, vent types, etc.) | E4 | `Settings → Compliance Standards` (existing wireframe 24) |
-| Pipeline stages / statuses | E9 | `Settings → Workflow → Statuses` |
-| Trade list (roofing, siding…) | E9 | `Settings → Workflow → Trades` |
-| Material catalog (for quote line items) | E9 | `Settings → Catalog → Materials` |
-| Labor rate defaults | E9 | `Settings → Catalog → Labor Rates` |
-| Quote / compliance / invoice PDF templates | E9 | `Settings → Document Templates` |
-| User roles + memberships | E9 | `Settings → Users` (existing wireframe 23) |
-| Organization profile / GC info | E9 | `Settings → Company` (existing wireframe 12) |
-| API keys | E9 | `Settings → Integrations → API Keys` |
-| Notification preferences (per user) | E9 | `Profile → Notifications` |
-| Feature flags (per tenant) | E9 | `Settings → Feature Flags` (super_admin only) |
-| Audit log (read-only viewer) | E9 | `Settings → Audit Log` |
-| Org switcher | E9 | top-bar widget for super_admin and multi-org users |
-
-Anything that the BRD or wireframes implies should be tunable but is missing
-from this table is a **plan defect** — file an ADR to add it.
+| D1 | Real, pluggable **object-storage service** (driver = R2 in prod, filesystem in dev/test); contract rejects `data:`/`local://` in production. | ADR-0001 |
+| D2 | **Fail-loud comms**: a missing/broken email/SMS provider raises a surfaced, audited error + admin signal — never a silent stub — in production. | ADR-0002 |
+| D3 | **Stripe** for online payments via hosted Checkout + signed webhooks; `invoice_payments` ledger is the reconciliation source of truth; amounts validated server-side. | ADR-0003 |
+| D4 | **Insurance Company Representative** role: read-only, single-GC-org membership, scoped to an explicit `insurer_links` linkage, multi-property reporting only; zero write surface. | ADR-0004 |
+| D5 | **Scheduled jobs** run as registered pg-boss JobKinds triggered by the platform scheduler hitting guarded admin endpoints; every job is idempotent + retried + monitored. | ADR-0005 |
+| D6 | **Security baseline**: double-submit CSRF tokens, org MFA-enforcement policy, prod env fail-closed guards, CI SAST/dep-scan. CSP nonce is an explicit post-launch follow-up. | ADR-0006 |
+| D7 | **Observability baseline**: Sentry + structured logs + metrics + health checks; all credential-ready, no-op without secrets. | ADR-0007 |
+| D8 | **Quality gates as CI**: axe-core a11y gate, Lighthouse budget, API latency assertion — wired into CI, not aspirational. | ADR-0008 |
+| D9 | **Compliance standards are data** per tenant/program; `OREGON_DEFAULT_STANDARDS` is a seed, not a code path. | ADR-0009 |
+| D10 | **Doc-vs-code truth**: header comments + status prose are verified against code each wave; stale claims are bugs. | ADR-0010 |
 
 ---
 
-## 7. How We Manage Build-Out Without Reusing the Boilerplate App
+## 4. Epic catalog (L-series)
 
-We do not fork [`boilerplate/dashboard/`](boilerplate/dashboard/) (wrong framework — D9).
-Instead we adopt the boilerplate's *governance* artifacts and re-implement
-project tracking inside this repo with three files:
+Each epic file lives at `agents/epics/L<NN>-<slug>.md` and contains its full story
+breakdown. **Autonomy** marks whether a sponsor secret/decision is required.
 
-- [BUILD_PLAN.md](BUILD_PLAN.md) — this file. The roadmap.
-- [BUILD_STATUS.md](BUILD_STATUS.md) — the cursor: which epic, which story,
-  what's blocked, what's next.
-- `agents/handoffs/` — per-session continuity.
+| ID | Epic | Phase | Autonomy | Depends on |
+|---|---|---|---|---|
+| **L01** | Object Storage Service (R2 driver + dev/test driver + prod URL guard) | A | AUTO (R2 secret at deploy) | — |
+| **L02** | Asset uploads migrated to storage (photos, attachments, avatars, logos) | A | AUTO | L01 |
+| **L03** | Comms hardening (fail-loud email/SMS, delivery log, admin signal, retries) | A | AUTO (provider secret at deploy) | — |
+| **L04** | Async-job hardening (retry/backoff, OOM guard, prod stub guards, reconciliation) | A | AUTO | — |
+| **L05** | Scheduled jobs (account-purge GDPR, COI-expiry) wired + monitored | A | AUTO | L04 |
+| **L06** | Data layer (indexes, race-safe numbering + UNIQUE, N+1, cursor pagination) | A | AUTO | — |
+| **L07** | Security hardening (CSRF, MFA policy, tenant-firewall test, env guards, SAST) | A | AUTO | — |
+| **L08** | Observability (Sentry, metrics exposition, health/readiness, log shipping) | A | AUTO (Sentry secret at deploy) | — |
+| **L09** | Accessibility WCAG 2.1 AA (field tab bug, axe-core gate, focus/aria sweep) | A | AUTO | — |
+| **L10** | Performance budget (Lighthouse CI, API p95 instrumentation, query tuning) | A | AUTO | L06 |
+| **L11** | Document completeness (homeowner invoice PDF, compliance hardening, branded templates) | A | AUTO | L01, L04 |
+| **L12** | Settings persistence completeness (company, branding upload, templates, permissions) | A | AUTO | L01 |
+| **L13** | Portal depth (homeowner + sub detail views, sub profile/settings) | A | AUTO | — |
+| **L19** | Compliance multi-state seam (de-hardcode Oregon into standards data) | A | AUTO | — |
+| **L14** | Stripe payments (checkout, webhooks, reconciliation, refunds, homeowner pay) | B | SECRET (Stripe test keys autonomous) | L06, L11 |
+| **L15** | Insurance Representative role + insurer portal (linkage, reports, firewall) | B | AUTO | L06, L07 |
+| **L16** | Managed Postgres prod cutover (Neon/Render, migrate-on-deploy, backups) | C | SECRET | L05, L07 |
+| **L17** | Production deploy & runbook (env registry, secrets checklist, canary, rollback) | C | SECRET | all A/B |
+| **L18** | Legal & content finalization (Terms/DPA TBDs, effective dates) | C | HUMAN | — |
+| **L20** | Launch QA gate (full role×portal e2e, OWASP scan, a11y/perf sign-off) | C | AUTO | all |
 
-Sponsor visibility = read these three locations. No external PM tool required
-until we hit Phase 2 scale.
+---
+
+## 5. Per-story Definition of Done
+
+1. **Contract**: Zod schema in `shared/contracts/` for any new shape (no inline shapes).
+2. **Parity**: real service implemented **and** mock parity kept; both satisfy the contract.
+3. **Tenant safety**: every org-scoped method calls `assertSameTenant`; proven by test.
+4. **Validation**: inputs Zod-parsed at the boundary; errors mapped to correct status.
+5. **Tests**: Vitest unit (pure logic) + Playwright (happy + ≥1 negative + permission gate).
+6. **Quality gates**: typecheck, eslint, vitest, e2e, axe-core, and (for UI) Lighthouse budget pass — each gate applies **once its harness exists** (see note below).
+7. **Security**: no secret in logs; state-changing requests carry CSRF; no plaintext-at-rest regressions.
+8. **Observability**: meaningful audit events + metrics on new server paths.
+9. **Docs truth**: header rationale block accurate to the code; no stale claims.
+10. **Cursor**: `BUILD_STATUS.md` advanced; handoff note in `agents/handoffs/`.
+
+> **Gate-substrate sequencing:** the axe-core (L09-S2), Lighthouse/latency (L10-S1/S2),
+> CSRF (L07-S1), and tenant-firewall (L07-S3) harnesses are themselves deliverables. To keep
+> the DoD honest, these four are **pulled forward into Wave 1** as the "gate substrate"; until
+> a given harness lands, its gate is N/A for earlier stories rather than a blocker. Every
+> story authored after a harness exists MUST pass it.
+
+---
+
+## 6. Sequencing — autonomous-first waves
+
+Per sponsor priority ("prioritize all work that can be done without human
+intervention"), build order front-loads `AUTO` work and builds `SECRET` work
+**credential-ready** (test-mode/no-op) so it lands without waiting on the sponsor.
+
+- **Wave 1 — Foundations + gate substrate (AUTO):** L01 → L02, L04 → L05, L06, plus the gate
+  substrate L07-S1 (CSRF), L07-S3 (tenant-firewall test), L09-S2 (axe-core), L10-S1 (Lighthouse).
+  (Storage, jobs, data, and the CI gates every later story is held to.)
+- **Wave 2 — Safety & signals (AUTO):** L07, L08, L03. (Security, observability, comms.)
+- **Wave 3 — Quality (AUTO):** L09, L10, L19. (A11y, perf, compliance seam.)
+- **Wave 4 — Surfaces (AUTO):** L11, L12, L13, L15. (Docs, settings, portals, insurer.)
+- **Wave 5 — Money (SECRET test-mode autonomous):** L14.
+- **Wave 6 — Launch (SECRET/HUMAN):** L16, L17, L18, then L20 sign-off.
+
+Within a wave, independent epics may proceed in parallel where they don't touch the
+same files. Each epic still merges story-by-story behind green gates.
+
+---
+
+## 7. Human-gated items registry (the ONLY things that need the sponsor)
+
+These are built **credential-ready and test-verified** without the sponsor; they
+flip to "live" when the secret/decision arrives. Nothing else blocks on a human.
+
+| Item | What's needed from sponsor | Built-ahead state |
+|---|---|---|
+| Cloudflare R2 | Account id, bucket, access keys | Storage service + filesystem driver; R2 driver behind env. |
+| Email (Resend/SES) | API key + verified from-domain | Provider adapter + fail-loud + delivery log; stub in test. |
+| Twilio SMS | SID/auth/from-number | Adapter + fail-loud; stub in test. |
+| Stripe | Account; test + live keys; webhook secret | Full flow against **Stripe test mode**; live = key swap. |
+| Managed Postgres | Neon/Render DATABASE_URL | Migrations + health check; runs on local PG today. |
+| Sentry | DSN | SDK wired no-op without DSN. |
+| Legal copy | Counsel-approved Terms/DPA + governing law/entity | Pages render; `TBD` tokens flagged. |
+| Domain/DNS/TLS | Production hostname | Security headers + HSTS gated to prod. |
 
 ---
 
@@ -186,22 +155,14 @@ until we hit Phase 2 scale.
 
 | Risk | Mitigation |
 |---|---|
-| FE-first builds UI that the eventual backend can't populate. | D4 MockService satisfies the same Zod contracts the real backend will. Contract drift is a CI failure. |
-| Comment-rich code becomes stale. | ADR for every D-level decision; comments reference ADR IDs not narrative. Stale ADR detection added to CI in E11. |
-| Demo and real app diverge to the point investors get confused. | Demo is frozen post-E0. Any change to demo requires explicit sponsor request. |
-| Permission-gated nav silently regresses. | Playwright matrix runs all roles against every route in E1's slice S9. |
-| Multi-tenancy escapes through sloppy service writes. | `requireOrgMembership` is the first line of every service method (TECH §2). Architect-role review on every E11 story. |
+| Stale docs misdirect work (already happened — see gap register §1). | ADR-0010 truth-sweep each wave; skeptical sub-agent review of every plan/claim. |
+| Stripe correctness (double-charge, webhook replay). | Idempotency keys + signed-webhook verification + ledger as source of truth + test-mode e2e. |
+| Insurer role leaks cross-tenant data. | Read-only contract + `insurer_orgs` firewall + persona×route matrix test for the new role. |
+| R2/credential drift breaks uploads silently. | Prod URL guard + storage health check + fail-loud. |
+| Chromium OOM on the worker. | Retry/backoff + memory flags + circuit-breaker + render plan note. |
 
 ---
 
-## 9. Execution Cursor (live)
+## 9. Cursor
 
-See [BUILD_STATUS.md](BUILD_STATUS.md). At time of writing this plan:
-
-- Active epic: **E0 — Spec & Scaffold**
-- Active story: **E0-S1 — Lift docs into root + write CONTRACTS/DECISIONS/UI-CONTRACTS skeletons**
-- Next agent action: scaffold Nuxt 3 project at repo root.
-
----
-
-*— end of plan —*
+Active state lives in [`BUILD_STATUS.md`](BUILD_STATUS.md). Read it before doing anything.
