@@ -18,6 +18,7 @@ export const COUNTERS = {
   requestsTotal: 'requests_total',
   requestsErroredTotal: 'requests_errored_total',
   jobsEnqueuedTotal: 'jobs_enqueued_total',
+  jobsSucceededTotal: 'jobs_succeeded_total',
   jobsFailedTotal: 'jobs_failed_total',
   webhooksDeliveredTotal: 'webhooks_delivered_total',
   webhooksFailedTotal: 'webhooks_failed_total',

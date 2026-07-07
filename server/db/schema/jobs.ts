@@ -16,7 +16,11 @@ export const jobStatusEnum = pgEnum('job_status', [
   'failed',
 ])
 
-export const jobKindEnum = pgEnum('job_kind', ['compliance_doc'])
+export const jobKindEnum = pgEnum('job_kind', [
+  'compliance_doc',
+  'account_purge',
+  'coi_expiry_scan',
+])
 
 export const jobs = pgTable('jobs', {
   id: uuid('id').primaryKey().defaultRandom(),

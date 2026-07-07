@@ -48,8 +48,17 @@ export function isTerminalJobStatus(s: JobStatus): boolean {
 // ----------------------------------------------------------------------------
 // Kind — additive enum. Extend as new consumers land.
 // ----------------------------------------------------------------------------
-export const JobKindSchema = z.enum(['compliance_doc'])
+export const JobKindSchema = z.enum(['compliance_doc', 'account_purge', 'coi_expiry_scan'])
 export type JobKind = z.infer<typeof JobKindSchema>
+
+/**
+ * Sentinel organizationId for platform-scheduled runs (cron-triggered GDPR
+ * purge / COI scans). Matches the nil-uuid convention `logSystemError` already
+ * uses for org-less system audit rows. `jobs.organization_id` carries no FK,
+ * so these rows persist fine; tenant list views never see them (they filter
+ * by a real org id) and the super-admin jobs surface reads them explicitly.
+ */
+export const PLATFORM_ORG_ID = '00000000-0000-0000-0000-000000000000'
 
 // ----------------------------------------------------------------------------
 // Job row.
@@ -86,4 +95,12 @@ export type JobCreateInput = z.infer<typeof JobCreateInputSchema>
 export interface IJobService {
   create(input: JobCreateInput): Promise<Job>
   get(id: string, organizationId: string): Promise<Job | null>
+  /**
+   * Platform-scope read for the super-admin jobs surface (L05-S3): most
+   * recent runs of the given kinds across BOTH the platform sentinel org and
+   * real orgs. NOT tenant-scoped by design — the route MUST verify a
+   * super_admin session before calling (the service is constructed without a
+   * tenant resolver for this path, mirroring the worker's usage).
+   */
+  listRecentRuns(input: { kinds: JobKind[]; limit?: number }): Promise<Job[]>
 }

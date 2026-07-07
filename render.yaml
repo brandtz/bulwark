@@ -60,3 +60,43 @@ services:
       # signed URLs). Set if you front R2 with a public CDN later.
       - key: R2_PUBLIC_URL
         sync: false
+
+  # --- Scheduled jobs (L05-S2 / ADR-0005) ---------------------------------
+  # Render Cron curls the guarded trigger endpoints on the Vercel web tier;
+  # the endpoint enqueues the JobKind and the worker above executes it.
+  # BULWARK_CRON_SECRET must be set BOTH here and on the Vercel project
+  # (the endpoint compares it constant-time; unset = bearer path disabled).
+  # BULWARK_APP_URL is the production web origin, e.g. https://app.bulwark.example
+  - type: cron
+    name: bulwark-cron-account-purge
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    schedule: '0 2 * * *' # daily 02:00 UTC — GDPR 30-day purge sweep
+    buildCommand: 'true'
+    startCommand: >-
+      curl -sf -X POST "$BULWARK_APP_URL/api/admin/jobs/account-purge"
+      -H "Authorization: Bearer $BULWARK_CRON_SECRET"
+    envVars:
+      - key: BULWARK_APP_URL
+        sync: false
+      - key: BULWARK_CRON_SECRET
+        sync: false
+
+  - type: cron
+    name: bulwark-cron-coi-expiry-scan
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    schedule: '0 3 * * *' # nightly 03:00 UTC — all-orgs COI expiry sweep
+    buildCommand: 'true'
+    startCommand: >-
+      curl -sf -X POST "$BULWARK_APP_URL/api/admin/jobs/coi-expiry-scan"
+      -H "Authorization: Bearer $BULWARK_CRON_SECRET"
+    envVars:
+      - key: BULWARK_APP_URL
+        sync: false
+      - key: BULWARK_CRON_SECRET
+        sync: false

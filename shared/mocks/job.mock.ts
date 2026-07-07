@@ -126,6 +126,21 @@ export class MockJobService implements IJobService {
     )
     return r ?? null
   }
+
+  async listRecentRuns(input: { kinds: Job['kind'][]; limit?: number }): Promise<Job[]> {
+    // Parity with RealJobService (L05-S3): platform-scope read, refused when
+    // constructed with a tenant resolver — see job.real.ts rationale.
+    if (this.tenantResolver?.()) {
+      throw new Error(
+        'listRecentRuns is a platform-scope read; construct MockJobService without a tenant resolver (super_admin route only).',
+      )
+    }
+    if (input.kinds.length === 0) return []
+    return rows
+      .filter((x) => input.kinds.includes(x.kind) && !x.deletedAt)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, Math.min(input.limit ?? 20, 100))
+  }
 }
 
 /**
