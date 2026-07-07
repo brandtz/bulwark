@@ -129,6 +129,36 @@ export const FinalizeUploadOutputSchema = z.object({
 export type FinalizeUploadOutput = z.infer<typeof FinalizeUploadOutputSchema>
 
 // ----------------------------------------------------------------------------
+// Storage health (L01-S4). Admin-only report: is the active driver reachable
+// AND writable, and how many legacy placeholder rows remain per asset column
+// (the read-only census L02 migrates against).
+// ----------------------------------------------------------------------------
+export const StorageProbeResultSchema = z.object({
+  ok: z.boolean(),
+  latencyMs: z.number().int().nonnegative(),
+  error: z.string().optional(),
+})
+export type StorageProbeResultShape = z.infer<typeof StorageProbeResultSchema>
+
+export const LegacyAssetCountSchema = z.object({
+  table: z.string(),
+  column: z.string(),
+  count: z.number().int().nonnegative(),
+  /** True when inline storage is intentional today (avatars until L02-S3). */
+  intentionalInline: z.boolean(),
+})
+export type LegacyAssetCountShape = z.infer<typeof LegacyAssetCountSchema>
+
+export const StorageHealthOutputSchema = z.object({
+  ts: z.string().datetime(),
+  driver: z.enum(['r2', 'fs']),
+  probe: StorageProbeResultSchema,
+  legacyAssets: z.array(LegacyAssetCountSchema),
+  organizationId: UuidSchema,
+})
+export type StorageHealthOutput = z.infer<typeof StorageHealthOutputSchema>
+
+// ----------------------------------------------------------------------------
 // Upload validation — shared by the presign endpoint and the client widgets.
 // ----------------------------------------------------------------------------
 export type UploadValidation = { ok: true } | { ok: false; reason: string }

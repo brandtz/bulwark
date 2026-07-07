@@ -12,10 +12,12 @@ import type { StorageDriver } from './types'
 import { FsDriver } from './fs-driver'
 import { R2Driver } from './r2-driver'
 
-export interface StorageEnv {
-  NODE_ENV?: string
-  BULWARK_STORAGE_DRIVER?: string
-}
+/**
+ * Structural env snapshot — `Record<string, string | undefined>` so
+ * `process.env` satisfies it without weak-type friction (the same
+ * ProcessEnv TS2559 lesson recorded in server/jobs/env-guard.ts).
+ */
+export type StorageEnv = Record<string, string | undefined>
 
 /** Decide which driver name to use. Production is always 'r2' (fail closed). */
 export function selectStorageDriverName(env: StorageEnv = process.env): 'r2' | 'fs' {
