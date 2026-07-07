@@ -25,12 +25,12 @@ test.describe('Settings hub (E9-S1)', () => {
     await signInAsAdmin(page)
   })
 
-  test('org_admin sees 15 cards (no Feature flags)', async ({ page }) => {
+  test('org_admin sees 19 cards (no Feature flags, no Scheduled jobs)', async ({ page }) => {
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
 
     await expect(page.getByTestId('settings-hub')).toBeVisible()
-    await expect(page.getByTestId('settings-card')).toHaveCount(15)
+    await expect(page.getByTestId('settings-card')).toHaveCount(19)
     // Feature flags hidden for org_admin.
     await expect(page.getByText('Feature flags', { exact: true })).toHaveCount(0)
   })
@@ -133,12 +133,12 @@ test.describe('Settings: API keys editor (E9-S7)', () => {
 })
 
 test.describe('Settings: feature flags (super_admin only)', () => {
-  test('super_admin sees 16 cards including Feature flags', async ({ page }) => {
+  test('super_admin sees 21 cards including Feature flags and Scheduled jobs', async ({ page }) => {
     await signInAsSuper(page)
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByTestId('settings-card')).toHaveCount(16)
+    await expect(page.getByTestId('settings-card')).toHaveCount(21)
     await page.goto('/settings/feature-flags')
     await page.waitForLoadState('networkidle')
     await expect(page.getByTestId('settings-feature-flags')).toBeVisible()
