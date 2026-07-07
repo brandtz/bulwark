@@ -13,13 +13,15 @@
  *     production gotcha — Render Starter (512 MB) tends to OOM under
  *     Chromium; bump to Standard if we see EAGAIN/SIGABRT.
  */
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { JobEnvelope, JobHandlerResult } from './index'
 import { getDb } from '../../db/client'
 import { complianceDocs } from '../../db/schema/compliance_docs'
 import { properties } from '../../db/schema/properties'
 import { organizations } from '../../db/schema/organizations'
-import { renderComplianceDocHtml } from '../render-compliance-doc'
+import { orgBranding } from '../../db/schema/org_branding'
+import { labels } from '../../db/schema/labels'
+import { renderComplianceDocHtml, type RenderTemplate } from '../render-compliance-doc'
 import { signR2GetUrl, uploadToR2 } from '../r2'
 
 interface CompliancePayload {
@@ -46,7 +48,36 @@ export async function complianceDocHandler(env: JobEnvelope): Promise<JobHandler
   const [organization] = await db.select().from(organizations).where(eq(organizations.id, doc.organizationId)).limit(1)
   if (!organization) throw new Error(`Org not found: ${doc.organizationId}`)
 
-  const html = renderComplianceDocHtml({ doc, property, organization })
+  // L12-S2: tenant template inputs — branding singleton + pdf.* label
+  // overrides. Both reads are best-effort: a missing row means "use the
+  // code-resident defaults", never a failed render.
+  const [branding] = await db
+    .select()
+    .from(orgBranding)
+    .where(eq(orgBranding.organizationId, doc.organizationId))
+    .limit(1)
+  const labelRows = await db
+    .select({ namespace: labels.namespace, value: labels.value })
+    .from(labels)
+    .where(
+      and(
+        eq(labels.organizationId, doc.organizationId),
+        inArray(labels.namespace, ['pdf.footer', 'pdf.declaration']),
+        eq(labels.key, 'default'),
+        isNull(labels.deletedAt),
+      ),
+    )
+  const template: RenderTemplate = {
+    footerText:
+      labelRows.find((l) => l.namespace === 'pdf.footer')?.value ?? branding?.footerText ?? null,
+    declarationText: labelRows.find((l) => l.namespace === 'pdf.declaration')?.value ?? null,
+    licenseLabel: branding?.licenseLabel ?? null,
+    primaryColor: branding?.primaryColor ?? null,
+    supportEmail: branding?.supportEmail ?? null,
+    supportPhone: branding?.supportPhone ?? null,
+  }
+
+  const html = renderComplianceDocHtml({ doc, property, organization, template })
 
   // Stub fast-path for tests + envs without R2/Chromium.
   if (process.env.BULWARK_PDF_STUB === '1') {
@@ -57,23 +88,40 @@ export async function complianceDocHandler(env: JobEnvelope): Promise<JobHandler
 
   // Lazy-load Puppeteer so envs without Chromium can still import this
   // module (e.g. unit tests that exercise other handlers).
+  //
+  // L04-S3 OOM/hang resilience:
+  //   - `protocolTimeout` bounds every CDP call — a wedged Chromium (the
+  //     512MB-Render OOM signature) throws instead of hanging the worker
+  //     until pg-boss expires the whole attempt.
+  //   - `setContent`/`pdf` carry explicit timeouts for the same reason.
+  //   - Any throw lands in the worker's catch → jobs row `failed` → re-throw
+  //     → pg-boss retries per policy (3x exponential). Three straight
+  //     terminal failures trip the L05-S4 consecutive-failure alert. The
+  //     browser is closed (or kill-attempted) in `finally` so no zombie
+  //     Chromium accumulates across retries.
+  const RENDER_TIMEOUT_MS = 120_000
   const puppeteerMod = await import('puppeteer')
   const puppeteer = (puppeteerMod as unknown as { default?: typeof puppeteerMod }).default ?? puppeteerMod
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    protocolTimeout: RENDER_TIMEOUT_MS,
   })
   let pdf: Uint8Array
   try {
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0' })
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: RENDER_TIMEOUT_MS })
     pdf = await page.pdf({
       format: 'Letter',
       printBackground: true,
       margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' },
+      timeout: RENDER_TIMEOUT_MS,
     })
   } finally {
-    await browser.close().catch(() => {})
+    await browser.close().catch(() => {
+      // A close() that itself hangs/throws means Chromium is already dying;
+      // the process-level kill is Puppeteer's cleanup responsibility.
+    })
   }
 
   const key = `compliance/${doc.organizationId}/${doc.id}.pdf`

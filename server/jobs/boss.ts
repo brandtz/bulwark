@@ -26,13 +26,18 @@
  *     would drift on every pg-boss upgrade.
  */
 import { PgBoss } from 'pg-boss'
+import { ALL_JOB_KINDS, JOB_POLICIES } from './policy'
 
 let _boss: PgBoss | null = null
 let _starting: Promise<PgBoss> | null = null
 
 export const QUEUE_COMPLIANCE_DOC = 'compliance_doc'
 
-export const ALL_QUEUES = [QUEUE_COMPLIANCE_DOC] as const
+/**
+ * Queue names derive from the policy registry (L04-S5) — queue name ===
+ * JobKind value, so a kind cannot exist without a queue or a retry policy.
+ */
+export const ALL_QUEUES = ALL_JOB_KINDS
 
 /**
  * Lazily build + start a shared PgBoss instance. Idempotent — the first
@@ -65,8 +70,16 @@ export async function getBoss(): Promise<PgBoss> {
     await boss.start()
     // pg-boss v10+ requires queues to be explicitly registered before
     // send()/work() will accept them. Idempotent — safe on every boot.
+    // Each queue carries its L04-S1 retry policy as the queue default
+    // (send() also passes the policy explicitly — belt and braces).
     for (const q of ALL_QUEUES) {
-      await boss.createQueue(q)
+      const p = JOB_POLICIES[q]
+      await boss.createQueue(q, {
+        retryLimit: p.retryLimit,
+        retryDelay: p.retryDelay,
+        retryBackoff: p.retryBackoff,
+        expireInSeconds: p.expireInSeconds,
+      })
     }
     _boss = boss
     return boss

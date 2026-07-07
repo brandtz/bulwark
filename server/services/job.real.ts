@@ -1,7 +1,7 @@
 /**
- * server/services/job.real.ts — RealJobService (E11-S9).
+ * server/services/job.real.ts — RealJobService (E11-S9, extended L04/L05).
  *
- * # Decisions (ADR-0008, ADR-0012)
+ * # Decisions (ADR-0008, ADR-0012, ADR-0005)
  *   - Two-step submission: (1) write a row to OUR `jobs` table so the
  *     read API is independent of pg-boss internals; (2) publish to the
  *     pg-boss queue with the just-minted job id as the payload key the
@@ -11,17 +11,26 @@
  *     we own the user-visible status surface.
  *   - `get()` reads only OUR table. Tenant-firewalled like every other
  *     Real* service.
- *   - The contract is `create + get` (no `list` — that's a worker
- *     concern). Audit-log on create only; status changes are recorded
- *     by the worker via `auditFromWorker()` helper if we add one in S10.
+ *   - **Queue mapping derives from the policy registry (L04-S5)** — queue
+ *     name === JobKind, validated by the `Record<JobKind, JobPolicy>` type,
+ *     so the old hand-written switch (and its drift risk) is gone.
+ *   - **Send carries the retry policy explicitly (L04-S1)** in addition to
+ *     the queue-level default set in boss.ts — pg-boss send options silently
+ *     fall back to library defaults otherwise.
+ *   - **`listRecentRuns` is a platform-scope read (L05-S3)**: it is NOT
+ *     tenant-filtered because scheduled runs live under the PLATFORM_ORG_ID
+ *     sentinel. The calling route MUST gate on super_admin; the service
+ *     asserts it was constructed WITHOUT a tenant resolver to make misuse
+ *     from a tenant-scoped path loud instead of silent.
  */
-import { and, eq, sql } from 'drizzle-orm'
-import type { IJobService, Job, JobCreateInput } from '../../shared/contracts/job'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import type { IJobService, Job, JobCreateInput, JobKind } from '../../shared/contracts/job'
 import { getDb } from '../db/client'
 import { jobs } from '../db/schema/jobs'
 import type { Job as DbJob } from '../db/schema/jobs'
-import { getBoss, QUEUE_COMPLIANCE_DOC } from '../jobs/boss'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { getBoss } from '../jobs/boss'
+import { JOB_POLICIES } from '../jobs/policy'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 
 function rowToContract(r: DbJob): Job {
@@ -36,18 +45,6 @@ function rowToContract(r: DbJob): Job {
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
-  }
-}
-
-function queueNameForKind(kind: Job['kind']): string {
-  switch (kind) {
-    case 'compliance_doc':
-      return QUEUE_COMPLIANCE_DOC
-    default: {
-      // Exhaustive check — every JobKind must map to a queue.
-      const _exhaustive: never = kind
-      throw new Error(`No queue mapped for job kind: ${_exhaustive}`)
-    }
   }
 }
 
@@ -74,21 +71,32 @@ export class RealJobService implements IJobService {
         entityType: 'job',
         entityId: r!.id,
         action: 'create',
-        actorUserId: this.tenantResolver?.()?.userId ?? null,
+        actorUserId: resolveActorUserId(this.tenantResolver),
         after: { kind: input.kind },
       })
       return r!
     })
 
-    // 2. Publish to pg-boss. Worker pulls this and writes terminal
-    //    status back to our row.
+    // 2. Publish to pg-boss with the kind's retry policy (L04-S1). Queue
+    //    name === JobKind (policy registry). Worker pulls this and writes
+    //    terminal status back to our row.
     const boss = await getBoss()
-    await boss.send(queueNameForKind(input.kind), {
-      jobId: row.id,
-      organizationId: row.organizationId,
-      kind: row.kind,
-      payload: row.payload,
-    })
+    const policy = JOB_POLICIES[input.kind]
+    await boss.send(
+      input.kind,
+      {
+        jobId: row.id,
+        organizationId: row.organizationId,
+        kind: row.kind,
+        payload: row.payload,
+      },
+      {
+        retryLimit: policy.retryLimit,
+        retryDelay: policy.retryDelay,
+        retryBackoff: policy.retryBackoff,
+        expireInSeconds: policy.expireInSeconds,
+      },
+    )
 
     return rowToContract(row)
   }
@@ -102,5 +110,26 @@ export class RealJobService implements IJobService {
       .where(and(eq(jobs.id, id), eq(jobs.organizationId, organizationId), sql`${jobs.deletedAt} IS NULL`))
       .limit(1)
     return row ? rowToContract(row) : null
+  }
+
+  async listRecentRuns(input: { kinds: JobKind[]; limit?: number }): Promise<Job[]> {
+    // Platform-scope read: refuse to serve a tenant-scoped construction so
+    // this can never become an accidental cross-tenant list endpoint. The
+    // super-admin route constructs the service with NO resolver (like the
+    // worker does) after verifying the session role.
+    if (this.tenantResolver?.()) {
+      throw new Error(
+        'listRecentRuns is a platform-scope read; construct RealJobService without a tenant resolver (super_admin route only).',
+      )
+    }
+    if (input.kinds.length === 0) return []
+    const db = getDb()
+    const rows = await db
+      .select()
+      .from(jobs)
+      .where(and(inArray(jobs.kind, input.kinds), sql`${jobs.deletedAt} IS NULL`))
+      .orderBy(desc(jobs.createdAt))
+      .limit(Math.min(input.limit ?? 20, 100))
+    return rows.map(rowToContract)
   }
 }

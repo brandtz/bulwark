@@ -119,4 +119,18 @@ export interface IComplianceDocService {
    * Used by UI polling to mirror job status onto the doc row.
    */
   syncFromJob(id: string, organizationId: string): Promise<ComplianceDoc>
+  /**
+   * L04-S4 orphan sweep: fail docs stuck in `generating` past the threshold
+   * whose job is missing or already terminal (a succeeded job syncs to
+   * `ready` instead). Idempotent; returns the docs it failed.
+   */
+  reconcileGenerating(input: {
+    organizationId: string
+    olderThanMinutes?: number
+  }): Promise<{ reconciled: number; docIds: string[] }>
+  /**
+   * L04-S4 operator recovery: give a `failed` doc a fresh job and flip it
+   * back to `generating`. Throws on any other status.
+   */
+  reenqueue(id: string, organizationId: string): Promise<ComplianceDoc>
 }

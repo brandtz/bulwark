@@ -26,7 +26,7 @@ import type { ComplianceDoc as DbComplianceDoc } from '../db/schema/compliance_d
 import { RealJobService } from './job.real'
 import { RealInspectionService } from './inspection.real'
 import { inspections } from '../db/schema/inspections'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { emit } from '../../shared/events/bus'
 import { complianceDocReady } from '../../shared/events/catalog'
@@ -123,16 +123,43 @@ export class RealComplianceDocService implements IComplianceDocService {
     })
 
     // 2. Enqueue the job with the docId in the payload.
-    const job = await this.jobs.create({
-      organizationId: input.organizationId,
-      kind: 'compliance_doc',
-      payload: {
-        docId: docRow.id,
-        propertyId: input.propertyId,
-        workOrderIds: input.workOrderIds,
-        includedSlotIds: input.includedSlotIds,
-      },
-    })
+    //    L04-S4: an enqueue failure must not orphan the doc in `generating`
+    //    forever — mark it `failed` (operator-recoverable via reenqueue())
+    //    and rethrow so the caller sees the real error.
+    let job: Awaited<ReturnType<RealJobService['create']>>
+    try {
+      job = await this.jobs.create({
+        organizationId: input.organizationId,
+        kind: 'compliance_doc',
+        payload: {
+          docId: docRow.id,
+          propertyId: input.propertyId,
+          workOrderIds: input.workOrderIds,
+          includedSlotIds: input.includedSlotIds,
+        },
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      await withAudit(async ({ tx, audit }) => {
+        await tx
+          .update(complianceDocs)
+          .set({
+            status: 'failed',
+            error: `Job enqueue failed: ${message}`.slice(0, 500),
+            updatedAt: new Date(),
+          })
+          .where(eq(complianceDocs.id, docRow.id))
+        await audit.record({
+          organizationId: input.organizationId,
+          entityType: 'compliance_doc',
+          entityId: docRow.id,
+          action: 'state_change',
+          actorUserId: resolveActorUserId(this.tenantResolver),
+          metadata: { kind: 'enqueue_failed', error: message.slice(0, 500) },
+        })
+      })
+      throw err
+    }
 
     // 3. Stamp the job id on the doc row.
     const db = getDb()
@@ -239,5 +266,105 @@ export class RealComplianceDocService implements IComplianceDocService {
       })
     }
     return updated
+  }
+
+  async reconcileGenerating(input: {
+    organizationId: string
+    olderThanMinutes?: number
+  }): Promise<{ reconciled: number; docIds: string[] }> {
+    // L04-S4: docs stuck in `generating` past the threshold with no live job
+    // (job missing, or job already terminal) are failed so an operator can
+    // reenqueue(). Docs whose job actually succeeded are synced to `ready`
+    // instead — reconciliation must never destroy a good result.
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const olderThanMin = input.olderThanMinutes ?? 30
+    const cutoff = new Date(Date.now() - olderThanMin * 60_000)
+    const db = getDb()
+
+    const stuck = await db
+      .select()
+      .from(complianceDocs)
+      .where(
+        and(
+          eq(complianceDocs.organizationId, input.organizationId),
+          eq(complianceDocs.status, 'generating'),
+          sql`${complianceDocs.updatedAt} < ${cutoff.toISOString()}`,
+          sql`${complianceDocs.deletedAt} IS NULL`,
+        ),
+      )
+
+    const failedIds: string[] = []
+    for (const doc of stuck) {
+      const job = doc.jobId ? await this.jobs.get(doc.jobId, input.organizationId) : null
+      if (job && (job.status === 'queued' || job.status === 'running')) continue // live — leave it
+      if (job && job.status === 'succeeded') {
+        await this.syncFromJob(doc.id, input.organizationId)
+        continue
+      }
+      const reason = job
+        ? `Orphaned: job ${job.id} is ${job.status} but doc stayed generating`
+        : 'Orphaned: no job attached after enqueue'
+      await withAudit(async ({ tx, audit }) => {
+        await tx
+          .update(complianceDocs)
+          .set({ status: 'failed', error: reason, updatedAt: new Date() })
+          .where(eq(complianceDocs.id, doc.id))
+        await audit.record({
+          organizationId: input.organizationId,
+          entityType: 'compliance_doc',
+          entityId: doc.id,
+          action: 'state_change',
+          actorUserId: resolveActorUserId(this.tenantResolver),
+          metadata: { kind: 'reconcile_orphaned_generating', reason, olderThanMin },
+        })
+      })
+      failedIds.push(doc.id)
+    }
+    return { reconciled: failedIds.length, docIds: failedIds }
+  }
+
+  async reenqueue(id: string, organizationId: string): Promise<ComplianceDoc> {
+    // L04-S4 operator recovery: a `failed` doc gets a FRESH job (new job id,
+    // same payload) and flips back to `generating`. The handler keys the R2
+    // object by docId, so a re-run overwrites safely (idempotent contract).
+    assertSameTenant(this.tenantResolver, organizationId)
+    const current = await this.get(id, organizationId)
+    if (!current) throw new Error(`ComplianceDoc not found: ${id}`)
+    if (current.status !== 'failed') {
+      throw new Error(
+        `Invalid state: only failed docs can be re-enqueued (doc is ${current.status})`,
+      )
+    }
+
+    const job = await this.jobs.create({
+      organizationId,
+      kind: 'compliance_doc',
+      payload: {
+        docId: current.id,
+        propertyId: current.propertyId,
+        workOrderIds: current.workOrderIds,
+        includedSlotIds: current.includedSlotIds,
+      },
+    })
+
+    const db = getDb()
+    const [row] = await db
+      .update(complianceDocs)
+      .set({ status: 'generating', jobId: job.id, error: null, updatedAt: new Date() })
+      .where(
+        and(eq(complianceDocs.id, id), eq(complianceDocs.organizationId, organizationId)),
+      )
+      .returning()
+    await withAudit(async ({ audit }) => {
+      await audit.record({
+        organizationId,
+        entityType: 'compliance_doc',
+        entityId: id,
+        action: 'state_change',
+        actorUserId: resolveActorUserId(this.tenantResolver),
+        metadata: { kind: 'reenqueued', newJobId: job.id },
+      })
+    })
+    return rowToContract(row!)
   }
 }

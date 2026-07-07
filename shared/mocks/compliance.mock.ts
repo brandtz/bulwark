@@ -156,6 +156,82 @@ export class MockComplianceDocService implements IComplianceDocService {
     rows[idx] = updated
     return updated
   }
+
+  async reconcileGenerating(input: {
+    organizationId: string
+    olderThanMinutes?: number
+  }): Promise<{ reconciled: number; docIds: string[] }> {
+    // Parity with RealComplianceDocService (L04-S4): fail stuck `generating`
+    // docs whose job is gone/terminal; sync ones whose job succeeded.
+    assertSameTenant(this.tenantResolver, input.organizationId)
+    const olderThanMin = input.olderThanMinutes ?? 30
+    const cutoffIso = new Date(Date.now() - olderThanMin * 60_000).toISOString()
+    const docIds: string[] = []
+    for (let i = 0; i < rows.length; i++) {
+      const doc = rows[i]!
+      if (
+        doc.organizationId !== input.organizationId ||
+        doc.deletedAt ||
+        doc.status !== 'generating' ||
+        doc.updatedAt >= cutoffIso
+      ) {
+        continue
+      }
+      const job = doc.jobId
+        ? await this.getJobService().get(doc.jobId, input.organizationId)
+        : null
+      if (job && (job.status === 'queued' || job.status === 'running')) continue
+      if (job && job.status === 'succeeded') {
+        await this.syncFromJob(doc.id, input.organizationId)
+        continue
+      }
+      const reason = job
+        ? `Orphaned: job ${job.id} is ${job.status} but doc stayed generating`
+        : 'Orphaned: no job attached after enqueue'
+      rows[i] = {
+        ...doc,
+        status: 'failed',
+        error: reason,
+        updatedAt: new Date().toISOString(),
+      }
+      docIds.push(doc.id)
+    }
+    return { reconciled: docIds.length, docIds }
+  }
+
+  async reenqueue(id: string, organizationId: string): Promise<ComplianceDoc> {
+    // Parity with RealComplianceDocService (L04-S4).
+    assertSameTenant(this.tenantResolver, organizationId)
+    const idx = rows.findIndex(
+      (x) => x.id === id && x.organizationId === organizationId && !x.deletedAt,
+    )
+    if (idx === -1) throw new Error(`ComplianceDoc not found: ${id}`)
+    const current = rows[idx]!
+    if (current.status !== 'failed') {
+      throw new Error(
+        `Invalid state: only failed docs can be re-enqueued (doc is ${current.status})`,
+      )
+    }
+    const job = await this.getJobService().create({
+      organizationId,
+      kind: 'compliance_doc',
+      payload: {
+        docId: current.id,
+        propertyId: current.propertyId,
+        workOrderIds: current.workOrderIds,
+        includedSlotIds: current.includedSlotIds,
+      },
+    })
+    const updated: ComplianceDoc = {
+      ...current,
+      status: 'generating',
+      jobId: job.id,
+      error: null,
+      updatedAt: new Date().toISOString(),
+    }
+    rows[idx] = updated
+    return updated
+  }
 }
 
 /**
