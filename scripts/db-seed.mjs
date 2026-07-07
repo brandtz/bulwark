@@ -405,6 +405,14 @@ try {
   await sql`DELETE FROM quotes WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM assessments WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM homeowner_users WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  // inspections/inspection_responses FK into properties — must wipe before
+  // properties itself, or a re-seed after inspection-dynamic.spec.ts trips
+  // `inspections_property_id_properties_id_fk` (found via first full
+  // single-worker real-backend e2e run, 2026-07-07).
+  await sql`DELETE FROM inspection_responses WHERE inspection_id IN (
+    SELECT id FROM inspections WHERE organization_id = ANY(${DEMO_ORG_IDS})
+  )`
+  await sql`DELETE FROM inspections WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM properties WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM clients WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM subcontractor_coi_docs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
@@ -753,10 +761,6 @@ try {
     ],
   }
 
-  await sql`DELETE FROM inspection_responses WHERE inspection_id IN (
-    SELECT id FROM inspections WHERE organization_id = ANY(${DEMO_ORG_IDS})
-  )`
-  await sql`DELETE FROM inspections WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM inspection_template_fields WHERE section_id IN (
     SELECT s.id FROM inspection_template_sections s
     JOIN inspection_templates t ON t.id = s.template_id
