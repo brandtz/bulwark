@@ -87,8 +87,8 @@ async function pick(orgId: string) {
       class="mt-4 text-small text-text-secondary"
       data-testid="org-singleton-notice"
     >
-      You only belong to one organization. Switching will be available when
-      you're added to a second.
+      You belong to one organization, so there's nothing to switch to. If
+      you're added to another organization, it will appear here.
     </div>
   </div>
 </template>

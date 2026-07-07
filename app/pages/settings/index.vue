@@ -60,6 +60,7 @@ const CARDS: SettingsCard[] = [
   { to: '/settings/saved-views', title: 'Saved views', body: 'Manage your private and shared list views.', icon: 'list' },
   { to: '/settings/permissions', title: 'Permissions', body: 'Per-role overrides for fine-grained capabilities.', icon: 'shield' },
   { to: '/settings/feature-flags', title: 'Feature flags', body: 'Per-tenant toggles (super_admin only).', icon: 'alert-triangle', superAdminOnly: true },
+  { to: '/settings/jobs', title: 'Scheduled jobs', body: 'Platform sweeps: GDPR purge + COI expiry (super_admin only).', icon: 'settings', superAdminOnly: true },
 ]
 
 const visibleCards = computed(() =>

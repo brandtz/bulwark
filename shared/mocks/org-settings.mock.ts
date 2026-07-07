@@ -7,9 +7,12 @@
  */
 import {
   type IOrgSettingsService,
+  type OrganizationProfile,
+  type OrganizationProfileUpdateInput,
   type OrgSettings,
   type OrgSettingsUpdateInput,
   ORG_SETTINGS_DEFAULTS,
+  OrganizationProfileUpdateInputSchema,
 } from '../contracts/org-settings'
 import { assertSameTenant, type TenantResolver } from './tenant'
 
@@ -57,4 +60,28 @@ export class MockOrgSettingsService implements IOrgSettingsService {
     row.updatedAt = nowIso()
     return row
   }
+
+  async getOrganizationProfile(organizationId: string): Promise<OrganizationProfile> {
+    // Parity with RealOrgSettingsService (L12-S1). Synthesised on first read.
+    assertSameTenant(this.tenantResolver, organizationId)
+    let p = profiles.find((x) => x.id === organizationId)
+    if (!p) {
+      p = { id: organizationId, name: 'Bulwark Demo Co.', slug: 'bulwark-demo', brandColor: null }
+      profiles.push(p)
+    }
+    return p
+  }
+
+  async updateOrganizationProfile(
+    input: OrganizationProfileUpdateInput,
+  ): Promise<OrganizationProfile> {
+    const parsed = OrganizationProfileUpdateInputSchema.parse(input)
+    assertSameTenant(this.tenantResolver, parsed.organizationId)
+    const p = await this.getOrganizationProfile(parsed.organizationId)
+    if (parsed.name !== undefined) p.name = parsed.name
+    if (parsed.brandColor !== undefined) p.brandColor = parsed.brandColor
+    return p
+  }
 }
+
+const profiles: OrganizationProfile[] = []

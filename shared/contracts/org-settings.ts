@@ -95,8 +95,37 @@ export const ORG_SETTINGS_DEFAULTS = {
   defaultSlaDaysQuote: 3,
 } as const
 
+// ----------------------------------------------------------------------------
+// Organization profile (L12-S1). The organizations row itself — name + brand
+// color — editable from /settings/company. Distinct from OrgSettings (numeric
+// operational defaults) and from Branding (logo/colors/footer via the label
+// service); this is the tenant's identity row.
+// ----------------------------------------------------------------------------
+export const OrganizationProfileSchema = z.object({
+  id: UuidSchema,
+  name: z.string().min(1).max(200),
+  slug: z.string().min(1).max(100),
+  brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable(),
+})
+export type OrganizationProfile = z.infer<typeof OrganizationProfileSchema>
+
+export const OrganizationProfileUpdateInputSchema = z.object({
+  organizationId: UuidSchema,
+  name: z.string().min(1).max(200).optional(),
+  brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+})
+export type OrganizationProfileUpdateInput = z.infer<
+  typeof OrganizationProfileUpdateInputSchema
+>
+
 export interface IOrgSettingsService {
   /** Synthesises a defaults row if none exists (matches the branding pattern). */
   get(organizationId: string): Promise<OrgSettings>
   update(input: OrgSettingsUpdateInput): Promise<OrgSettings>
+  /** L12-S1: read the tenant's identity row (name/slug/brand color). */
+  getOrganizationProfile(organizationId: string): Promise<OrganizationProfile>
+  /** L12-S1: update org name / brand color. Slug is immutable (it's in URLs). */
+  updateOrganizationProfile(
+    input: OrganizationProfileUpdateInput,
+  ): Promise<OrganizationProfile>
 }

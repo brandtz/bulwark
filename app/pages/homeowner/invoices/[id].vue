@@ -74,7 +74,7 @@ onMounted(async () => {
       </ul>
 
       <p class="mt-6 text-tiny text-text-secondary" data-testid="ho-invoice-download-hint">
-        {{ t('homeowner.invoice', 'download-pdf', 'PDF download coming soon.') }}
+        {{ t('homeowner.invoice', 'download-pdf', 'Need a copy? Your contractor can send a PDF of this invoice.') }}
       </p>
     </div>
     <EmptyState

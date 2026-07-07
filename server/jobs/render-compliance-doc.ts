@@ -9,10 +9,31 @@ import type { ComplianceDoc } from '../db/schema/compliance_docs'
 import type { Property } from '../db/schema/properties'
 import type { Organization } from '../db/schema/organizations'
 
+/**
+ * Tenant template inputs (L12-S2 / templates page). All optional — the
+ * renderer falls back to the code-resident PDF_DEFAULTS wording so a tenant
+ * with no overrides gets the same document as before. Populated by the
+ * handler from the org_branding row + `pdf.*` label overrides.
+ */
+export interface RenderTemplate {
+  /** pdf.footer.default label — closing footer line. */
+  footerText?: string | null
+  /** pdf.declaration.default label — the attestation sentence. */
+  declarationText?: string | null
+  /** branding.licenseLabel — e.g. "OR CCB# 242198"; rendered under the org name. */
+  licenseLabel?: string | null
+  /** branding.primaryColor — heading accent. */
+  primaryColor?: string | null
+  /** branding.supportEmail/Phone — contact line in the footer. */
+  supportEmail?: string | null
+  supportPhone?: string | null
+}
+
 export interface RenderInput {
   doc: ComplianceDoc
   property: Property
   organization: Organization
+  template?: RenderTemplate
 }
 
 function escapeHtml(s: string): string {
@@ -24,9 +45,25 @@ function escapeHtml(s: string): string {
     .replace(/'/g, '&#39;')
 }
 
-export function renderComplianceDocHtml({ doc, property, organization }: RenderInput): string {
+export function renderComplianceDocHtml({
+  doc,
+  property,
+  organization,
+  template,
+}: RenderInput): string {
   const sig = doc.signature
   const generatedAt = new Date().toLocaleString('en-US')
+  const headingColor = /^#[0-9a-fA-F]{6}$/.test(template?.primaryColor ?? '')
+    ? template!.primaryColor!
+    : '#0f172a'
+  const declaration =
+    template?.declarationText?.trim() ||
+    `This document attests that the listed retrofit scope was completed by ${organization.name} per applicable Oregon wildfire-retrofit standards.`
+  const footerLine = template?.footerText?.trim() || ''
+  const contactBits = [template?.supportEmail, template?.supportPhone]
+    .filter((x): x is string => !!x && x.trim().length > 0)
+    .map((x) => escapeHtml(x))
+    .join(' &middot; ')
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -35,7 +72,7 @@ export function renderComplianceDocHtml({ doc, property, organization }: RenderI
     <style>
       * { box-sizing: border-box; }
       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111; padding: 48px; }
-      h1 { font-size: 22px; margin: 0 0 4px; color: #0f172a; }
+      h1 { font-size: 22px; margin: 0 0 4px; color: ${headingColor}; }
       h2 { font-size: 14px; margin: 24px 0 8px; color: #334155; text-transform: uppercase; letter-spacing: 0.04em; }
       .meta { font-size: 12px; color: #64748b; }
       .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 12px 0; }
@@ -52,7 +89,9 @@ export function renderComplianceDocHtml({ doc, property, organization }: RenderI
   </head>
   <body>
     <h1>Wildfire Retrofit Compliance Document</h1>
-    <div class="meta">${escapeHtml(organization.name)} &middot; Generated ${escapeHtml(generatedAt)}</div>
+    <div class="meta">${escapeHtml(organization.name)}${
+      template?.licenseLabel ? ' &middot; ' + escapeHtml(template.licenseLabel) : ''
+    } &middot; Generated ${escapeHtml(generatedAt)}</div>
 
     <h2>Property</h2>
     <div class="card">
@@ -79,7 +118,9 @@ export function renderComplianceDocHtml({ doc, property, organization }: RenderI
 
     <div class="footer">
       Document ID: ${escapeHtml(doc.id)} &middot; Organization: ${escapeHtml(organization.id)}<br />
-      This document attests that the listed retrofit scope was completed by ${escapeHtml(organization.name)} per applicable Oregon wildfire-retrofit standards.
+      ${escapeHtml(declaration)}${footerLine ? '<br />' + escapeHtml(footerLine) : ''}${
+        contactBits ? '<br />' + contactBits : ''
+      }
     </div>
   </body>
 </html>`

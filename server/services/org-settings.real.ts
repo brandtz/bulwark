@@ -8,13 +8,17 @@
 import { and, eq, sql } from 'drizzle-orm'
 import {
   type IOrgSettingsService,
+  type OrganizationProfile,
+  type OrganizationProfileUpdateInput,
   type OrgSettings,
   type OrgSettingsUpdateInput,
   ORG_SETTINGS_DEFAULTS,
+  OrganizationProfileUpdateInputSchema,
 } from '../../shared/contracts/org-settings'
 import { getDb } from '../db/client'
 import { orgSettings } from '../db/schema/org_settings'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { organizations } from '../db/schema/organizations'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 
 function rowToContract(r: typeof orgSettings.$inferSelect): OrgSettings {
@@ -123,6 +127,54 @@ export class RealOrgSettingsService implements IOrgSettingsService {
         },
       })
       return rowToContract(after!)
+    })
+  }
+
+  async getOrganizationProfile(organizationId: string): Promise<OrganizationProfile> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const db = getDb()
+    const [org] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1)
+    if (!org) throw new Error(`Organization not found: ${organizationId}`)
+    return { id: org.id, name: org.name, slug: org.slug, brandColor: org.brandColor }
+  }
+
+  async updateOrganizationProfile(
+    input: OrganizationProfileUpdateInput,
+  ): Promise<OrganizationProfile> {
+    // L12-S1: the tenant identity row. Zod-parse at the boundary (name
+    // length, hex color); slug is immutable — it lives in URLs and e-mail
+    // links, renaming it would orphan them.
+    const parsed = OrganizationProfileUpdateInputSchema.parse(input)
+    assertSameTenant(this.tenantResolver, parsed.organizationId)
+    const before = await this.getOrganizationProfile(parsed.organizationId)
+    return await withAudit(async ({ tx, audit }) => {
+      const patch: Partial<typeof organizations.$inferInsert> = { updatedAt: new Date() }
+      if (parsed.name !== undefined) patch.name = parsed.name
+      if (parsed.brandColor !== undefined) patch.brandColor = parsed.brandColor
+      const [after] = await tx
+        .update(organizations)
+        .set(patch)
+        .where(eq(organizations.id, parsed.organizationId))
+        .returning()
+      await audit.record({
+        organizationId: parsed.organizationId,
+        entityType: 'organization',
+        entityId: parsed.organizationId,
+        action: 'update',
+        actorUserId: resolveActorUserId(this.tenantResolver),
+        before: { name: before.name, brandColor: before.brandColor },
+        after: { name: after!.name, brandColor: after!.brandColor },
+      })
+      return {
+        id: after!.id,
+        name: after!.name,
+        slug: after!.slug,
+        brandColor: after!.brandColor,
+      }
     })
   }
 }
