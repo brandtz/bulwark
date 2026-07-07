@@ -11,5 +11,10 @@
  *     each Real service short and signals intent: "this file is using
  *     the cross-tenant firewall."
  */
-export { assertSameTenant, TenantViolationError } from '../../shared/mocks/tenant'
+export {
+  assertSameTenant,
+  resolveActorUserId,
+  SYSTEM_USER_ID,
+  TenantViolationError,
+} from '../../shared/mocks/tenant'
 export type { TenantContext, TenantResolver } from '../../shared/mocks/tenant'

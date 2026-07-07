@@ -84,7 +84,11 @@ function resolvePipelineCheck(): PipelineCheck | undefined {
   // resolver returns the org id passed in, so the firewall is satisfied).
   return async (organizationId, _entity, from, to) => {
     const { RealStatusPipelineService } = await import('../status-pipeline.real')
-    const svc = new RealStatusPipelineService(() => ({ organizationId, userId: 'system' }))
+    const { SYSTEM_USER_ID } = await import('../_tenant')
+    // SYSTEM_USER_ID satisfies TenantContext's required userId while marking
+    // the write as system-initiated; audit writers resolve it to null (the
+    // uuid actor_user_id column rejects the literal string — L01-S4 lesson).
+    const svc = new RealStatusPipelineService(() => ({ organizationId, userId: SYSTEM_USER_ID }))
     const res = await svc.canTransition({
       organizationId,
       entityType: 'property',

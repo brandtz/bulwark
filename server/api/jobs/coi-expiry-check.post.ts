@@ -15,6 +15,7 @@
  */
 import { z } from 'zod'
 import { runCoiExpiryCheck } from '../../jobs/coi-expiry-check'
+import { createRealServices } from '../../utils/services-factory'
 
 const PRIVILEGED = new Set(['super_admin', 'org_admin'])
 
@@ -28,7 +29,11 @@ const BodySchema = z
   .optional()
 
 export default defineEventHandler(async (event) => {
-  const session = (event.context as { session?: { activeRole?: string; activeOrganizationId?: string } }).session
+  // L05-S2 fix: `event.context.session` was never populated by any
+  // middleware, so this endpoint 403'd every caller since W3-4. Resolve the
+  // session the same way /api/metrics does.
+  const services = await createRealServices(event)
+  const session = await services.auth.currentUser()
   const role = session?.activeRole
   if (!role || !PRIVILEGED.has(role)) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })

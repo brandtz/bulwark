@@ -28,7 +28,7 @@ import type {
 } from '../../shared/contracts/status-pipeline'
 import { getDb } from '../db/client'
 import { statusPipelineNodes, statusPipelines } from '../db/schema/status_pipelines'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 
 function pipelineRowToContract(
@@ -70,7 +70,9 @@ export class RealStatusPipelineService implements IStatusPipelineService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
 
   private actorUserId(): string | null {
-    return this.tenantResolver?.()?.userId ?? null
+    // System-initiated calls (auto-status subscriber) resolve the reserved
+    // SYSTEM_USER_ID sentinel to null — actor_user_id is a uuid column.
+    return resolveActorUserId(this.tenantResolver)
   }
 
   async getActive(input: {

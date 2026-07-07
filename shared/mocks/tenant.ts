@@ -35,6 +35,23 @@ export type TenantContext = {
 
 export type TenantResolver = () => TenantContext | null
 
+/**
+ * Reserved sentinel for system-initiated writes (event subscribers, cron
+ * jobs) that have an organization context but no human actor. `audit_log.
+ * actor_user_id` is a uuid column, so writers MUST translate this sentinel
+ * to `null` before persisting — use `resolveActorUserId()` instead of
+ * reading `resolver().userId` directly. (Found by L01-S4's fresh-DB
+ * integration run: first-touch pipeline synthesis under the auto-status
+ * subscriber inserted the literal string and blew up the uuid cast.)
+ */
+export const SYSTEM_USER_ID = 'system'
+
+/** Actor for audit rows: null when unauthenticated OR system-initiated. */
+export function resolveActorUserId(resolver: TenantResolver | undefined): string | null {
+  const userId = resolver?.()?.userId ?? null
+  return userId === SYSTEM_USER_ID ? null : userId
+}
+
 export class TenantViolationError extends Error {
   constructor(public readonly ctxOrganizationId: string, public readonly requestedOrganizationId: string) {
     super(
