@@ -24,14 +24,22 @@
  *     but explicit invalidation avoids stale `ready` flags.
  *
  * Decisions NOT taken:
- *   - We considered awaiting `reload()` inside a Nuxt plugin so SSR
- *     emits overrides on first paint. Rejected for this slice — the
- *     plugin file is owned by W1-5 (real-backend cutover). Pages that
- *     care can `await useLabel().reload()` in their setup.
  *   - We considered exposing per-namespace lookup `tNs(key, fallback)`.
  *     Rejected — saving 1 arg per call site is not worth the API
  *     surface duplication; ergonomics improve more by adopting useLabel
  *     in fewer, high-leverage surfaces.
+ *
+ * Bugfix (2026-07-07, found via first single-worker real-backend e2e run):
+ *   The initial load used to be purely fire-and-forget on the server, with
+ *   the in-flight `Promise` tracked in a `useState` (so concurrent callers
+ *   could dedupe). If the fetch had not resolved by the time Nuxt
+ *   serialized the SSR payload, devalue threw "Cannot stringify a Promise
+ *   or thenable", 500ing the ENTIRE page (any page with no other slow
+ *   `useAsyncData` call to coincidentally win the race). Fixed by
+ *   registering the initial load in `onServerPrefetch` on the server so
+ *   Nuxt actually waits for it; the `inflight` promise is always settled to
+ *   `null` before serialization now. Client-side navigation keeps the
+ *   original fire-and-forget kick (no serialization step to race).
  *
  * Maintenance notes:
  *   - When adding a new high-stakes label surface, prefer wrapping the
@@ -124,10 +132,17 @@ export function useLabel(): {
   }
 
   // Kick off a lazy load on first composable use if the cache is empty.
-  // Fire-and-forget; the reactive state triggers re-render once ready.
   // Guarded by `ready` so subsequent `useLabel()` calls in already-loaded
   // components don't restart the request storm.
-  if (!entry().value.ready && !inflight.value[orgId.value]) {
+  //
+  // On the server this MUST block SSR (via onServerPrefetch) — see the
+  // 2026-07-07 bugfix note in the file header. On the client it stays
+  // fire-and-forget; the reactive state triggers a re-render once ready.
+  if (import.meta.server) {
+    onServerPrefetch(async () => {
+      if (!entry().value.ready) await reload()
+    })
+  } else if (!entry().value.ready && !inflight.value[orgId.value]) {
      
     reload()
   }
