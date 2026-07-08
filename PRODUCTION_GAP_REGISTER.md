@@ -69,15 +69,15 @@ re-raised:
 | 3.2.3 | MEDIUM | AUTO | No admin-visible "provider not configured / last send failed" surface or delivery log. | new. |
 | 3.2.4 | MEDIUM | AUTO | Resend/Twilio called via raw `fetch`, no pinned API version, no contract test. | providers. |
 
-### 3.3 Async jobs / cron — **L04, L05**
+### 3.3 Async jobs / cron — **L04, L05** — ✅ CLOSED 2026-07-06 (Cowork session)
 | # | Severity | Auto | Finding | Evidence |
 |---|---|---|---|---|
-| 3.3.1 | BLOCKER | AUTO | Account-purge (GDPR 30-day hard delete) wrapper exists but is **never scheduled**. | [account-purge.ts](server/jobs/account-purge.ts). |
-| 3.3.2 | HIGH | AUTO | COI-expiry scan wrapper exists but is **never scheduled**; sub portal shows an "expiring" bucket fed by a job that never runs. | [coi-expiry-check.ts](server/jobs/coi-expiry-check.ts). |
-| 3.3.3 | HIGH | AUTO | No pg-boss retry/backoff policy; a single Chromium OOM fails the compliance doc forever. | [worker.ts](server/jobs/worker.ts). |
-| 3.3.4 | MEDIUM | AUTO | `BULWARK_PDF_STUB=1` has no production fail-closed guard. | [compliance-doc.ts](server/jobs/handlers/compliance-doc.ts#L52). |
-| 3.3.5 | MEDIUM | AUTO | Compliance `create()` can orphan a `generating` doc if enqueue fails after insert. | [compliance.real.ts](server/services/compliance.real.ts#L87). |
-| 3.3.6 | MEDIUM | AUTO | `ALL_QUEUES` only registers `compliance_doc`; new JobKinds must be added or messages sit forever. | [boss.ts](server/jobs/boss.ts#L33). |
+| 3.3.1 | ~~BLOCKER~~ ✅ | AUTO | **RESOLVED (L05).** `account_purge` JobKind + handler + guarded trigger + Render cron (02:00 UTC). Live once the cron service gets `BULWARK_CRON_SECRET`/`BULWARK_APP_URL` (L17 checklist). | [handlers/account-purge.ts](server/jobs/handlers/account-purge.ts), [admin/jobs/account-purge.post.ts](server/api/admin/jobs/account-purge.post.ts), render.yaml. |
+| 3.3.2 | ~~HIGH~~ ✅ | AUTO | **RESOLVED (L05).** `coi_expiry_scan` sweeps all live orgs nightly (03:00 UTC) + manual Run-now on /settings/jobs. Also fixed: the W3-4 manual endpoint read `event.context.session` (never populated) and 403'd every caller. | [handlers/coi-expiry-scan.ts](server/jobs/handlers/coi-expiry-scan.ts). |
+| 3.3.3 | ~~HIGH~~ ✅ | AUTO | **RESOLVED (L04-S1/S3).** Typed per-kind retry policy (3× exponential, expireIn) at queue + send level; Puppeteer protocolTimeout + render timeouts. | [policy.ts](server/jobs/policy.ts). |
+| 3.3.4 | ~~MEDIUM~~ ✅ | AUTO | **RESOLVED (L04-S2).** Worker boot refuses prod with `BULWARK_PDF_STUB=1` / fs storage / mock backend. L07-S4 consolidates into the shared env-guard. | [env-guard.ts](server/jobs/env-guard.ts). |
+| 3.3.5 | ~~MEDIUM~~ ✅ | AUTO | **RESOLVED (L04-S4).** Enqueue failure → doc `failed` + audit + rethrow; `reconcileGenerating()` orphan sweep; `reenqueue()` operator recovery (mock parity kept). | [compliance.real.ts](server/services/compliance.real.ts). |
+| 3.3.6 | ~~MEDIUM~~ ✅ | AUTO | **RESOLVED (L04-S5).** Queues/handlers/policies all derive from `Record<JobKind, …>` registries — a kind without all three is a typecheck error. | [policy.ts](server/jobs/policy.ts), [handlers/index.ts](server/jobs/handlers/index.ts). |
 
 ### 3.4 Payments (Stripe) — **L14**
 | # | Severity | Auto | Finding | Evidence |
@@ -85,7 +85,7 @@ re-raised:
 | 3.4.1 | HIGH | SECRET | No Stripe integration (checkout, webhooks, reconciliation, refunds). | net-new. |
 | 3.4.2 | HIGH | AUTO | `recordPayment()` does not validate amount ≤ remaining balance (operator can over-apply). | [invoice-payment.real.ts](server/services/invoice-payment.real.ts). |
 | 3.4.3 | MEDIUM | AUTO | Invoice status reconciliation vs. signed refund amounts needs explicit tests. | [invoice.real.ts](server/services/invoice.real.ts). |
-| 3.4.4 | HIGH | AUTO | Homeowner invoice PDF + online pay are "coming soon". | [homeowner/invoices/[id].vue](app/pages/homeowner/invoices/[id].vue#L77). |
+| 3.4.4 | HIGH | AUTO | Homeowner invoice PDF + online pay still absent (L11/L14). **UI updated 2026-07-06:** the "coming soon" promise was removed per sponsor directive; page copy is now truthful without the feature. | [homeowner/invoices/[id].vue](app/pages/homeowner/invoices/[id].vue#L77). |
 
 ### 3.5 Security — **L07**
 | # | Severity | Auto | Finding | Evidence |
@@ -130,8 +130,8 @@ re-raised:
 ### 3.10 Surface completeness (settings + portals) — **L11, L12, L13**
 | # | Severity | Auto | Finding | Evidence |
 |---|---|---|---|---|
-| 3.10.1 | MEDIUM | AUTO | Settings → Company has no persistence. | [settings/company.vue](app/pages/settings/company.vue#L12). |
-| 3.10.2 | MEDIUM | AUTO | Settings → Templates (PDF doc templates) is non-functional. | [settings/templates.vue](app/pages/settings/templates.vue). |
+| 3.10.1 | ~~MEDIUM~~ ✅ | AUTO | **RESOLVED (L12-S1, 2026-07-06).** Real org-profile editor (name + brand color; slug immutable) via `orgSettings.updateOrganizationProfile`, audited + mock parity. | [settings/company.vue](app/pages/settings/company.vue). |
+| 3.10.2 | ~~MEDIUM~~ ✅ | AUTO | **RESOLVED (L12-S2, 2026-07-06).** Real editor over `pdf.declaration`/`pdf.footer` labels; compliance renderer now consumes them + branding (license label, color, contact) with escaping. | [settings/templates.vue](app/pages/settings/templates.vue), [render-compliance-doc.ts](server/jobs/render-compliance-doc.ts). |
 | 3.10.3 | MEDIUM | AUTO | Settings → Permissions surface is a stub. | [settings/permissions.vue](app/pages/settings/permissions.vue). |
 | 3.10.4 | LOW | AUTO | Verify labels/pipelines/trades/standards/inspection-templates **persist** (audit flagged "mocked saves" — likely stale; verify against real services). | settings/*. |
 | 3.10.5 | MEDIUM | AUTO | Homeowner property/quote detail views are empty-state placeholders. | [homeowner/*](app/pages/homeowner). |
@@ -164,3 +164,16 @@ re-raised:
 **~80% of launch-blocking work is fully autonomous.** Human-gated items reduce to:
 provider/Stripe/Postgres/Sentry **secrets** (built credential-ready first), and
 **legal copy** sign-off. These are tracked in `BUILD_PLAN.md` §7.
+
+---
+
+## 5. Findings from the 2026-07-06 fresh-DB run (all FIXED same session)
+
+First-ever integration run against a brand-new Postgres surfaced three latent
+defects Matthew's seeded dev DB had been masking:
+
+| Finding | Impact | Fix |
+|---|---|---|
+| Auto-status subscriber resolver used literal `'system'` as userId; pipeline first-touch default synthesis wrote it into uuid `audit_log.actor_user_id`. | EVERY auto status transition (quote accepted → property accepted, etc.) failed silently on a fresh/production DB. | `SYSTEM_USER_ID` sentinel + `resolveActorUserId()` (shared/mocks/tenant.ts); adopted by status-pipeline, job, compliance services. |
+| `event.context.session` is populated by NO middleware. | `POST /api/jobs/coi-expiry-check` (W3-4) returned 403 to every caller since it shipped. Pattern-grep found no other endpoint using it. | Endpoint now resolves the session via `services.auth.currentUser()` (the /api/metrics pattern). |
+| Drizzle migration meta lacked `provider_configs.config_encrypted` (present in schema + real DBs). | `drizzle-kit generate` would smuggle a duplicate ADD COLUMN into any new migration (fails on real DBs). | Column folded into migration 0012's snapshot; 0012.sql itself only adds the two job_kind enum values. |
