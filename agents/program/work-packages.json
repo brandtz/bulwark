@@ -209,7 +209,7 @@
     {
       "id": "WP-Q1",
       "title": "Screen-contract Playwright harness, visual baselines, axe, scaffold generator",
-      "lane": "QA", "phase": "0-foundation", "status": "ready", "size": "M",
+      "lane": "QA", "phase": "0-foundation", "status": "in-progress", "size": "M", "owner": "copilot/screen-harness (2026-09-24)", "branch": "wp/WP-X1-contract-generalization",
       "goal": "Every design screen gets a generated spec skeleton that asserts: renders at 1440+390(+1024), dark mode, axe clean, every SPEC state reachable, every SPEC action present for permitted roles and absent for others. Baseline screenshots come from the design HTML so the target is the design, not the current app.",
       "scope": ["tests/e2e/screens/_contract.ts: describeScreen({ id, route, roles, viewports, states }) helper", "tests/e2e/screens/_visual.ts: renders design HTML (file://) at the same viewport to produce baseline; compares with toHaveScreenshot maxDiffPixelRatio 0.005 on stable regions", "@axe-core/playwright integration with rule allowlist", "scripts/codegraph/scaffold-screen-test.mjs <ID>: reads SPEC.md states/actions/testids → emits tests/e2e/screens/<ID>.spec.ts with one test.fixme per state and per role-permission assertion", "Playwright projects: desktop-1440, mobile-390, tablet-1024 (FD/SC only), dark variants via storageState", "CI job matrix + HTML report artifact"],
       "outOfScope": ["Writing the per-screen tests themselves (done inside each SCR WP)"],
@@ -219,7 +219,7 @@
       "tests": ["tests/e2e/screens/_harness.spec.ts — the harness's own self-tests (fixture pages under app/pages/dev/)"],
       "dependsOn": [],
       "decisions": [],
-      "agentNotes": "The generator must emit test.fixme, not test.skip, and must include a negative assertion per action (forbidden role cannot see/click)."
+      "agentNotes": "The generator emits test.fixme rather than test.skip and includes positive/negative action assertions. Current checkpoint includes describeScreen/visual helpers, scaffold generation, screen audit/baseline tooling, opt-in Playwright project, and generated SH-01/AD-12 specs. Remaining before review: add and pass tests/e2e/screens/_harness.spec.ts for scaffold/visual/axe/forbidden-role behavior; keep generated screen fixmes until their owning SCR packages implement them."
     },
     {
       "id": "WP-Q2",

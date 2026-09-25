@@ -29,7 +29,18 @@
     "//4a": "db:reset wipes + remigrates + reseeds. DEV ONLY (ADR-0015). The drop step is gated by DATABASE_URL containing localhost/127.0.0.1; set BULWARK_ALLOW_PROD_SEED=1 to override (don't).",
     "db:reset": "node scripts/db-reset.mjs",
     "//5": "Background worker (E11-S9 / ADR-0012). Render Start Command: pnpm run worker:jobs.",
-    "worker:jobs": "tsx server/jobs/worker.ts"
+    "worker:jobs": "tsx server/jobs/worker.ts",
+    "//6": "CodeGraph (agents/codegraph/). Rebuild after adding/moving pages, components, services, tests or design specs; query instead of grepping. See agents/codegraph/INDEX.md.",
+    "codegraph:build": "node scripts/codegraph/build.mjs",
+    "codegraph:sync": "node scripts/codegraph/build.mjs --if-changed",
+    "codegraph:query": "node scripts/codegraph/query.mjs",
+    "codegraph:check": "node scripts/codegraph/check.mjs",
+    "codegraph:repair": "node scripts/codegraph/check.mjs --repair",
+    "//7": "Screen-contract tests (tests/e2e/screens). scaffold = generate a fixme-skeleton from a design SPEC; baseline = render design HTML to PNG baselines; audit = gate for moving a screen WP to review.",
+    "screen:scaffold": "node scripts/codegraph/scaffold-screen-test.mjs",
+    "screen:baseline": "node scripts/codegraph/visual-baseline.mjs",
+    "screen:audit": "node scripts/codegraph/screen-audit.mjs",
+    "test:screens": "playwright test --project=screens"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1043.0",
@@ -52,6 +63,10 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@fontsource-variable/ibm-plex-sans": "^5.3.0",
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
     "@nuxt/eslint": "^0.6.0",
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@playwright/test": "^1.48.0",

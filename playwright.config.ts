@@ -22,6 +22,9 @@
  */
 import { defineConfig, devices } from '@playwright/test'
 
+// Screen-contract suite is opt-in; see `projects` below.
+const wantScreens = process.env.BULWARK_SCREENS === '1' || process.argv.some((a) => a === 'screens' || a === '--project=screens' || /tests[\\/]e2e[\\/]screens/.test(a))
+
 export default defineConfig({
   testDir: './tests/e2e',
   globalSetup: './tests/e2e/global-setup.ts',
@@ -68,8 +71,19 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-safari', use: { ...devices['iPhone 13'] } },
-    { name: 'mobile-chrome', use: { ...devices['Pixel 7'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /tests[\\/]e2e[\\/]screens[\\/]/ },
+    { name: 'mobile-safari', use: { ...devices['iPhone 13'] }, testIgnore: /tests[\\/]e2e[\\/]screens[\\/]/ },
+    { name: 'mobile-chrome', use: { ...devices['Pixel 7'] }, testIgnore: /tests[\\/]e2e[\\/]screens[\\/]/ },
+    // Screen-contract suite (tests/e2e/screens) sets its own viewports per test and compares
+    // against design baselines, so it runs in one Chromium project only. It is opt-in
+    // (`pnpm test:screens` / --project=screens / BULWARK_SCREENS=1) because scaffolded specs
+    // are expected to FAIL until their WP lands — they must not redden the regression suite.
+    ...(wantScreens
+      ? [{ name: 'screens', testMatch: /tests[\\/]e2e[\\/]screens[\\/].*\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } }]
+      : []),
   ],
+
+  // Visual baselines are rendered from the DESIGN html by `pnpm screen:baseline`, not from a
+  // previous app run; keep them platform/project independent so the path is stable.
+  snapshotPathTemplate: 'tests/e2e/screens/__baselines__/{arg}{ext}',
 })
