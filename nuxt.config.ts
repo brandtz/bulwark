@@ -121,10 +121,8 @@ export default defineNuxtConfig({
       title: 'Bulwark',
       titleTemplate: '%s · Bulwark',
       link: [
-        // Inter font matches STYLE_GUIDE §3.1 — single font, no marketing display face
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' },
+        { rel: 'preload', href: '/fonts/barlow-latin-400-normal.woff2', as: 'font', type: 'font/woff2', crossorigin: '' },
+        { rel: 'preload', href: '/fonts/ibm-plex-sans-latin-wght-normal.woff2', as: 'font', type: 'font/woff2', crossorigin: '' },
         // W3-3 / EH-M (ADR-0029) — PWA manifest for the field surface.
         { rel: 'manifest', href: '/manifest.webmanifest' },
       ],
