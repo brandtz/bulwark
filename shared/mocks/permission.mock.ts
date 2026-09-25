@@ -8,14 +8,12 @@
  *     catalog on `getEffectivePermissions`.
  *
  * # Decisions (ADR-0008, ADR-0025)
- *   - **Stable IDs across runs** via `nanoid`-style randomBytes hex so
- *     contract validation passes (UUID-looking but content irrelevant
- *     to tests).
+ *   - **Cryptographically random UUIDs** via Web Crypto in browsers
+ *     and Node, matching the contract's UUID format.
  *   - **Tenant firewall enforced** on every mutating method.
  *   - **`resetToDefaults` clears all override rows for the org.**
  *     Predictable rollback; mirrors the real impl semantics.
  */
-import { randomBytes } from 'node:crypto'
 import type {
   IPermissionService,
   Permission,
@@ -27,14 +25,6 @@ import { getDefaultPermissionsForRole } from '../auth/default-permissions'
 import type { Role } from '../contracts/_shared'
 
 const overrides: Permission[] = []
-
-function uuid(): string {
-  const b = randomBytes(16)
-  b[6] = (b[6]! & 0x0f) | 0x40
-  b[8] = (b[8]! & 0x3f) | 0x80
-  const hex = b.toString('hex')
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
-}
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -63,7 +53,7 @@ export class MockPermissionService implements IPermissionService {
       return existing
     }
     const row: Permission = {
-      id: uuid(),
+      id: globalThis.crypto.randomUUID(),
       organizationId: input.organizationId,
       role: input.role,
       permissionSlug: input.permissionSlug,

@@ -12,7 +12,6 @@
  *     means other shared rows of the same entityType; for personal
  *     views, that means the same user's rows.
  */
-import { randomUUID } from 'node:crypto'
 import type {
   ISavedViewService,
   SavedView,
@@ -58,7 +57,7 @@ export class MockSavedViewService implements ISavedViewService {
   async create(input: SavedViewCreateInput): Promise<SavedView> {
     assertSameTenant(this.resolver, input.organizationId)
     const row: SavedView = {
-      id: randomUUID(),
+      id: globalThis.crypto.randomUUID(),
       organizationId: input.organizationId,
       userId: input.userId,
       entityType: input.entityType,

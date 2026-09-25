@@ -19,7 +19,6 @@
  *     the PNG; if it doesn't (e.g. trimmed bundle) the otpauth URL
  *     alone is enough for any authenticator app to pair from text.
  */
-import { createHash, randomBytes } from 'node:crypto'
 import { Secret, TOTP } from 'otpauth'
 import type {
   IMfaService,
@@ -43,8 +42,9 @@ interface BackupCode {
 const enrolments = new Map<string, MfaEnrolment>()
 const backupCodes: BackupCode[] = []
 
-function sha256hex(s: string): string {
-  return createHash('sha256').update(s).digest('hex')
+async function sha256hex(value: string): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function makeTotp(secret: string, email = 'user@bulwark.demo'): TOTP {
@@ -70,7 +70,8 @@ async function renderQr(otpauthUrl: string): Promise<string> {
 function makeBackupCode(): string {
   // 10 hex chars (40 bits) — plenty of entropy for a single-use code,
   // short enough that a sleepy admin can still type it.
-  return randomBytes(5).toString('hex')
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(5))
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 export class MockMfaService implements IMfaService {
@@ -122,21 +123,20 @@ export class MockMfaService implements IMfaService {
   }
 
   async generateBackupCodes(userId: string): Promise<MfaBackupCodesResult> {
+    const codes = Array.from({ length: 10 }, () => makeBackupCode())
+    const replacements = await Promise.all(
+      codes.map(async (code) => ({ userId, hash: await sha256hex(code), used: false })),
+    )
     // Replace any existing rows for this user.
     for (let i = backupCodes.length - 1; i >= 0; i--) {
       if (backupCodes[i]!.userId === userId) backupCodes.splice(i, 1)
     }
-    const codes: string[] = []
-    for (let i = 0; i < 10; i++) {
-      const code = makeBackupCode()
-      codes.push(code)
-      backupCodes.push({ userId, hash: sha256hex(code), used: false })
-    }
+    backupCodes.push(...replacements)
     return { codes }
   }
 
   async consumeBackupCode(userId: string, code: string) {
-    const hash = sha256hex(code.trim())
+    const hash = await sha256hex(code.trim())
     const match = backupCodes.find((b) => b.userId === userId && b.hash === hash && !b.used)
     if (!match) {
       const remaining = backupCodes.filter((b) => b.userId === userId && !b.used).length
