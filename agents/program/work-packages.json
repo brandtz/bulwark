@@ -26,7 +26,7 @@
     {
       "id": "WP-O2",
       "title": "Browser-safe mock crypto prerequisite",
-      "lane": "BE", "phase": "0-foundation", "status": "review", "size": "S",
+      "lane": "BE", "phase": "0-foundation", "status": "done", "size": "S",
       "owner": "copilot/mock-browser (2026-09-18)",
       "goal": "Unblock real browser verification without Node-only crypto imports in client mocks.",
       "scope": ["Use native Web Crypto in MFA, permission and saved-view mocks without changing service interfaces or weakening single-use backup codes."],
@@ -37,25 +37,25 @@
       "tests": ["tests/unit/mock-browser-crypto.test.ts", "tests/unit/permissions-matrix.test.ts", "tests/unit/saved-views.test.ts", "tests/e2e/theme.spec.ts"],
       "dependsOn": [],
       "decisions": [],
-      "agentNotes": "2026-09-18: browser factory bundle regressions, concurrent backup-code replay, cross-user rejection and hashing-failure atomicity tested. Independent read-only review found no actionable issues. Unit suite 431/431, lint and typecheck pass; /dev/ui desktop/mobile theme tests 2/2 pass. Full real-backend e2e and publication remain unverified; not marked done."
+      "agentNotes": "2026-09-18: browser factory bundle regressions, concurrent backup-code replay, cross-user rejection and hashing-failure atomicity tested. Unit suite 431/431, lint and typecheck pass; /dev/ui desktop/mobile theme tests 2/2 pass. User confirmed review complete on 2026-09-25; package accepted and marked done."
     },
     {
       "id": "WP-A1",
       "title": "Design tokens, Tailwind preset, fonts, theme/density/accent plumbing",
       "lane": "DS", "phase": "0-foundation", "status": "in-progress", "size": "M", "owner": "copilot/theme-foundation (2026-09-18)",
-      "goal": "Make the app render with the Packet A token system: tokens.css + tailwind.preset.js consumed by Nuxt, self-hosted fonts, data-theme/data-density on <html>, tenant accent injected from branding, --on-accent computed at save.",
+      "goal": "Make the app render with Packet A tokens and the Tailwind preset, self-hosted fonts, SSR theme/density attributes, tenant branding accent/on-accent, and persisted user preferences.",
       "scope": [
         "Copy agents/design/return/design-return/A/tokens/tokens.css → app/assets/css/tokens.css (unchanged; generated header kept) and bulwark.css base rules → app/assets/css/base.css",
-        "Replace tailwind.config.ts theme with `presets: [require('./tailwind.preset.js')]` (copy preset to repo root); remove legacy style-guide color tokens",
+        "Load the approved CommonJS preset from tailwind.preset.cjs through createRequire while preserving legacy utilities",
         "Self-host Barlow / IBM Plex Sans / IBM Plex Mono (woff2, latin) under public/fonts + @font-face in base.css; preload display+body",
-        "Nuxt plugin `theme.client.ts` + server-rendered attrs: <html data-theme data-density data-accent style=\"--accent:…;--on-accent:…\"> from org branding + user preference (light/dark/system) — persisted in localStorage + user_prefs",
-        "orgSettings.updateBranding computes --on-accent by WCAG luminance (ED: A/README) and stores it",
+        "Nuxt theme plugin hydrates SSR attrs from org branding and user preference (light/dark/system), with cookie/localStorage compatibility and user_prefs persistence",
+        "label.updateBranding computes and stores the WCAG-compliant onAccent foreground",
         "Density default per portal: admin comfortable, field/client/sub touch",
         "Remove app/assets/css legacy tokens; keep a `legacy-compat.css` shim mapping old class names (text-display, text-body, …) to new vars for one phase, deleted in WP-A6"
       ],
       "outOfScope": ["Component restyles (WP-A2..A4)", "Branding UI (ST-03)"],
       "designs": ["SH-00"],
-      "files": ["app/assets/css/**", "tailwind.config.ts", "tailwind.preset.js", "app/plugins/theme*.ts", "app/composables/useTheme.ts", "shared/utils/theme.ts", "tests/unit/theme*.test.ts", "tests/e2e/theme*.spec.ts", "public/fonts/**", "nuxt.config.ts", "server/services/org-settings.real.ts", "shared/mocks/org-settings.mock.ts", "shared/contracts/org-settings.ts"],
+      "files": ["app/assets/css/**", "tailwind.config.ts", "tailwind.preset.cjs", "app/plugins/theme*.ts", "app/composables/useTheme.ts", "shared/utils/theme.ts", "tests/unit/theme*.test.ts", "tests/e2e/theme*.spec.ts", "tests/fixtures/design/**", "tests/integration/theme-preferences.real.test.ts", "public/fonts/**", "nuxt.config.ts", "server/db/schema/user_prefs.ts", "server/db/migrations/0016_a1_user_theme_preferences.sql", "server/services/theme-preferences.real.ts", "server/services/label.real.ts", "server/db/schema/org_branding.ts", "shared/contracts/theme-preferences.ts", "shared/contracts/label.ts", "shared/mocks/theme-preferences.mock.ts", "shared/mocks/label.mock.ts"],
       "acceptance": [
         "tokens.css in app is byte-identical to design return except header comment (diff test)",
         "Toggling data-theme=dark on <html> changes surfaces, not a filter (screenshot diff of /dev/ui light vs dark shows distinct --bg-card values)",
@@ -65,12 +65,13 @@
       ],
       "tests": [
         "tests/unit/theme-on-accent.test.ts — luminance threshold boundaries (#777 vs #787), invalid hex rejected",
-        "tests/unit/tokens-sync.test.ts — app tokens.css === design tokens.css modulo header",
-        "tests/e2e/theme.spec.ts — theme persists across reload, respects prefers-color-scheme when 'system', density attr per portal, accent from org branding applied on SSR (no flash: check first paint html attrs)"
+        "tests/unit/theme-preferences.test.ts and tests/integration/theme-preferences.real.test.ts — user-scoped preference validation, merge and DB persistence",
+        "tests/unit/tokens-sync.test.ts and tests/unit/theme-tokens.test.ts — approved Packet A assets and runtime utilities",
+        "tests/e2e/theme.spec.ts — SSR cookies, system color scheme, real surfaces, density and real-backend preferences"
       ],
       "dependsOn": [],
       "decisions": ["ED-00A"],
-      "agentNotes": "2026-09-18 first increment implemented: additive token utilities preserve existing RGB aliases, breakpoints and font scale. Unit suite 431/431, typecheck and lint pass; Playwright opt-in token behavior 2/2 at 1440 and 390 with light/dark screenshots. Independent review confirmed 788 legacy utility candidates unchanged and contrast calculation across all RGB colors. Local design exports ignored; runtime CSS/tests tracked separately. Font hosting, SSR/org branding, preferences/controls and whole-system visual acceptance remain required before done. Branding is owned by label service, not orgSettings; verify owning contract before persistence work. 2026-09-24 verification: fixed a stale font-sans expectation to match the active var(--font-body) token; focused theme tests pass 10/10 and the full unit suite then passed 509/509."
+      "agentNotes": "2026-09-18 first increment implemented additive token utilities while preserving legacy aliases. 2026-09-25: promoted approved tokens/base/preset with byte-parity fixtures; self-hosted font and SSR theme/accent plumbing; user_prefs migration 0016 and label-owned onAccent persistence. Migration applied to local bulwark_dev; A1 focused unit tests pass 44/44, real preference/branding integration tests pass 2/2, and typecheck passes. Chromium verifies SSR fonts/accent, system media switching, and desktop light/dark plus density; mobile and real-backend browser persistence remain unverified because Playwright webServer startup timed out under Windows commit pressure. Lighthouse CLI is not installed and the >=95 light/dark gate remains unverified; status remains in-progress."
     },
     {
       "id": "WP-A2",
@@ -214,12 +215,12 @@
       "scope": ["tests/e2e/screens/_contract.ts: describeScreen({ id, route, roles, viewports, states }) helper", "tests/e2e/screens/_visual.ts: renders design HTML (file://) at the same viewport to produce baseline; compares with toHaveScreenshot maxDiffPixelRatio 0.005 on stable regions", "@axe-core/playwright integration with rule allowlist", "scripts/codegraph/scaffold-screen-test.mjs <ID>: reads SPEC.md states/actions/testids → emits tests/e2e/screens/<ID>.spec.ts with one test.fixme per state and per role-permission assertion", "Playwright projects: desktop-1440, mobile-390, tablet-1024 (FD/SC only), dark variants via storageState", "CI job matrix + HTML report artifact"],
       "outOfScope": ["Writing the per-screen tests themselves (done inside each SCR WP)"],
       "designs": [],
-      "files": ["tests/e2e/screens/_*.ts", "scripts/codegraph/scaffold-screen-test.mjs", "playwright.config.ts", "package.json", ".github/workflows/**"],
+      "files": ["tests/e2e/screens/**", "scripts/codegraph/scaffold-screen-test.mjs", "scripts/codegraph/screen-audit.mjs", "scripts/codegraph/visual-baseline.mjs", "playwright.config.ts", "package.json", ".github/workflows/**", "app/pages/dev/axe-contrast-fixture.vue", "scripts/db-seed.mjs"],
       "acceptance": ["`pnpm screen:scaffold SH-01` produces a spec that fails (fixme) until implemented — never passes by default", "Visual compare of design SH-01 desktop.html against itself passes; against a blank page fails", "axe helper fails a page with a known contrast violation (fixture page under /dev)", "Persona helper can sign in as all 8 roles and assert 403 on forbidden routes"],
-      "tests": ["tests/e2e/screens/_harness.spec.ts — the harness's own self-tests (fixture pages under app/pages/dev/)"],
+      "tests": ["tests/e2e/screens/_harness.spec.ts — scaffold/audit rejection, design baseline self-vs-blank, axe contrast fixture, eight-role authorization"],
       "dependsOn": [],
       "decisions": [],
-      "agentNotes": "The generator emits test.fixme rather than test.skip and includes positive/negative action assertions. Current checkpoint includes describeScreen/visual helpers, scaffold generation, screen audit/baseline tooling, opt-in Playwright project, and generated SH-01/AD-12 specs. Remaining before review: add and pass tests/e2e/screens/_harness.spec.ts for scaffold/visual/axe/forbidden-role behavior; keep generated screen fixmes until their owning SCR packages implement them."
+      "agentNotes": "2026-09-24 checkpoint included screen helpers, scaffold, audit/baseline tooling and opt-in project. 2026-09-25: added public-route semantics for login, strict axe helper, 0.5% visual threshold, homeowner/stakeholder seed personas, a known contrast fixture, and harness self-tests. Direct scaffold/audit probe passes its intended negative check (generated fixmes are rejected); SH-01 design baselines rendered. Browser self-tests and real eight-role HTTP authorization remain unverified because Playwright's Nuxt webServer timed out at five minutes under Windows commit pressure; status remains in-progress."
     },
     {
       "id": "WP-Q2",
@@ -239,7 +240,7 @@
     {
       "id": "WP-O1",
       "title": "CodeGraph in CI + agent entrypoints",
-      "lane": "OPS", "phase": "0-foundation", "status": "review", "size": "S", "owner": "copilot/architect (2026-09-22)",
+      "lane": "OPS", "phase": "0-foundation", "status": "done", "size": "S", "owner": "copilot/architect (2026-09-22)",
       "goal": "codegraph:check runs in CI and pre-commit; AGENTS.md/CLAUDE.md route every agent to the program docs; work-package status is the single source of truth.",
       "scope": ["scripts/codegraph/{build,query,check}.mjs (done)", "WP overlap check for in-progress packages", "GitHub Actions job: build graph, check, upload as artifact", "AGENTS.md at repo root + CLAUDE.md alias + .github/copilot-instructions.md pointer"],
       "outOfScope": [],
@@ -249,7 +250,7 @@
       "tests": ["scripts/codegraph self-check via `pnpm codegraph:check`"],
       "dependsOn": [],
       "decisions": [],
-      "agentNotes": "2026-09-22: CI workflow, agent entrypoints, stale-source hash validation, and in-progress file-overlap guard are implemented. Focused isolated tests passed (2/2: stale graph/hash invalidation and overlapping active work packages); pnpm codegraph:check passed. Awaiting skeptic review before done."
+      "agentNotes": "2026-09-22: CI workflow, agent entrypoints, stale-source hash validation, and in-progress file-overlap guard are implemented. Focused isolated tests passed (2/2: stale graph/hash invalidation and overlapping active work packages); pnpm codegraph:check passed. User confirmed review complete on 2026-09-25; package accepted and marked done."
     },
 
     {
