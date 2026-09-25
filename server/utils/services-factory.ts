@@ -77,6 +77,7 @@ import { RealSearchService } from '../services/search.real'
 import { RealSavedViewService } from '../services/saved-view.real'
 // W5-4 (ADR-0038) — per-user DSR: export + delete + purge.
 import { RealAccountService } from '../services/account.real'
+import { RealThemePreferencesService } from '../services/theme-preferences.real'
 import type { TenantContext, TenantResolver } from '../services/_tenant'
 
 interface SessionUserShape {
@@ -219,5 +220,6 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
     homeowner: new RealHomeownerService(tenantResolver),
     // W5-4 (ADR-0038): per-user DSR — export + delete + purge.
     account: new RealAccountService(tenantResolver),
+    themePreferences: new RealThemePreferencesService(tenantResolver),
   } as BulwarkServices
 }

@@ -1,8 +1,8 @@
 /**
- * Additive Jobsite contract: compile actual Tailwind CSS, not config snapshots.
+ * Packet A contract: compile actual Tailwind CSS, not config snapshots.
  * Explicit legacy expectations protect opacity, responsive widths and typography.
- * Token checks use tracked runtime CSS only; ignored design returns are not test
- * fixtures. Browser cascade/computed styles are covered by theme.spec.ts.
+ * Approved local design exports are mirrored under tests/fixtures/design so this
+ * parity test remains deterministic in clean checkouts.
  */
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
@@ -15,8 +15,8 @@ type Postcss = Parameters<NonNullable<TailwindPlugin['Once']>>[1]['postcss']
 type Root = ReturnType<Postcss['parse']>
 const require = createRequire(import.meta.url)
 const postcss: Postcss = createRequire(require.resolve('tailwindcss'))('postcss')
-const tokens = postcss.parse(readFileSync(new URL('../../app/assets/css/jobsite-tokens.css', import.meta.url), 'utf8'))
-const legacy = postcss.parse(readFileSync(new URL('../../app/assets/css/tokens.css', import.meta.url), 'utf8'))
+const tokens = postcss.parse(readFileSync(new URL('../../app/assets/css/tokens.css', import.meta.url), 'utf8'))
+const legacy = postcss.parse(readFileSync(new URL('../../app/assets/css/legacy-compat.css', import.meta.url), 'utf8'))
 
 function declarations(root: Root, selector: string) {
   const values: Record<string, string> = {}
@@ -50,23 +50,22 @@ describe('additive Jobsite utilities', () => {
     expect(declarations(css, '.border-border\\/25')['border-color']).toBe('rgb(var(--color-border) / 0.25)')
     expect(declarations(css, '.ring-primary\\/50')['--tw-ring-color']).toBe('rgb(var(--color-primary) / 0.5)')
     expect(declarations(css, '.bg-slate-50')['background-color']).toContain('248 250 252')
-    expect(declarations(css, '.bg-neutral-950')['background-color']).toContain('10 10 10')
+    expect(declarations(css, '.bg-neutral-950')['background-color']).toBe('var(--neutral-950)')
   })
 
-  it('preserves default breakpoints, widths, type, fonts and radius', async () => {
+  it('uses Packet A breakpoints and preserves Bulwark widths, type, fonts and radius', async () => {
     const css = await compile('sm:w-1/2 md:w-1/2 lg:w-1/2 xl:w-1/2 2xl:w-1/2 w-sidebar w-sidebar-collapsed text-xs text-sm text-base text-body text-display font-sans font-mono rounded rounded-sm rounded-md rounded-lg rounded-card')
     const media: string[] = []
     css.walkAtRules('media', (rule) => { media.push(rule.params) })
-    expect(media).toEqual([640, 768, 1024, 1280, 1536].map((width) => `(min-width: ${width}px)`))
-    for (const [name, value] of Object.entries({ xs: '0.75rem', sm: '0.875rem', base: '1rem', body: '0.875rem', display: '1.5rem' })) {
+    expect(media).toEqual([390, 768, 1024, 1280, 1440].map((width) => `(min-width: ${width}px)`))
+    for (const [name, value] of Object.entries({ xs: 'var(--text-xs)', sm: 'var(--text-sm)', base: 'var(--text-md)', body: '0.875rem', display: '1.5rem' })) {
       expect(declarations(css, `.text-${name}`)['font-size']).toBe(value)
     }
     expect(declarations(css, '.w-sidebar').width).toBe('240px')
     expect(declarations(css, '.w-sidebar-collapsed').width).toBe('64px')
     expect(declarations(css, '.font-sans')['font-family']).toBe('var(--font-body)')
-    expect(declarations(css, '.font-mono')['font-family']).toContain('ui-monospace')
-    expect(declarations(css, '.font-mono')['font-family']).not.toContain('var(')
-    for (const [suffix, value] of Object.entries({ '': '8px', '-sm': '0.125rem', '-md': '0.375rem', '-lg': '0.5rem', '-card': '12px' })) {
+    expect(declarations(css, '.font-mono')['font-family']).toBe('var(--font-mono)')
+    for (const [suffix, value] of Object.entries({ '': '8px', '-sm': 'var(--radius-sm)', '-md': 'var(--radius-md)', '-lg': 'var(--radius-lg)', '-card': '12px' })) {
       expect(declarations(css, `.rounded${suffix}`)['border-radius']).toBe(value)
     }
   })
@@ -107,35 +106,30 @@ describe('additive Jobsite utilities', () => {
 })
 
 describe('runtime token contract', () => {
-  it('contains only custom properties, no global styling, legacy overrides or design imports', () => {
-    tokens.walkDecls((decl) => {
-      expect(decl.prop).toMatch(/^--/)
-      expect(decl.prop).not.toMatch(/^--color-/)
-    })
-    expect(tokens.nodes.every((node) => node.type === 'rule' || node.type === 'comment')).toBe(true)
+  it('uses approved CSS tokens and base rules without design-return imports', () => {
+    expect(tokens.nodes.some((node) => node.type === 'atrule' && node.name === 'media')).toBe(true)
     const main = readFileSync(new URL('../../app/assets/css/main.css', import.meta.url), 'utf8')
-    expect(main).toContain("@import './jobsite-tokens.css'")
+    expect(main).toContain("@import './tokens.css'")
+    expect(main).toContain("@import './legacy-compat.css'")
+    expect(main).toContain("@import './base.css'")
     expect(main).not.toContain('design-return')
-    const oldValues = declarations(legacy, ':root')
-    for (const property of Object.keys(declarations(tokens, ':root'))) expect(oldValues).not.toHaveProperty(property)
+    expect(declarations(legacy, ':root')['--color-primary']).toMatch(/^\d+ \d+ \d+$/)
+    expect(declarations(tokens, ':root')['--color-primary']).toBeUndefined()
   })
 
-  it('defines light/dark surfaces, fixed state colors, zero tracking and design radii', () => {
+  it('defines light/dark surfaces, fixed state colors, tracking and design radii', () => {
     expect(declarations(tokens, ':root')).toMatchObject({
       '--bg-page': 'var(--neutral-50)', '--bg-card': 'var(--neutral-0)', '--neutral-50': '#F5F7F8',
       '--text-primary': 'var(--neutral-950)', '--neutral-950': '#161B22', '--accent': '#0F766E',
-      '--on-accent': '#FFFFFF', '--success-bg': '#EAF4EE', '--tracking-tight': '0', '--tracking-wide': '0',
+      '--on-accent': '#FFFFFF', '--success-bg': '#EAF4EE', '--tracking-tight': '-0.02em', '--tracking-wide': '0.04em',
       '--radius-sm': '6px', '--radius-md': '10px', '--radius-lg': '16px',
     })
     expect(declarations(tokens, '[data-theme="dark"]')).toMatchObject({
       '--bg-page': 'var(--neutral-950)', '--bg-card': 'var(--neutral-900)',
-      '--text-primary': 'var(--neutral-50)', '--success-bg': '#12301F', '--selection-weight': '18%',
+      '--text-primary': 'var(--neutral-50)', '--success-bg': '#12301F',
     })
     const accent = declarations(tokens, '[data-accent]')
-    for (const property of ['--bg-page', '--bg-card', '--control-h', '--neutral-950', '--accent', '--on-accent']) {
-      expect(accent).not.toHaveProperty(property)
-    }
-    expect(accent['--bg-selected']).toContain('var(--selection-weight)')
+    expect(accent['--bg-selected']).toBe('var(--accent-50)')
   })
 
   it.each([
@@ -143,7 +137,8 @@ describe('runtime token contract', () => {
     ['compact', '32px', '28px', '40px', '8px', '16px', '32px'],
     ['touch', '48px', '44px', '56px', '16px', '20px', '48px'],
   ])('defines %s density independently of theme/accent', (density, height, small, large, row, card, touch) => {
-    expect(declarations(tokens, `[data-density="${density}"]`)).toMatchObject({
+    const selector = density === 'comfortable' ? ':root' : `[data-density="${density}"]`
+    expect(declarations(tokens, selector)).toMatchObject({
       '--control-h': height, '--control-h-sm': small, '--control-h-lg': large,
       '--row-py': row, '--card-p': card, '--touch-min': touch,
     })

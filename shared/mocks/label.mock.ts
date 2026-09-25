@@ -43,6 +43,12 @@ import type {
 } from '../contracts/label'
 import { DEFAULT_LOCALE } from '../contracts/label'
 import { assertSameTenant, type TenantResolver } from './tenant'
+import { computeOnAccent } from '../utils/theme'
+
+function normalizedHex(color: string): string {
+  const value = color.replace(/^#/, '')
+  return `#${value.length === 3 ? [...value].map((channel) => channel + channel).join('') : value}`
+}
 
 const newId = () => crypto.randomUUID()
 const nowIso = () => new Date().toISOString()
@@ -54,12 +60,14 @@ const brandingRows = new Map<string, Branding>()
 
 function defaultBranding(orgId: string): Branding {
   const now = nowIso()
+  const accentColor = '#FF6B35'
   return {
     id: newId(),
     organizationId: orgId,
     logoUrl: null,
     primaryColor: '#1E3A8A',
-    accentColor: '#FF6B35',
+    accentColor,
+    onAccent: computeOnAccent(normalizedHex(accentColor)),
     footerText: null,
     supportEmail: null,
     supportPhone: null,
@@ -176,6 +184,7 @@ export class MockLabelService implements ILabelService {
       logoUrl: input.logoUrl !== undefined ? input.logoUrl : existing.logoUrl,
       primaryColor: input.primaryColor ?? existing.primaryColor,
       accentColor: input.accentColor ?? existing.accentColor,
+      onAccent: computeOnAccent(normalizedHex(input.accentColor ?? existing.accentColor)),
       footerText: input.footerText !== undefined ? input.footerText : existing.footerText,
       supportEmail: input.supportEmail !== undefined ? input.supportEmail : existing.supportEmail,
       supportPhone: input.supportPhone !== undefined ? input.supportPhone : existing.supportPhone,

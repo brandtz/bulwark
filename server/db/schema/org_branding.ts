@@ -42,6 +42,7 @@ export const orgBranding = pgTable(
     logoUrl: text('logo_url'),
     primaryColor: text('primary_color').notNull().default('#1E3A8A'),
     accentColor: text('accent_color').notNull().default('#FF6B35'),
+    onAccent: text('on_accent').notNull().default('#FFFFFF'),
     footerText: text('footer_text'),
     supportEmail: text('support_email'),
     supportPhone: text('support_phone'),

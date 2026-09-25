@@ -197,6 +197,7 @@ export const BrandingSchema = z
     logoUrl: z.string().url().nullable(),
     primaryColor: HexColor,
     accentColor: HexColor,
+    onAccent: z.string().regex(/^#[0-9a-fA-F]{6}$/u),
     footerText: z.string().max(1000).nullable(),
     supportEmail: z.string().email().nullable(),
     supportPhone: z.string().max(40).nullable(),

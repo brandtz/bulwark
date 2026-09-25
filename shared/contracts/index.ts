@@ -49,3 +49,4 @@ export * from './reporting'
 // W3-5 / EH-P — global search + saved views (ADR-0033).
 export * from './search'
 export * from './saved-view'
+export * from './theme-preferences'

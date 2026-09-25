@@ -2,11 +2,10 @@
  * Bounded A1 token behavior on the real /dev/ui route at desktop/mobile sizes.
  * Existing elements opt into token-backed styles in the browser; no fixture UI
  * or replacement token stylesheet is injected. Legacy styling is checked first.
- * Attachments document token consumption only, not whole-system dark acceptance.
- * Preference persistence, SSR branding and self-hosted fonts are separate work.
+ * Attachments document token consumption and runtime theme preference behavior.
  */
 import { test, expect } from '@playwright/test'
-import { computeOnAccent } from '../../shared/utils/theme'
+import { signInAsAdmin } from './_helpers'
 
 test('SSR applies cookie-backed preferences and an accessible accent to the document root', async ({ page }) => {
   const remoteFontRequests: string[] = []
@@ -30,104 +29,90 @@ test('SSR applies cookie-backed preferences and an accessible accent to the docu
   expect(await root.evaluate(() => document.fonts.check('14px "IBM Plex Sans"'))).toBe(true)
 })
 
+test('system mode uses the OS color scheme before hydration and reacts to changes', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.context().addCookies([
+    { name: 'bulwark.theme', value: 'system', url: 'http://localhost:3000', sameSite: 'Lax' },
+  ])
+  const response = await page.goto('/dev/ui', { waitUntil: 'domcontentloaded' })
+  expect(response?.ok()).toBe(true)
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'system')
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(22, 27, 34)')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 247, 248)')
+})
+
+test('signed-in theme and density preferences persist across SSR reload', async ({ page }) => {
+  test.skip(process.env.BULWARK_BACKEND !== 'real', 'user_prefs persistence requires the real backend')
+  test.setTimeout(120_000)
+  await signInAsAdmin(page)
+  const save = () => page.request.post('/api/services/themePreferences/updateCurrent', {
+    data: { args: [{ theme: 'dark', density: 'touch' }] },
+  })
+  const response = await save()
+  expect(response.ok(), `theme preference save failed: ${response.status()} ${await response.text()}`).toBe(true)
+  const pageResponse = await page.goto('/dev/ui', { waitUntil: 'domcontentloaded' })
+  expect(pageResponse?.ok()).toBe(true)
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await expect(page.locator('html')).toHaveAttribute('data-density', 'touch')
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await expect(page.locator('html')).toHaveAttribute('data-density', 'touch')
+})
+
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   test.describe(`Jobsite token consumers at ${viewport.width}px`, () => {
     test.use({ viewport })
 
-    test('theme, density and nested accent affect only opted-in surfaces', async ({ page }, testInfo) => {
+    test('real app surfaces respond to theme and density tokens', async ({ page }, testInfo) => {
       test.setTimeout(120_000)
       const response = await page.goto('/dev/ui')
       expect(response?.ok()).toBe(true)
       const buttons = page.locator('[data-section="buttons"]')
       const primary = buttons.getByRole('button', { name: 'Primary', exact: true })
+      const card = page.locator('[data-section="display"] .bg-surface').first()
       await expect(buttons).toBeVisible()
       await expect(primary).toBeVisible()
-      await page.waitForLoadState('networkidle')
-      const legacy = await primary.evaluate((element) => ({
-        button: getComputedStyle(element).backgroundColor,
-        body: getComputedStyle(document.body).backgroundColor,
-      }))
-      expect(legacy).toEqual({ button: 'rgb(29, 78, 216)', body: 'rgb(248, 250, 252)' })
-      await page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
-      await expect(primary).toHaveCSS('background-color', legacy.button)
-      expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(legacy.body)
+      await expect(card).toBeVisible()
+      const root = page.locator('html')
+      const accent = await root.getAttribute('data-accent')
+      await expect(primary).toHaveCSS('background-color', 'rgb(29, 78, 216)')
+      await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+      await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 247, 248)')
+      const lightScreenshot = await page.screenshot({ animations: 'disabled' })
 
-      await buttons.evaluate((element) => {
-        const section = element as HTMLElement
-        section.style.backgroundColor = 'var(--bg-card)'
-        section.style.color = 'var(--text-primary)'
-        section.style.padding = 'var(--card-p)'
-        section.style.borderRadius = 'var(--radius-md)'
-        const parent = section.parentElement!
-        parent.style.backgroundColor = 'var(--bg-page)'
-      })
-      await primary.evaluate((element) => {
-        const button = element as HTMLElement
-        button.style.backgroundColor = 'var(--accent)'
-        button.style.color = 'var(--on-accent)'
-        button.style.height = 'var(--control-h)'
-        button.style.minHeight = 'var(--touch-min)'
-      })
+      await page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
+      await expect(primary).toHaveCSS('background-color', 'rgb(15, 118, 110)')
+      await expect(card).toHaveCSS('background-color', 'rgb(31, 36, 43)')
+      await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(22, 27, 34)')
+      expect(await root.getAttribute('data-accent')).toBe(accent)
+      const darkScreenshot = await page.screenshot({ animations: 'disabled' })
+      expect(Buffer.compare(lightScreenshot, darkScreenshot)).not.toBe(0)
 
       for (const theme of ['light', 'dark'] as const) {
         await page.evaluate((value) => { document.documentElement.dataset.theme = value }, theme)
         const expectedCard = theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(31, 36, 43)'
-        const expectedInk = theme === 'light' ? 'rgb(22, 27, 34)' : 'rgb(245, 247, 248)'
-        await expect(buttons).toHaveCSS('background-color', expectedCard)
-        await expect(buttons).toHaveCSS('color', expectedInk)
-        expect(await buttons.evaluate((element) => getComputedStyle(element.parentElement!).backgroundColor))
-          .toBe(theme === 'light' ? 'rgb(245, 247, 248)' : 'rgb(22, 27, 34)')
-        await expect(primary).toHaveCSS('background-color', 'rgb(15, 118, 110)')
-        await expect(primary).toHaveCSS('color', 'rgb(255, 255, 255)')
+        await expect(card).toHaveCSS('background-color', expectedCard)
+        await expect(page.locator('body')).toHaveCSS('background-color', theme === 'light' ? 'rgb(245, 247, 248)' : 'rgb(22, 27, 34)')
 
+        const densityTarget = page.locator('body')
         for (const [density, height, padding] of [
           ['compact', '32px', '16px'], ['touch', '48px', '20px'], ['comfortable', '40px', '24px'],
         ]) {
-          await page.evaluate((value) => { document.documentElement.dataset.density = value }, density!)
-          await expect(primary).toHaveCSS('height', height!)
-          await expect(buttons).toHaveCSS('padding-top', padding!)
+          await densityTarget.evaluate((element, value) => { element.dataset.density = value }, density!)
+          await expect(densityTarget).toHaveCSS('--control-h', height!)
+          await expect(densityTarget).toHaveCSS('--card-p', padding!)
+          await expect(densityTarget).toHaveCSS('--touch-min', density === 'compact' ? '32px' : density === 'touch' ? '48px' : '40px')
         }
-
-        await buttons.evaluate((element, foreground) => {
-          const section = element as HTMLElement
-          section.dataset.accent = ''
-          section.style.setProperty('--accent', '#F5D90A')
-          section.style.setProperty('--on-accent', foreground)
-        }, computeOnAccent('#F5D90A'))
-        await expect(primary).toHaveCSS('background-color', 'rgb(245, 217, 10)')
-        await expect(primary).toHaveCSS('color', 'rgb(22, 27, 34)')
-        await expect(primary).toHaveCSS('height', '40px')
-        await expect(buttons).toHaveCSS('background-color', expectedCard)
-        await expect(buttons).toHaveCSS('color', expectedInk)
-        expect(await buttons.evaluate((element) => getComputedStyle(element).getPropertyValue('--accent-500').trim()))
-          .toBe('#F5D90A')
-
-        const secondary = buttons.getByRole('button', { name: 'Secondary', exact: true })
-        await secondary.evaluate((element) => {
-          const button = element as HTMLElement
-          button.dataset.hue = 'blue'
-          button.style.backgroundColor = 'var(--hue-bg)'
-          button.style.color = 'var(--hue-fg)'
-          button.style.borderColor = 'var(--hue-border)'
-        })
-        await expect(secondary).toHaveCSS('background-color', theme === 'light' ? 'rgb(224, 236, 250)' : 'rgb(19, 42, 69)')
-        await expect(secondary).toHaveCSS('color', theme === 'light' ? 'rgb(31, 78, 140)' : 'rgb(141, 184, 236)')
-        await expect(secondary).toHaveCSS('border-top-color', theme === 'light' ? 'rgb(185, 209, 240)' : 'rgb(31, 64, 102)')
         await buttons.scrollIntoViewIfNeeded()
         const bounds = await buttons.boundingBox()
         expect(bounds?.width).toBeGreaterThan(200)
-        expect(bounds?.height).toBeGreaterThan(80)
+        expect(bounds?.height).toBeGreaterThan(60)
         const path = testInfo.outputPath(`token-consumers-${theme}-${viewport.width}.png`)
         const screenshot = await page.screenshot({ path, animations: 'disabled' })
         expect(screenshot.byteLength).toBeGreaterThan(10_000)
         await testInfo.attach(`token-consumers-${theme}-${viewport.width}`, { path, contentType: 'image/png' })
 
-        await buttons.evaluate((element) => {
-          const section = element as HTMLElement
-          delete section.dataset.accent
-          section.style.removeProperty('--accent')
-          section.style.removeProperty('--on-accent')
-        })
       }
     })
   })

@@ -21,6 +21,10 @@
  *     fully custom (UI-CONTRACTS.md), so the plugin would fight us.
  */
 import type { Config } from 'tailwindcss'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const jobsitePreset = require('./tailwind.preset.cjs')
 
 const jobsiteRamp = (name: string) => Object.fromEntries(
   [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((step) => [step, `var(--${name}-${step})`]),
@@ -30,6 +34,7 @@ const jobsiteSemantic = (name: string) => Object.fromEntries(
 )
 
 const config: Config = {
+  presets: [jobsitePreset],
   content: [
     './app/**/*.{vue,ts,tsx}',
     './shared/**/*.{ts,vue}',

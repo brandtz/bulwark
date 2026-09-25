@@ -51,6 +51,7 @@ import type { ISavedViewService } from './saved-view'
 import type { IReportingService } from './reporting'
 // W5-4 — Data Subject Rights: export + delete (ADR-0038).
 import type { IAccountService } from './account'
+import type { IThemePreferencesService } from './theme-preferences'
 
 export interface BulwarkServices {
   auth: IAuthService
@@ -109,6 +110,7 @@ export interface BulwarkServices {
   homeowner: IHomeownerService
   // W5-4 (ADR-0038): per-user DSR — export + delete + purge.
   account: IAccountService
+  themePreferences: IThemePreferencesService
 }
 
 export type ServiceName = keyof BulwarkServices

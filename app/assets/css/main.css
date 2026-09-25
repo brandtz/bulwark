@@ -6,7 +6,10 @@
  * <style> block — we do not ship a global "components.css".
  */
 
-@import './jobsite-tokens.css';
+@import './tokens.css';
+@import './legacy-compat.css';
+@import './base.css';
+@import './system-theme.css';
 
 @font-face {
   font-family: Barlow;
@@ -80,7 +83,9 @@
   }
 
   body {
-    @apply bg-background text-text-primary text-body antialiased;
+    @apply text-body antialiased;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
   }
 
   /* Tap targets must clear 48px on mobile (STYLE_GUIDE §6.1, §6.2). The

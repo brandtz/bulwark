@@ -12,6 +12,7 @@
 export * from './_shared'
 export * from './organizations'
 export * from './users'
+export * from './user_prefs'
 export * from './clients'
 export * from './properties'
 export * from './assessments'

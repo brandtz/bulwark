@@ -6,6 +6,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import { computeOnAccent } from '../../shared/utils/theme'
+import { MockLabelService, __resetMockLabelsForTests } from '../../shared/mocks/label.mock'
+import { FIXTURE_ORG_ID, FIXTURE_USER_ADMIN } from '../../shared/mocks/fixtures'
+import { beforeEach } from 'vitest'
 
 function contrast(first: string, second: string): number {
   const brightness = (hex: string) => {
@@ -53,4 +56,20 @@ describe('computeOnAccent', () => {
       expect(() => computeOnAccent(input as string)).toThrow('Invalid accent')
     },
   )
+})
+
+describe('branding onAccent persistence', () => {
+  beforeEach(() => __resetMockLabelsForTests())
+
+  it('stores the computed foreground when the organization accent is saved', async () => {
+    const service = new MockLabelService(() => ({
+      userId: FIXTURE_USER_ADMIN.userId,
+      organizationId: FIXTURE_ORG_ID,
+    }))
+    const light = await service.updateBranding({ organizationId: FIXTURE_ORG_ID, accentColor: '#F5D90A' })
+    expect(light).toMatchObject({ accentColor: '#F5D90A', onAccent: '#161B22' })
+    const dark = await service.updateBranding({ organizationId: FIXTURE_ORG_ID, accentColor: '#0F766E' })
+    expect(dark.onAccent).toBe('#FFFFFF')
+    await expect(service.getBranding(FIXTURE_ORG_ID)).resolves.toMatchObject({ onAccent: '#FFFFFF' })
+  })
 })

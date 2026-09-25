@@ -52,6 +52,12 @@ import type { OrgBrandingRow as DbBrandingRow } from '../db/schema/org_branding'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
+import { computeOnAccent } from '../../shared/utils/theme'
+
+function normalizedHex(color: string): string {
+  const value = color.replace(/^#/, '')
+  return `#${value.length === 3 ? [...value].map((channel) => channel + channel).join('') : value}`
+}
 
 function rowToContract(r: DbLabelRow): Label {
   return {
@@ -75,6 +81,7 @@ function brandingRowToContract(r: DbBrandingRow): Branding {
     logoUrl: r.logoUrl,
     primaryColor: r.primaryColor,
     accentColor: r.accentColor,
+    onAccent: r.onAccent,
     footerText: r.footerText,
     supportEmail: r.supportEmail,
     supportPhone: r.supportPhone,
@@ -90,12 +97,14 @@ function brandingRowToContract(r: DbBrandingRow): Branding {
 
 function syntheticBranding(orgId: string): Branding {
   const now = new Date().toISOString()
+  const accentColor = '#FF6B35'
   return {
     id: '00000000-0000-0000-0000-000000000000',
     organizationId: orgId,
     logoUrl: null,
     primaryColor: '#1E3A8A',
-    accentColor: '#FF6B35',
+    accentColor,
+    onAccent: computeOnAccent(normalizedHex(accentColor)),
     footerText: null,
     supportEmail: null,
     supportPhone: null,
@@ -288,6 +297,8 @@ export class RealLabelService implements ILabelService {
       if (input.timezone !== undefined) insertValues.timezone = input.timezone
       if (input.currencyCode !== undefined) insertValues.currencyCode = input.currencyCode
       if (input.dateFormat !== undefined) insertValues.dateFormat = input.dateFormat
+      const accentColor = input.accentColor ?? before?.accentColor ?? '#FF6B35'
+      insertValues.onAccent = computeOnAccent(normalizedHex(accentColor))
 
       const updateValues: Record<string, unknown> = { updatedAt: new Date() }
       for (const k of Object.keys(insertValues)) {
