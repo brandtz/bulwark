@@ -12,7 +12,7 @@ import { eq } from 'drizzle-orm'
 import { closeDb, getDb } from '../../server/db/client'
 import {
   auditLog,
-  complianceDocs,
+  deliverables as complianceDocs,
   jobs as jobsTable,
   organizations,
   properties,

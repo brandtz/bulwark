@@ -29,6 +29,7 @@ import type {
   TradeSlotStatus,
   WorkOrderStatus,
 } from '../contracts/work-order'
+import { MockTradeService } from './trade.mock'
 import { FIXTURE_WORK_ORDERS } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
 
@@ -55,7 +56,11 @@ function deriveEnvelopeStatus(slots: TradeSlot[]): WorkOrderStatus {
 }
 
 export class MockWorkOrderService implements IWorkOrderService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  private readonly tradeCatalog: MockTradeService
+
+  constructor(private readonly tenantResolver?: TenantResolver) {
+    this.tradeCatalog = new MockTradeService(tenantResolver)
+  }
 
   async list(input: WorkOrderListInput): Promise<WorkOrderListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -89,6 +94,7 @@ export class MockWorkOrderService implements IWorkOrderService {
 
   async create(input: WorkOrderCreateInput): Promise<WorkOrder> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    await this.tradeCatalog.assertActiveSlugs(input.organizationId, input.tradeSlots.map((slot) => slot.trade))
     const now = nowIso()
     const slots = input.tradeSlots.map((s) => ({
       ...s,

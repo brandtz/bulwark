@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { getDb } from '../../server/db/client'
-import { complianceDocs } from '../../server/db/schema/compliance_docs'
+import { deliverables } from '../../server/db/schema/deliverables'
 import { jobs } from '../../server/db/schema/jobs'
 import { properties } from '../../server/db/schema/properties'
 import { auditLog } from '../../server/db/schema/audit_log'
@@ -76,7 +76,7 @@ d('RealComplianceDocService + worker (E11-S10)', () => {
     delete process.env.BULWARK_PDF_STUB
     const db = getDb()
     await db.delete(auditLog).where(eq(auditLog.organizationId, orgId))
-    await db.delete(complianceDocs).where(eq(complianceDocs.organizationId, orgId))
+    await db.delete(deliverables).where(eq(deliverables.organizationId, orgId))
     await db.delete(jobs).where(eq(jobs.organizationId, orgId))
     await db.delete(properties).where(eq(properties.organizationId, orgId))
     await db.delete(organizations).where(eq(organizations.id, orgId))
@@ -96,6 +96,7 @@ d('RealComplianceDocService + worker (E11-S10)', () => {
       },
     })
     expect(doc.status).toBe('generating')
+    expect(doc.kind).toBe('compliance_package')
     expect(doc.jobId).toBeTruthy()
 
     // Wait for the linked job to terminate.

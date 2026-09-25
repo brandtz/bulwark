@@ -12,7 +12,9 @@ import { properties } from '../../server/db/schema/properties'
 import { users } from '../../server/db/schema/users'
 import { auditLog } from '../../server/db/schema/audit_log'
 import { organizations } from '../../server/db/schema/organizations'
+import { trades } from '../../server/db/schema/trades'
 import { RealWorkOrderService } from '../../server/services/work-order.real'
+import { RealTradeService } from '../../server/services/trade.real'
 import { TenantViolationError } from '../../server/services/_tenant'
 
 const HAS_DB = !!process.env.DATABASE_URL
@@ -29,6 +31,7 @@ d('RealWorkOrderService (E11-S8)', () => {
     const db = getDb()
     const [o] = await db.insert(organizations).values({ name: 'E11-S8 WO Org', slug: `e11s8w-${stamp}` }).returning()
     orgId = o!.id
+    await new RealTradeService().bootstrap({ organizationId: orgId })
     const [u] = await db.insert(users).values({ email: `e11s8w-${stamp}@x.test`, fullName: 'T', passwordHash: await bcrypt.hash('x', 4), isActive: true }).returning()
     userId = u!.id
     const [p] = await db.insert(properties).values({ organizationId: orgId, addressLine1: 'W', city: 'C', state: 'CA', postalCode: '0' }).returning()
@@ -47,6 +50,7 @@ d('RealWorkOrderService (E11-S8)', () => {
     const db = getDb()
     await db.delete(auditLog).where(eq(auditLog.organizationId, orgId))
     await db.delete(workOrders).where(eq(workOrders.organizationId, orgId))
+    await db.delete(trades).where(eq(trades.organizationId, orgId))
     await db.delete(quotes).where(eq(quotes.organizationId, orgId))
     await db.delete(properties).where(eq(properties.organizationId, orgId))
     await db.delete(users).where(eq(users.id, userId))

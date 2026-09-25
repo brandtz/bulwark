@@ -4,14 +4,14 @@
  * # Decisions (ADR-0008)
  *   - Compliance standards live as one-row-per-tenant (org-scoped).
  *     `get(orgId)` returns the saved row or, if the tenant has never
- *     customised, the `OREGON_DEFAULT_STANDARDS` fallback.
+ *     customised, the seeded Wildfire Retrofit program's template rules.
  *   - `save(orgId, patch)` is a full replace, not a merge — the
  *     editor always submits the complete shape, which keeps the
  *     contract simple and avoids field-by-field diffing.
  *
  * # Decision cast down
  *   - Rejected: a separate "reset to defaults" RPC. The editor can
- *     just resubmit `OREGON_DEFAULT_STANDARDS` and the row is
+ *     just resubmit the seeded program standards and the row is
  *     overwritten — same wire shape, no extra surface.
  */
 import { z } from 'zod'

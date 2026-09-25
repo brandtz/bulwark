@@ -91,7 +91,7 @@ d('countLegacyAssetRows (L01-S4)', () => {
     expect(byKey['property_attachments.url']).toBe(1)
     expect(byKey['org_branding.logo_url']).toBe(0)
     expect(byKey['subcontractor_coi_docs.file_url']).toBe(0)
-    expect(byKey['compliance_docs.result_url']).toBe(0)
+    expect(byKey['deliverables.result_url']).toBe(0)
     expect(byKey['users.avatar_url']).toBe(0)
   })
 

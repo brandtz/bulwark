@@ -36,6 +36,7 @@
  *     repeatable sections already support without a schema change.
  */
 import type { EvaluatorRule, FieldKind, FieldOption } from '../contracts/inspection-template'
+import type { ComplianceStandards } from '../contracts/assessment'
 
 export interface DefaultTemplateFieldDef {
   slug: string
@@ -315,4 +316,23 @@ export const DEFAULT_WILDFIRE_TEMPLATE: DefaultTemplate = {
       ],
     },
   ],
+}
+
+function wildfireField(slug: string): DefaultTemplateFieldDef | undefined {
+  return DEFAULT_WILDFIRE_TEMPLATE.sections
+    .flatMap((section) => section.fields)
+    .find((field) => field.slug === slug)
+}
+
+function allowedValues(slug: string): string[] {
+  const rule = wildfireField(slug)?.evaluatorRule
+  return rule?.kind === 'must_be_one_of' ? [...rule.allowed] : []
+}
+
+export const DEFAULT_WILDFIRE_STANDARDS: ComplianceStandards = {
+  compliantRoofMaterials: allowedValues('roof_material') as ComplianceStandards['compliantRoofMaterials'],
+  compliantSidingMaterials: allowedValues('siding_material') as ComplianceStandards['compliantSidingMaterials'],
+  compliantEaveTypes: allowedValues('eave_type') as ComplianceStandards['compliantEaveTypes'],
+  compliantVentTypes: allowedValues('vent_type') as ComplianceStandards['compliantVentTypes'],
+  requireDefensibleSpace: wildfireField('defensible_space_cleared')?.evaluatorRule?.kind === 'must_be_true',
 }

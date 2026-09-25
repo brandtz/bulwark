@@ -9,6 +9,7 @@ describe('renderComplianceDocHtml', () => {
     doc: {
       id: 'doc-1',
       organizationId: 'org-1',
+      kind: 'compliance_package' as const,
       propertyId: 'prop-1',
       workOrderIds: ['wo-1'],
       includedSlotIds: ['slot-1', 'slot-2'],
@@ -72,5 +73,15 @@ describe('renderComplianceDocHtml', () => {
     const html = renderComplianceDocHtml(baseInput)
     expect(html).not.toContain('<Smith>')
     expect(html).not.toContain('Acme & Co')
+  })
+
+  it('renders a generic completion report without wildfire-specific claims', () => {
+    const html = renderComplianceDocHtml({
+      ...baseInput,
+      doc: { ...baseInput.doc, kind: 'completion_report' },
+    })
+    expect(html).toContain('<h1>Completion Report</h1>')
+    expect(html).not.toContain('Oregon')
+    expect(html).not.toContain('Wildfire')
   })
 })

@@ -14,7 +14,7 @@ import { MockWorkOrderService } from '../../shared/mocks/work-order.mock'
 import { MockPropertyService } from '../../shared/mocks/property.mock'
 import { MockSubcontractorService } from '../../shared/mocks/subcontractor.mock'
 import { MockInspectionService } from '../../shared/mocks/inspection.mock'
-import { MockComplianceDocService } from '../../shared/mocks/compliance.mock'
+import { MockDeliverableService } from '../../shared/mocks/deliverable.mock'
 import { MockProgramService } from '../../shared/mocks/program.mock'
 import { MockJobService } from '../../shared/mocks/job.mock'
 import { MockReportingService, type MockReportingDeps } from '../../shared/mocks/reporting.mock'
@@ -39,7 +39,7 @@ function buildDeps(): { deps: MockReportingDeps; orgId: string } {
     property: new MockPropertyService(),
     subcontractor: new MockSubcontractorService(),
     inspection: new MockInspectionService(undefined, async () => null),
-    complianceDoc: new MockComplianceDocService(undefined, () => job),
+    deliverable: new MockDeliverableService(undefined, () => job),
     program: new MockProgramService(),
   }
   return { deps, orgId }

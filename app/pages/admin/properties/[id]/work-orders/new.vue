@@ -39,6 +39,7 @@ import {
   TRADE_LABEL,
   type Trade,
 } from '~~/shared/contracts/subcontractor'
+import { BUILTIN_TRADES } from '~~/shared/contracts/trade'
 import type { QuoteLineItem } from '~~/shared/contracts/quote'
 
 definePageMeta({
@@ -147,9 +148,10 @@ watch(
   { immediate: true },
 )
 
-const TRADE_OPTIONS: { value: Trade; label: string }[] = (
-  Object.keys(TRADE_LABEL) as Trade[]
-).map((t) => ({ value: t, label: TRADE_LABEL[t] }))
+const TRADE_OPTIONS: { value: Trade; label: string }[] = BUILTIN_TRADES.map((trade) => ({
+  value: trade.slug,
+  label: TRADE_LABEL[trade.slug] ?? trade.name,
+}))
 
 function addSlot() {
   slots.value = [

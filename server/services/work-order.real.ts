@@ -26,6 +26,7 @@ import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { buildLikePatternForYear, formatSequentialNumber } from '../../shared/utils/numbering'
 import { RealOrgSettingsService } from './org-settings.real'
+import { RealTradeService } from './trade.real'
 import { emit } from '../../shared/events/bus'
 import {
   workOrderCreated,
@@ -72,7 +73,11 @@ function rowToContract(r: DbWO): WorkOrder {
 }
 
 export class RealWorkOrderService implements IWorkOrderService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  private readonly tradeCatalog: RealTradeService
+
+  constructor(private readonly tenantResolver?: TenantResolver) {
+    this.tradeCatalog = new RealTradeService(tenantResolver)
+  }
 
   async list(input: WorkOrderListInput): Promise<WorkOrderListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -110,6 +115,7 @@ export class RealWorkOrderService implements IWorkOrderService {
 
   async create(input: WorkOrderCreateInput): Promise<WorkOrder> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    await this.tradeCatalog.assertActiveSlugs(input.organizationId, input.tradeSlots.map((slot) => slot.trade))
     const workOrderNumber = await this.nextWorkOrderNumber(input.organizationId)
     const created = await withAudit(async ({ tx, audit }) => {
       const [row] = await tx

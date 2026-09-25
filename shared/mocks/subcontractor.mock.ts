@@ -30,6 +30,7 @@ import type {
 import {
   SubcontractorUpdateInputSchema,
 } from '../contracts/subcontractor'
+import { MockTradeService } from './trade.mock'
 import { FIXTURE_SUBCONTRACTORS } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
 
@@ -51,7 +52,11 @@ export function __resetSubcontractorMock(): void {
 }
 
 export class MockSubcontractorService implements ISubcontractorService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  private readonly tradeCatalog: MockTradeService
+
+  constructor(private readonly tenantResolver?: TenantResolver) {
+    this.tradeCatalog = new MockTradeService(tenantResolver)
+  }
 
   async list(input: SubcontractorListInput): Promise<SubcontractorListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -84,6 +89,7 @@ export class MockSubcontractorService implements ISubcontractorService {
 
   async create(input: SubcontractorCreateInput): Promise<Subcontractor> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    await this.tradeCatalog.assertActiveSlugs(input.organizationId, input.trades)
     const now = new Date().toISOString()
     const row: Subcontractor = {
       id: `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
@@ -111,6 +117,7 @@ export class MockSubcontractorService implements ISubcontractorService {
   ): Promise<Subcontractor> {
     assertSameTenant(this.tenantResolver, organizationId)
     const patch = SubcontractorUpdateInputSchema.parse(input)
+    if (patch.trades) await this.tradeCatalog.assertActiveSlugs(organizationId, patch.trades)
     const idx = rows.findIndex(
       (x) => x.id === id && x.organizationId === organizationId && !x.deletedAt,
     )

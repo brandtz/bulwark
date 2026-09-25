@@ -12,7 +12,7 @@
 import { eq } from 'drizzle-orm'
 import type { ComplianceStandards } from '../../shared/contracts/assessment'
 import type { IStandardsService, StandardsRow } from '../../shared/contracts/standards'
-import { OREGON_DEFAULT_STANDARDS } from '../../shared/utils/compliance'
+import { DEFAULT_WILDFIRE_STANDARDS } from '../../shared/inspection-templates/wildfire-defaults'
 import { getDb } from '../db/client'
 import { complianceStandards } from '../db/schema/standards'
 import type { ComplianceStandardsRow as DbStd } from '../db/schema/standards'
@@ -50,7 +50,7 @@ export class RealStandardsService implements IStandardsService {
       // consistent shape on first read.
       return {
         organizationId: orgId,
-        standards: OREGON_DEFAULT_STANDARDS,
+        standards: DEFAULT_WILDFIRE_STANDARDS,
         updatedAt: new Date().toISOString(),
         updatedById: null,
       }

@@ -30,7 +30,7 @@
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
 import { safeUrl } from '~/utils/safeUrl'
-import { evaluateCompliance, OREGON_DEFAULT_STANDARDS } from '~~/shared/utils/compliance'
+import { evaluateCompliance } from '~~/shared/utils/compliance'
 import { formatCents } from '~~/shared/utils/money'
 import type { Quote } from '~~/shared/contracts/quote'
 import type { WorkOrder } from '~~/shared/contracts/work-order'
@@ -58,7 +58,8 @@ const assessment = useService('assessment')
 const quoteSvc = useService('quote')
 const workOrderSvc = useService('workOrder')
 const invoiceSvc = useService('invoice')
-const complianceSvc = useService('complianceDoc')
+const deliverableSvc = useService('deliverable')
+const standardsSvc = useService('standards')
 const auditSvc = useService('audit')
 // W2-1 / EH-E (ADR-0018): property depth — buildings, contacts, photos.
 const propertyDepthSvc = property
@@ -80,7 +81,7 @@ const { data: detail } = await useAsyncData(
     }
     // EH-D / W1-4: parallel rollup fetch. Each child list is scoped
     // by propertyId so we avoid the full-tenant scan.
-    const [c, a, quotes, workOrders, invoices, complianceDocs, timeline] =
+    const [c, a, quotes, workOrders, invoices, complianceDocs, timeline, standards] =
       await Promise.all([
         p.clientId ? client.get(p.clientId, orgId.value) : Promise.resolve(null),
         assessment.getLatestForProperty(p.id, orgId.value),
@@ -96,7 +97,7 @@ const { data: detail } = await useAsyncData(
           .list({ organizationId: orgId.value, propertyId: p.id, page: 1, pageSize: 50 })
           .then((r) => r.rows)
           .catch(() => []),
-        complianceSvc
+        deliverableSvc
           .list({ organizationId: orgId.value, propertyId: p.id })
           .catch(() => [] as ComplianceDoc[]),
         auditSvc
@@ -106,6 +107,7 @@ const { data: detail } = await useAsyncData(
             limit: 200,
           })
           .catch(() => [] as AuditLogRow[]),
+        standardsSvc.get(orgId.value).then((row) => row.standards),
       ])
     return {
       property: p,
@@ -116,6 +118,7 @@ const { data: detail } = await useAsyncData(
       invoices,
       complianceDocs,
       timeline,
+      standards,
     }
   },
   { watch: [propertyId, orgId] },
@@ -223,8 +226,9 @@ const fullAddress = computed(() => {
 // here; per-tenant override (E9) will swap to a settings-service call.
 const compliance = computed(() => {
   const a = detail.value?.assessment
-  if (!a) return null
-  return evaluateCompliance(a, OREGON_DEFAULT_STANDARDS)
+  const standards = detail.value?.standards
+  if (!a || !standards) return null
+  return evaluateCompliance(a, standards)
 })
 </script>
 

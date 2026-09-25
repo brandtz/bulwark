@@ -63,8 +63,8 @@ const PROPERTY_STATUS_DEFAULTS: Record<PropertyStatus, string> = {
   accepted: 'Accepted',
   in_progress: 'In progress',
   completed: 'Completed',
-  compliance_pending: 'Compliance pending',
-  compliance_complete: 'Compliance complete',
+  deliverable_pending: 'Deliverable pending',
+  deliverable_complete: 'Deliverable complete',
   invoiced: 'Invoiced',
   paid: 'Paid',
   on_hold: 'On hold',
@@ -140,6 +140,7 @@ const ROLE_DEFAULTS: Record<Role, string> = {
   sub_contractor: 'Subcontractor',
   homeowner: 'Homeowner',
   viewer: 'Viewer',
+  stakeholder: 'Stakeholder',
 }
 
 // Programs ship with one inaugural seed; W1-1 owns the program model.

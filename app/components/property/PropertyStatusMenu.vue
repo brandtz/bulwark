@@ -26,18 +26,30 @@
 <script setup lang="ts">
 import {
   PROPERTY_STATUS_LABEL,
-  PropertyStatusSchema,
   type Property,
   type PropertyStatus,
 } from '~~/shared/contracts/property'
+import type { StatusPipelineNode } from '~~/shared/contracts/status-pipeline'
 
-const props = defineProps<{ property: Property }>()
-const emit = defineEmits<{ 'change-status': [status: PropertyStatus] }>()
+const props = defineProps<{ property: Property; statuses: StatusPipelineNode[] }>()
+const emit = defineEmits<{ 'change-status': [status: string, reason?: string] }>()
 
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
 
-const STATUSES: PropertyStatus[] = PropertyStatusSchema.options as PropertyStatus[]
+const { t: tLabel } = useLabel()
+const currentNode = computed(() => props.statuses.find((node) => node.slug === props.property.status))
+const availableStatuses = computed(() =>
+  props.statuses.filter((node) => currentNode.value?.allowedTransitions.includes(node.slug)),
+)
+
+function labelFor(status: string) {
+  return tLabel(
+    'status.property',
+    status,
+    PROPERTY_STATUS_LABEL[status as PropertyStatus] ?? status.replaceAll('_', ' '),
+  )
+}
 
 function toggle(e: MouseEvent) {
   e.stopPropagation()
@@ -45,11 +57,14 @@ function toggle(e: MouseEvent) {
   open.value = !open.value
 }
 
-function pick(e: MouseEvent, status: PropertyStatus) {
+function pick(e: MouseEvent, status: StatusPipelineNode) {
   e.stopPropagation()
   e.preventDefault()
   open.value = false
-  if (status !== props.property.status) emit('change-status', status)
+  if (status.slug === props.property.status) return
+  const reason = status.requiresReason ? window.prompt(`Reason for ${labelFor(status.slug)}:`) : undefined
+  if (status.requiresReason && !reason?.trim()) return
+  emit('change-status', status.slug, reason?.trim())
 }
 
 function onDocMouseDown(e: MouseEvent) {
@@ -98,17 +113,17 @@ onBeforeUnmount(() => {
       data-testid="status-menu-panel"
     >
       <button
-        v-for="s in STATUSES"
-        :key="s"
+        v-for="status in availableStatuses"
+        :key="status.slug"
         type="button"
         role="menuitem"
         class="w-full text-left px-3 py-1.5 text-small hover:bg-surface-muted flex items-center justify-between"
-        :class="s === property.status ? 'text-text-disabled cursor-default' : 'text-text-primary'"
-        :data-testid="`status-menu-item-${s}`"
-        @click="pick($event, s)"
+        :class="status.slug === property.status ? 'text-text-disabled cursor-default' : 'text-text-primary'"
+        :data-testid="`status-menu-item-${status.slug}`"
+        @click="pick($event, status)"
       >
-        <span>{{ PROPERTY_STATUS_LABEL[s] }}</span>
-        <span v-if="s === property.status" class="text-caption">current</span>
+        <span>{{ labelFor(status.slug) }}</span>
+        <span v-if="status.slug === property.status" class="text-caption">current</span>
       </button>
     </div>
   </div>

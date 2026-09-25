@@ -21,6 +21,7 @@ import { WorkOrderStatusSchema, TradeSlotStatusSchema } from '~~/shared/contract
 import { InvoiceStatusSchema } from '~~/shared/contracts/invoice'
 import { ComplianceDocStatusSchema } from '~~/shared/contracts/compliance'
 import { JobStatusSchema } from '~~/shared/contracts/job'
+import { RoleSchema } from '~~/shared/contracts/_shared'
 
 const namespaces = LabelNamespaceSchema.options
   .slice()
@@ -44,6 +45,12 @@ describe('DEFAULT_LABELS', () => {
   it('every value is a non-empty string', () => {
     for (const [k, v] of Object.entries(DEFAULT_LABELS)) {
       expect(v, `Empty default for "${k}"`).toMatch(/\S/)
+    }
+  })
+
+  it('covers every role enum value', () => {
+    for (const role of RoleSchema.options) {
+      expect(DEFAULT_LABELS[`role.${role}`], `missing role.${role}`).toBeTruthy()
     }
   })
 

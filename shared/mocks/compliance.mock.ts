@@ -1,5 +1,5 @@
 /**
- * shared/mocks/compliance.mock.ts — MockComplianceDocService (E7-S2).
+ * shared/mocks/compliance.mock.ts — deliverable mock lifecycle implementation.
  *
  * # Decisions (ADR-0008)
  *   - Each `create()` writes the row in `generating` and immediately
@@ -19,17 +19,17 @@
  *     Either way, the doc row only owns inputs + result pointer.
  */
 import {
-  isTerminalComplianceDocStatus,
-  type ComplianceDoc,
-  type ComplianceDocCreateInput,
-  type ComplianceDocListInput,
-  type ComplianceDocStatus,
-  type IComplianceDocService,
-} from '../contracts/compliance'
+  isTerminalDeliverableStatus,
+  type Deliverable,
+  type DeliverableCreateInput,
+  type DeliverableListInput,
+  type DeliverableStatus,
+  type IDeliverableService,
+} from '../contracts/deliverable'
 import type { IJobService } from '../contracts/job'
 import { assertSameTenant, type TenantResolver } from './tenant'
 
-const rows: ComplianceDoc[] = []
+const rows: Deliverable[] = []
 
 let nextId = 1
 function newDocId(): string {
@@ -38,14 +38,14 @@ function newDocId(): string {
   return `mockcdoc-${seq}-0000-0000-00000000000`
 }
 
-export class MockComplianceDocService implements IComplianceDocService {
+export class MockDeliverableService implements IDeliverableService {
   constructor(
     private readonly tenantResolver: TenantResolver | undefined,
     /** Closure so we can resolve the job service after the factory wires both. */
     private readonly getJobService: () => IJobService,
   ) {}
 
-  async list(input: ComplianceDocListInput): Promise<ComplianceDoc[]> {
+  async list(input: DeliverableListInput): Promise<Deliverable[]> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     return rows
       .filter(
@@ -61,7 +61,7 @@ export class MockComplianceDocService implements IComplianceDocService {
   async get(
     id: string,
     organizationId: string,
-  ): Promise<ComplianceDoc | null> {
+  ): Promise<Deliverable | null> {
     assertSameTenant(this.tenantResolver, organizationId)
     const r = rows.find(
       (x) =>
@@ -70,7 +70,7 @@ export class MockComplianceDocService implements IComplianceDocService {
     return r ?? null
   }
 
-  async create(input: ComplianceDocCreateInput): Promise<ComplianceDoc> {
+  async create(input: DeliverableCreateInput): Promise<Deliverable> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     // We deliberately skip ComplianceDocCreateInputSchema.parse here:
     // seeded fixture ids elsewhere in the system are non-RFC4122
@@ -89,9 +89,10 @@ export class MockComplianceDocService implements IComplianceDocService {
       },
     })
 
-    const doc: ComplianceDoc = {
+    const doc: Deliverable = {
       id: newDocId(),
       organizationId: input.organizationId,
+      kind: input.kind ?? 'compliance_package',
       propertyId: input.propertyId,
       workOrderIds: [...input.workOrderIds],
       includedSlotIds: [...input.includedSlotIds],
@@ -114,7 +115,7 @@ export class MockComplianceDocService implements IComplianceDocService {
   async syncFromJob(
     id: string,
     organizationId: string,
-  ): Promise<ComplianceDoc> {
+  ): Promise<Deliverable> {
     assertSameTenant(this.tenantResolver, organizationId)
     const idx = rows.findIndex(
       (x) =>
@@ -124,7 +125,7 @@ export class MockComplianceDocService implements IComplianceDocService {
       throw new Error(`ComplianceDoc not found: ${id}`)
     }
     const current = rows[idx]!
-    if (isTerminalComplianceDocStatus(current.status)) {
+    if (isTerminalDeliverableStatus(current.status)) {
       return current
     }
     if (!current.jobId) {
@@ -134,7 +135,7 @@ export class MockComplianceDocService implements IComplianceDocService {
     if (!job) {
       return current
     }
-    let nextStatus: ComplianceDocStatus = current.status
+    let nextStatus: DeliverableStatus = current.status
     if (job.status === 'succeeded') nextStatus = 'ready'
     else if (job.status === 'failed') nextStatus = 'failed'
     else if (job.status === 'running') nextStatus = 'generating'
@@ -146,7 +147,7 @@ export class MockComplianceDocService implements IComplianceDocService {
     ) {
       return current
     }
-    const updated: ComplianceDoc = {
+    const updated: Deliverable = {
       ...current,
       status: nextStatus,
       resultUrl: job.resultUrl,
@@ -199,7 +200,7 @@ export class MockComplianceDocService implements IComplianceDocService {
     return { reconciled: docIds.length, docIds }
   }
 
-  async reenqueue(id: string, organizationId: string): Promise<ComplianceDoc> {
+  async reenqueue(id: string, organizationId: string): Promise<Deliverable> {
     // Parity with RealComplianceDocService (L04-S4).
     assertSameTenant(this.tenantResolver, organizationId)
     const idx = rows.findIndex(
@@ -222,7 +223,7 @@ export class MockComplianceDocService implements IComplianceDocService {
         includedSlotIds: current.includedSlotIds,
       },
     })
-    const updated: ComplianceDoc = {
+    const updated: Deliverable = {
       ...current,
       status: 'generating',
       jobId: job.id,
@@ -239,7 +240,13 @@ export class MockComplianceDocService implements IComplianceDocService {
  * calls this. Useful when a test wants a clean slate without recreating
  * the factory.
  */
-export function __resetMockComplianceDocsForTests(): void {
+export function __resetMockDeliverablesForTests(): void {
   rows.length = 0
   nextId = 1
 }
+
+/** @deprecated Use MockDeliverableService and __resetMockDeliverablesForTests. */
+export class MockComplianceDocService extends MockDeliverableService {}
+
+/** @deprecated Use __resetMockDeliverablesForTests. */
+export const __resetMockComplianceDocsForTests = __resetMockDeliverablesForTests

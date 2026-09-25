@@ -30,7 +30,7 @@ import type {
   PropertyDepth,
   PropertyListInput,
   PropertyListOutput,
-  PropertyStatus,
+  PropertyStatusValue,
   PropertyUpdateInput,
 } from '../../shared/contracts/property'
 import { getDb } from '../db/client'
@@ -50,9 +50,14 @@ import {
 } from './_row-mappers'
 import { emit } from '../../shared/events/bus'
 import { propertyCreated } from '../../shared/events/catalog'
+import { RealStatusPipelineService } from './status-pipeline.real'
 
 export class RealPropertyService implements IPropertyService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  private readonly statusPipelines: RealStatusPipelineService
+
+  constructor(private readonly tenantResolver?: TenantResolver) {
+    this.statusPipelines = new RealStatusPipelineService(tenantResolver)
+  }
 
   async list(input: PropertyListInput): Promise<PropertyListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -112,6 +117,12 @@ export class RealPropertyService implements IPropertyService {
 
   async create(input: PropertyCreateInput): Promise<Property> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    const pipeline = await this.statusPipelines.bootstrap({
+      organizationId: input.organizationId,
+      entityType: 'property',
+    })
+    const initialStatus = pipeline.nodes.find((node) => node.isInitial)
+    if (!initialStatus) throw new Error('Invalid property pipeline: no initial status')
     const created = await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(properties)
@@ -123,7 +134,7 @@ export class RealPropertyService implements IPropertyService {
           state: input.state,
           postalCode: input.postalCode,
           clientId: input.clientId ?? null,
-          status: 'lead',
+          status: initialStatus.slug,
           notes: input.notes ?? null,
           // W2-1 / EH-E — new metadata fields (ADR-0018). Numeric column
           // accepts string|number; we pass through the contract number as-is.
@@ -228,8 +239,11 @@ export class RealPropertyService implements IPropertyService {
     })
   }
 
-  async updateStatus(id: string, status: PropertyStatus, organizationId: string): Promise<Property> {
+  async updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string): Promise<Property> {
     assertSameTenant(this.tenantResolver, organizationId)
+    const pipeline = await this.statusPipelines.bootstrap({ organizationId, entityType: 'property' })
+    const target = pipeline.nodes.find((node) => node.slug === status)
+    if (!target) throw new Error(`Invalid property status: ${status} is not in the active pipeline`)
     return await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()
@@ -237,6 +251,14 @@ export class RealPropertyService implements IPropertyService {
         .where(and(eq(properties.id, id), eq(properties.organizationId, organizationId)))
         .limit(1)
       if (!before) throw new Error('Property not found')
+      const source = pipeline.nodes.find((node) => node.slug === before.status)
+      if (!source) throw new Error(`Invalid current property status: ${before.status} is not in the active pipeline`)
+      if (before.status !== status && !source.allowedTransitions.includes(status)) {
+        throw new Error(`Invalid property status transition: ${before.status} cannot transition to ${status}`)
+      }
+      if (before.status !== status && target.requiresReason && !reason?.trim()) {
+        throw new Error('Invalid property status transition: a reason is required')
+      }
       const [after] = await tx
         .update(properties)
         .set({ status, updatedAt: new Date() })
@@ -248,7 +270,7 @@ export class RealPropertyService implements IPropertyService {
         entityId: id,
         action: 'state_change',
         actorUserId: this.actorUserId(),
-        metadata: { from: before.status, to: status },
+        metadata: { from: before.status, to: status, ...(reason?.trim() ? { reason: reason.trim() } : {}) },
       })
       return dbPropertyToContract(after!)
     })

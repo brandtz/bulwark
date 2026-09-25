@@ -37,7 +37,7 @@ import { RealQuoteService } from '../services/quote.real'
 import { RealSubcontractorService } from '../services/subcontractor.real'
 import { RealWorkOrderService } from '../services/work-order.real'
 import { RealJobService } from '../services/job.real'
-import { RealComplianceDocService } from '../services/compliance.real'
+import { RealDeliverableService } from '../services/deliverable.real'
 import { RealInvoiceService } from '../services/invoice.real'
 import { RealStandardsService } from '../services/standards.real'
 import { RealApiKeyService } from '../services/api-key.real'
@@ -85,6 +85,8 @@ interface SessionUserShape {
 }
 
 type Event = InstanceType<typeof H3Event>
+
+let legacyComplianceDocKeyWarned = false
 
 class H3AuthSessionAdapter implements RealAuthSessionAdapter {
   constructor(private readonly event: Event) {}
@@ -154,6 +156,7 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
     appendInvoiceLine: (invId, orgId, line) => invoice.appendLineItem(invId, orgId, line),
     appendWorkOrderNote: (woId, orgId, note) => workOrder.appendNote(woId, orgId, note),
   })
+  const deliverable = new RealDeliverableService(tenantResolver)
 
   return {
     auth,
@@ -164,7 +167,14 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
     subcontractor: new RealSubcontractorService(tenantResolver),
     workOrder,
     job: new RealJobService(tenantResolver),
-    complianceDoc: new RealComplianceDocService(tenantResolver),
+    deliverable,
+    get complianceDoc() {
+      if (!legacyComplianceDocKeyWarned) {
+        console.warn('Service key "complianceDoc" is deprecated; use "deliverable".')
+        legacyComplianceDocKeyWarned = true
+      }
+      return deliverable
+    },
     invoice,
     standards: new RealStandardsService(tenantResolver),
     apiKey: new RealApiKeyService(tenantResolver),

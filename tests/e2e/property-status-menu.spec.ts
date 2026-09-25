@@ -25,22 +25,24 @@ test.describe('Property status menu (E3-S3)', () => {
     await signInAsAdmin(page)
   })
 
-  test('menu opens, lists all 13 statuses, and current is marked', async ({ page }) => {
+  test('menu opens, lists only legal transitions, and current is marked when present', async ({ page }) => {
     await page.goto('/admin/properties')
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByTestId('properties-pipeline')).toBeVisible()
     const card = page.getByTestId('property-card').first()
     await card.getByTestId('status-menu-button').click()
     const panel = card.getByTestId('status-menu-panel')
     await expect(panel).toBeVisible()
-    // 13 status options in the menu.
-    await expect(panel.getByRole('menuitem')).toHaveCount(13)
-    // The card's current status row shows "current" badge.
-    await expect(panel.getByText('current', { exact: true })).toHaveCount(1)
+    // The lead status allows scheduled, on_hold and cancelled.
+    await expect(panel.getByRole('menuitem')).toHaveCount(3)
+    await expect(panel.getByTestId('status-menu-item-scheduled')).toBeVisible()
+    await expect(panel.getByTestId('status-menu-item-on_hold')).toBeVisible()
+    await expect(panel.getByTestId('status-menu-item-cancelled')).toBeVisible()
+    await expect(panel.getByText('current', { exact: true })).toHaveCount(0)
   })
 
   test('clicking a menu item moves the card to the chosen column', async ({ page }) => {
     await page.goto('/admin/properties')
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByTestId('properties-pipeline')).toBeVisible()
 
     // Pick a card from the `lead` column we know is seeded.
     const leadColumn = page.locator('[data-testid="pipeline-column"][data-status="lead"]')
@@ -67,7 +69,7 @@ test.describe('Property status menu (E3-S3)', () => {
 
   test('clicking the menu does not navigate to the detail page', async ({ page }) => {
     await page.goto('/admin/properties')
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByTestId('properties-pipeline')).toBeVisible()
     const card = page.getByTestId('property-card').first()
     await card.getByTestId('status-menu-button').click()
     await expect(card.getByTestId('status-menu-panel')).toBeVisible()

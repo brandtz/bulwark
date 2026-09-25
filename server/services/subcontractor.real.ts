@@ -28,6 +28,7 @@ import { subcontractors } from '../db/schema/subcontractors'
 import type { Subcontractor as DbSub } from '../db/schema/subcontractors'
 import { subcontractorUsers } from '../db/schema/subcontractor_users'
 import { subcontractorCoiDocs } from '../db/schema/subcontractor_coi_docs'
+import { RealTradeService } from './trade.real'
 import { users, memberships } from '../db/schema/users'
 import { pendingInvites } from '../db/schema/pending_invites'
 import { workOrders } from '../db/schema/work_orders'
@@ -57,7 +58,11 @@ function rowToContract(r: DbSub): Subcontractor {
 }
 
 export class RealSubcontractorService implements ISubcontractorService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  private readonly tradeCatalog: RealTradeService
+
+  constructor(private readonly tenantResolver?: TenantResolver) {
+    this.tradeCatalog = new RealTradeService(tenantResolver)
+  }
 
   async list(input: SubcontractorListInput): Promise<SubcontractorListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -103,6 +108,7 @@ export class RealSubcontractorService implements ISubcontractorService {
 
   async create(input: SubcontractorCreateInput): Promise<Subcontractor> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    await this.tradeCatalog.assertActiveSlugs(input.organizationId, input.trades)
     return await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(subcontractors)
@@ -132,6 +138,7 @@ export class RealSubcontractorService implements ISubcontractorService {
 
   async update(id: string, input: SubcontractorUpdateInput, organizationId: string): Promise<Subcontractor> {
     assertSameTenant(this.tenantResolver, organizationId)
+    if (input.trades) await this.tradeCatalog.assertActiveSlugs(organizationId, input.trades)
     return await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()

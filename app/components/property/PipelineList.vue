@@ -19,18 +19,30 @@
       list adds is grouping + sticky headers.
 -->
 <script setup lang="ts">
-import type { Property, PropertyStatus } from '~~/shared/contracts/property'
+import type { Property } from '~~/shared/contracts/property'
 import { PROPERTY_STATUS_LABEL } from '~~/shared/contracts/property'
+import type { StatusPipelineNode } from '~~/shared/contracts/status-pipeline'
 
 const props = defineProps<{
-  groupedByStatus: Record<PropertyStatus, Property[]>
-  columnOrder: PropertyStatus[]
+  groupedByStatus: Record<string, Property[]>
+  columnOrder: string[]
+  statuses: StatusPipelineNode[]
 }>()
-defineEmits<{ 'change-status': [propertyId: string, status: PropertyStatus] }>()
+defineEmits<{ 'change-status': [propertyId: string, status: string, reason?: string] }>()
+const { t: tLabel } = useLabel()
+
+function labelFor(status: string) {
+  const node = props.statuses.find((candidate) => candidate.slug === status)
+  return tLabel(
+    'status.property',
+    status,
+    PROPERTY_STATUS_LABEL[status as import('~~/shared/contracts/property').PropertyStatus] ?? node?.slug.replaceAll('_', ' ') ?? status,
+  )
+}
 
 const visibleSections = computed(() =>
   props.columnOrder
-    .map((status) => ({ status, rows: props.groupedByStatus[status] }))
+    .map((status) => ({ status, rows: props.groupedByStatus[status] ?? [] }))
     .filter((s) => s.rows.length > 0),
 )
 </script>
@@ -50,7 +62,7 @@ const visibleSections = computed(() =>
           <h2
             class="text-caption font-semibold uppercase tracking-wide text-text-secondary"
           >
-            {{ PROPERTY_STATUS_LABEL[section.status] }}
+            {{ labelFor(section.status) }}
           </h2>
           <span class="text-caption text-text-secondary tabular-nums">
             {{ section.rows.length }}
@@ -62,7 +74,8 @@ const visibleSections = computed(() =>
           v-for="row in section.rows"
           :key="row.id"
           :property="row"
-          @change-status="(id, s) => $emit('change-status', id, s)"
+          :statuses="statuses"
+          @change-status="(id, status, reason) => $emit('change-status', id, status, reason)"
         />
       </div>
     </section>

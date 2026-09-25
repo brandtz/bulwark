@@ -309,7 +309,7 @@ void refreshKpis
             <NuxtLink :to="`/admin/properties/${row.propertyId}`" class="text-text-primary truncate hover:underline">
               {{ row.name }}
             </NuxtLink>
-            <StatusBadge status="compliance_pending" />
+            <StatusBadge status="deliverable_pending" />
           </li>
         </ul>
         <p v-else class="text-small text-text-secondary">{{ emptyCopy }}</p>

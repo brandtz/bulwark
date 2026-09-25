@@ -21,10 +21,20 @@
 import type { PropertyStatus } from '~~/shared/contracts/property'
 import { PROPERTY_STATUS_LABEL } from '~~/shared/contracts/property'
 
-const _props = defineProps<{
-  status: PropertyStatus
+const props = defineProps<{
+  status: string
+  statuses: import('~~/shared/contracts/status-pipeline').StatusPipelineNode[]
   count: number
 }>()
+const { t: tLabel } = useLabel()
+const displayLabel = computed(() => {
+  const node = props.statuses.find((candidate) => candidate.slug === props.status)
+  return tLabel(
+    'status.property',
+    props.status,
+    PROPERTY_STATUS_LABEL[props.status as PropertyStatus] ?? node?.slug.replaceAll('_', ' ') ?? props.status,
+  )
+})
 </script>
 
 <template>
@@ -35,7 +45,7 @@ const _props = defineProps<{
   >
     <header class="flex items-center justify-between px-3 py-2 border-b border-border">
       <h2 class="text-caption font-semibold uppercase tracking-wide text-text-secondary">
-        {{ PROPERTY_STATUS_LABEL[status] }}
+        {{ displayLabel }}
       </h2>
       <span
         :data-testid="'pipeline-column-count'"

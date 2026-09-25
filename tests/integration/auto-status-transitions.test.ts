@@ -28,9 +28,11 @@ import { quotes } from '../../server/db/schema/quotes'
 import { workOrders } from '../../server/db/schema/work_orders'
 import { invoices } from '../../server/db/schema/invoices'
 import { auditLog } from '../../server/db/schema/audit_log'
+import { trades } from '../../server/db/schema/trades'
 import { RealQuoteService } from '../../server/services/quote.real'
 import { RealWorkOrderService } from '../../server/services/work-order.real'
 import { RealInvoiceService } from '../../server/services/invoice.real'
+import { RealTradeService } from '../../server/services/trade.real'
 import {
   registerPropertyStatusSubscribers,
   __resetPropertyStatusSubscribersForTests,
@@ -52,6 +54,7 @@ d('W1-4 auto status transitions (EH-D)', () => {
       .values({ name: 'W1-4 EH-D Org', slug: `w14-${stamp}` })
       .returning()
     orgId = o!.id
+    await new RealTradeService().bootstrap({ organizationId: orgId })
     const [u] = await db
       .insert(users)
       .values({
@@ -75,6 +78,7 @@ d('W1-4 auto status transitions (EH-D)', () => {
     await db.delete(auditLog).where(eq(auditLog.organizationId, orgId))
     await db.delete(invoices).where(eq(invoices.organizationId, orgId))
     await db.delete(workOrders).where(eq(workOrders.organizationId, orgId))
+    await db.delete(trades).where(eq(trades.organizationId, orgId))
     await db.delete(quotes).where(eq(quotes.organizationId, orgId))
     await db.delete(properties).where(eq(properties.organizationId, orgId))
     await db.delete(users).where(eq(users.id, userId))

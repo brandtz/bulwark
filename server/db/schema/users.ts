@@ -20,6 +20,15 @@ export const roleEnum = pgEnum('role', [
   'sub_contractor',
   'homeowner',
   'viewer',
+  'stakeholder',
+])
+
+export const stakeholderKindEnum = pgEnum('stakeholder_kind', [
+  'insurer',
+  'lender',
+  'hoa',
+  'property_manager',
+  'adjuster',
 ])
 
 export const users = pgTable('users', {
@@ -38,6 +47,7 @@ export const memberships = pgTable(
     userId: uuid('user_id').notNull().references(() => users.id),
     organizationId: uuid('organization_id').notNull().references(() => organizations.id),
     role: roleEnum('role').notNull(),
+    stakeholderKind: stakeholderKindEnum('stakeholder_kind'),
     isActive: boolean('is_active').notNull().default(true),
     ...auditColumns,
   },

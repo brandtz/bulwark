@@ -1,5 +1,5 @@
 /**
- * server/services/compliance.real.ts — RealComplianceDocService (E11-S10).
+ * server/services/compliance.real.ts — deliverable lifecycle implementation.
  *
  * # Decisions (ADR-0008, ADR-0012)
  *   - Mirrors MockComplianceDocService: list/get/create/syncFromJob.
@@ -13,16 +13,16 @@
  */
 import { and, eq, sql } from 'drizzle-orm'
 import type {
-  ComplianceDoc,
-  ComplianceDocCreateInput,
-  ComplianceDocListInput,
-  ComplianceDocStatus,
-  IComplianceDocService,
-} from '../../shared/contracts/compliance'
-import { isTerminalComplianceDocStatus } from '../../shared/contracts/compliance'
+  Deliverable,
+  DeliverableCreateInput,
+  DeliverableListInput,
+  DeliverableStatus,
+  IDeliverableService,
+} from '../../shared/contracts/deliverable'
+import { isTerminalDeliverableStatus } from '../../shared/contracts/deliverable'
 import { getDb } from '../db/client'
-import { complianceDocs } from '../db/schema/compliance_docs'
-import type { ComplianceDoc as DbComplianceDoc } from '../db/schema/compliance_docs'
+import { deliverables } from '../db/schema/deliverables'
+import type { Deliverable as DbDeliverable } from '../db/schema/deliverables'
 import { RealJobService } from './job.real'
 import { RealInspectionService } from './inspection.real'
 import { inspections } from '../db/schema/inspections'
@@ -31,10 +31,11 @@ import { withAudit } from './_tx'
 import { emit } from '../../shared/events/bus'
 import { complianceDocReady } from '../../shared/events/catalog'
 
-function rowToContract(r: DbComplianceDoc): ComplianceDoc {
+function rowToContract(r: DbDeliverable): Deliverable {
   return {
     id: r.id,
     organizationId: r.organizationId,
+    kind: r.kind,
     propertyId: r.propertyId,
     workOrderIds: r.workOrderIds,
     includedSlotIds: r.includedSlotIds,
@@ -49,7 +50,7 @@ function rowToContract(r: DbComplianceDoc): ComplianceDoc {
   }
 }
 
-export class RealComplianceDocService implements IComplianceDocService {
+export class RealDeliverableService implements IDeliverableService {
   private readonly jobs: RealJobService
   private readonly inspectionService: RealInspectionService
 
@@ -58,41 +59,41 @@ export class RealComplianceDocService implements IComplianceDocService {
     this.inspectionService = new RealInspectionService(tenantResolver)
   }
 
-  async list(input: ComplianceDocListInput): Promise<ComplianceDoc[]> {
+  async list(input: DeliverableListInput): Promise<Deliverable[]> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     const db = getDb()
     const conditions = [
-      eq(complianceDocs.organizationId, input.organizationId),
-      sql`${complianceDocs.deletedAt} IS NULL`,
+      eq(deliverables.organizationId, input.organizationId),
+      sql`${deliverables.deletedAt} IS NULL`,
     ]
-    if (input.propertyId) conditions.push(eq(complianceDocs.propertyId, input.propertyId))
+    if (input.propertyId) conditions.push(eq(deliverables.propertyId, input.propertyId))
     const rows = await db
       .select()
-      .from(complianceDocs)
+      .from(deliverables)
       .where(and(...conditions))
     return rows
       .map(rowToContract)
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
   }
 
-  async get(id: string, organizationId: string): Promise<ComplianceDoc | null> {
+  async get(id: string, organizationId: string): Promise<Deliverable | null> {
     assertSameTenant(this.tenantResolver, organizationId)
     const db = getDb()
     const [row] = await db
       .select()
-      .from(complianceDocs)
+      .from(deliverables)
       .where(
         and(
-          eq(complianceDocs.id, id),
-          eq(complianceDocs.organizationId, organizationId),
-          sql`${complianceDocs.deletedAt} IS NULL`,
+          eq(deliverables.id, id),
+          eq(deliverables.organizationId, organizationId),
+          sql`${deliverables.deletedAt} IS NULL`,
         ),
       )
       .limit(1)
     return row ? rowToContract(row) : null
   }
 
-  async create(input: ComplianceDocCreateInput): Promise<ComplianceDoc> {
+  async create(input: DeliverableCreateInput): Promise<Deliverable> {
     assertSameTenant(this.tenantResolver, input.organizationId)
 
     const now = new Date().toISOString()
@@ -101,9 +102,10 @@ export class RealComplianceDocService implements IComplianceDocService {
     //    the job so the handler can hydrate the row by id.
     const docRow = await withAudit(async ({ tx, audit }) => {
       const [r] = await tx
-        .insert(complianceDocs)
+        .insert(deliverables)
         .values({
           organizationId: input.organizationId,
+          kind: input.kind ?? 'compliance_package',
           propertyId: input.propertyId,
           workOrderIds: input.workOrderIds,
           includedSlotIds: input.includedSlotIds,
@@ -142,13 +144,13 @@ export class RealComplianceDocService implements IComplianceDocService {
       const message = err instanceof Error ? err.message : String(err)
       await withAudit(async ({ tx, audit }) => {
         await tx
-          .update(complianceDocs)
+          .update(deliverables)
           .set({
             status: 'failed',
             error: `Job enqueue failed: ${message}`.slice(0, 500),
             updatedAt: new Date(),
           })
-          .where(eq(complianceDocs.id, docRow.id))
+          .where(eq(deliverables.id, docRow.id))
         await audit.record({
           organizationId: input.organizationId,
           entityType: 'compliance_doc',
@@ -164,9 +166,9 @@ export class RealComplianceDocService implements IComplianceDocService {
     // 3. Stamp the job id on the doc row.
     const db = getDb()
     const [updated] = await db
-      .update(complianceDocs)
+      .update(deliverables)
       .set({ jobId: job.id, updatedAt: new Date() })
-      .where(eq(complianceDocs.id, docRow.id))
+      .where(eq(deliverables.id, docRow.id))
       .returning()
 
     // 4. W2-2 (ADR-0019): if the property has an active inspection tied
@@ -213,17 +215,17 @@ export class RealComplianceDocService implements IComplianceDocService {
     return rowToContract(updated!)
   }
 
-  async syncFromJob(id: string, organizationId: string): Promise<ComplianceDoc> {
+  async syncFromJob(id: string, organizationId: string): Promise<Deliverable> {
     assertSameTenant(this.tenantResolver, organizationId)
     const current = await this.get(id, organizationId)
     if (!current) throw new Error(`ComplianceDoc not found: ${id}`)
-    if (isTerminalComplianceDocStatus(current.status)) return current
+    if (isTerminalDeliverableStatus(current.status)) return current
     if (!current.jobId) return current
 
     const job = await this.jobs.get(current.jobId, organizationId)
     if (!job) return current
 
-    let nextStatus: ComplianceDocStatus = current.status
+    let nextStatus: DeliverableStatus = current.status
     if (job.status === 'succeeded') nextStatus = 'ready'
     else if (job.status === 'failed') nextStatus = 'failed'
     else if (job.status === 'running') nextStatus = 'generating'
@@ -238,7 +240,7 @@ export class RealComplianceDocService implements IComplianceDocService {
 
     const db = getDb()
     const [row] = await db
-      .update(complianceDocs)
+      .update(deliverables)
       .set({
         status: nextStatus,
         resultUrl: job.resultUrl,
@@ -247,8 +249,8 @@ export class RealComplianceDocService implements IComplianceDocService {
       })
       .where(
         and(
-          eq(complianceDocs.id, id),
-          eq(complianceDocs.organizationId, organizationId),
+          eq(deliverables.id, id),
+          eq(deliverables.organizationId, organizationId),
         ),
       )
       .returning()
@@ -283,13 +285,13 @@ export class RealComplianceDocService implements IComplianceDocService {
 
     const stuck = await db
       .select()
-      .from(complianceDocs)
+      .from(deliverables)
       .where(
         and(
-          eq(complianceDocs.organizationId, input.organizationId),
-          eq(complianceDocs.status, 'generating'),
-          sql`${complianceDocs.updatedAt} < ${cutoff.toISOString()}`,
-          sql`${complianceDocs.deletedAt} IS NULL`,
+          eq(deliverables.organizationId, input.organizationId),
+          eq(deliverables.status, 'generating'),
+          sql`${deliverables.updatedAt} < ${cutoff.toISOString()}`,
+          sql`${deliverables.deletedAt} IS NULL`,
         ),
       )
 
@@ -306,9 +308,9 @@ export class RealComplianceDocService implements IComplianceDocService {
         : 'Orphaned: no job attached after enqueue'
       await withAudit(async ({ tx, audit }) => {
         await tx
-          .update(complianceDocs)
+          .update(deliverables)
           .set({ status: 'failed', error: reason, updatedAt: new Date() })
-          .where(eq(complianceDocs.id, doc.id))
+          .where(eq(deliverables.id, doc.id))
         await audit.record({
           organizationId: input.organizationId,
           entityType: 'compliance_doc',
@@ -323,7 +325,7 @@ export class RealComplianceDocService implements IComplianceDocService {
     return { reconciled: failedIds.length, docIds: failedIds }
   }
 
-  async reenqueue(id: string, organizationId: string): Promise<ComplianceDoc> {
+  async reenqueue(id: string, organizationId: string): Promise<Deliverable> {
     // L04-S4 operator recovery: a `failed` doc gets a FRESH job (new job id,
     // same payload) and flips back to `generating`. The handler keys the R2
     // object by docId, so a re-run overwrites safely (idempotent contract).
@@ -349,10 +351,10 @@ export class RealComplianceDocService implements IComplianceDocService {
 
     const db = getDb()
     const [row] = await db
-      .update(complianceDocs)
+      .update(deliverables)
       .set({ status: 'generating', jobId: job.id, error: null, updatedAt: new Date() })
       .where(
-        and(eq(complianceDocs.id, id), eq(complianceDocs.organizationId, organizationId)),
+        and(eq(deliverables.id, id), eq(deliverables.organizationId, organizationId)),
       )
       .returning()
     await withAudit(async ({ audit }) => {
@@ -368,3 +370,6 @@ export class RealComplianceDocService implements IComplianceDocService {
     return rowToContract(row!)
   }
 }
+
+/** @deprecated Use RealDeliverableService; removed in phase 3. */
+export class RealComplianceDocService extends RealDeliverableService {}

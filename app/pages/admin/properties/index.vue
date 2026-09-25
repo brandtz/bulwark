@@ -33,7 +33,8 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
-import type { Property, PropertyStatus } from '~~/shared/contracts/property'
+import type { Property } from '~~/shared/contracts/property'
+import type { StatusPipelineNode } from '~~/shared/contracts/status-pipeline'
 
 definePageMeta({
   middleware: ['role'],
@@ -45,47 +46,38 @@ useHead({ title: 'Properties' })
 const { session, ensureLoaded } = useSession()
 await ensureLoaded()
 const property = useService('property')
-
-// Authoritative left-to-right kanban order for the demo. See ADR-0008
-// note above for why this isn't sourced from the enum order.
-const COLUMN_ORDER: PropertyStatus[] = [
-  'lead',
-  'scheduled',
-  'assessed',
-  'quoted',
-  'accepted',
-  'in_progress',
-  'completed',
-  'compliance_pending',
-  'compliance_complete',
-  'invoiced',
-  'paid',
-  'on_hold',
-  'cancelled',
-]
+const statusPipeline = useService('statusPipeline')
 
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
 const { data: list } = await useAsyncData(
   () => `properties-${orgId.value}`,
-  () =>
-    property.list({
+  async () => {
+    const [properties, activePipeline] = await Promise.all([
+      property.list({ organizationId: orgId.value, page: 1, pageSize: 100 }),
+      statusPipeline.getActive({ organizationId: orgId.value, entityType: 'property' }),
+    ])
+    const pipeline = activePipeline ?? await statusPipeline.bootstrap({
       organizationId: orgId.value,
-      page: 1,
-      pageSize: 100,
-    }),
+      entityType: 'property',
+    })
+    return { ...properties, statuses: pipeline.nodes }
+  },
   {
     watch: [orgId],
-    default: () => ({ rows: [], total: 0, page: 1, pageSize: 100 }),
+    default: () => ({ rows: [], total: 0, page: 1, pageSize: 100, statuses: [] as StatusPipelineNode[] }),
   },
 )
 
-const groupedByStatus = computed<Record<PropertyStatus, Property[]>>(() => {
+const COLUMN_ORDER = computed(() => (list.value?.statuses ?? []).map((status) => status.slug))
+const statusOptions = computed(() => list.value?.statuses ?? [])
+
+const groupedByStatus = computed<Record<string, Property[]>>(() => {
   const empty = Object.fromEntries(
-    COLUMN_ORDER.map((s) => [s, [] as Property[]]),
-  ) as Record<PropertyStatus, Property[]>
+    COLUMN_ORDER.value.map((s) => [s, [] as Property[]]),
+  ) as Record<string, Property[]>
   for (const row of list.value?.rows ?? []) {
-    empty[row.status].push(row)
+    ;(empty[row.status] ??= []).push(row)
   }
   return empty
 })
@@ -112,8 +104,8 @@ onMounted(() => {
 // re-stages without two-handed gestures and Playwright stays
 // deterministic. Drag-drop sugar can be layered later without changing
 // the data path because both surfaces emit `change-status`.
-async function onChangeStatus(propertyId: string, status: PropertyStatus) {
-  await property.updateStatus(propertyId, status, orgId.value)
+async function onChangeStatus(propertyId: string, status: string, reason?: string) {
+  await property.updateStatus(propertyId, status, orgId.value, reason)
   await refreshNuxtData(`properties-${orgId.value}`)
 }
 
@@ -171,12 +163,14 @@ function applySavedView(payload: { filters: Record<string, unknown> }) {
           v-for="status in COLUMN_ORDER"
           :key="status"
           :status="status"
-          :count="groupedByStatus[status].length"
+          :statuses="statusOptions"
+          :count="groupedByStatus[status]?.length ?? 0"
         >
           <PropertyCard
             v-for="row in groupedByStatus[status]"
             :key="row.id"
             :property="row"
+            :statuses="statusOptions"
             @change-status="onChangeStatus"
           />
         </PipelineColumn>
@@ -187,6 +181,7 @@ function applySavedView(payload: { filters: Record<string, unknown> }) {
       <PipelineList
         :grouped-by-status="groupedByStatus"
         :column-order="COLUMN_ORDER"
+        :statuses="statusOptions"
         @change-status="onChangeStatus"
       />
     </div>

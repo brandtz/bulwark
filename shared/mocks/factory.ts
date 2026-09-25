@@ -29,7 +29,7 @@ import { MockQuoteService } from './quote.mock'
 import { MockSubcontractorService } from './subcontractor.mock'
 import { MockWorkOrderService } from './work-order.mock'
 import { MockJobService } from './job.mock'
-import { MockComplianceDocService } from './compliance.mock'
+import { MockDeliverableService } from './deliverable.mock'
 import { MockInvoiceService } from './invoice.mock'
 import { MockStandardsService } from './standards.mock'
 import { MockApiKeyService } from './api-key.mock'
@@ -71,6 +71,7 @@ import { MockAccountService } from './account.mock'
 import type { TenantResolver } from './tenant'
 
 let cachedServices: BulwarkServices | null = null
+let legacyComplianceDocKeyWarned = false
 
 export function createMockServices(
   authAdapter: MockAuthSessionAdapter,
@@ -137,8 +138,10 @@ export function createMockServices(
     // bag below without a two-pass null cast.
     const quoteMock = new MockQuoteService(resolver)
     const subcontractorMock = new MockSubcontractorService(resolver)
-    const complianceDocMock = new MockComplianceDocService(resolver, () => job)
-    const programMock = new MockProgramService(resolver)
+    const deliverableMock = new MockDeliverableService(resolver, () => job)
+    const programMock = new MockProgramService(resolver, async (templateId, orgId) =>
+      Boolean(await inspectionTemplate.get(templateId, orgId)),
+    )
     const reportingMock = new MockReportingService(
       {
         quote: quoteMock,
@@ -148,7 +151,7 @@ export function createMockServices(
         property: propertyMock,
         subcontractor: subcontractorMock,
         inspection,
-        complianceDoc: complianceDocMock,
+        deliverable: deliverableMock,
         program: programMock,
       },
       resolver,
@@ -162,7 +165,14 @@ export function createMockServices(
       subcontractor: subcontractorMock,
       workOrder,
       job,
-      complianceDoc: complianceDocMock,
+      deliverable: deliverableMock,
+      get complianceDoc() {
+        if (!legacyComplianceDocKeyWarned) {
+          console.warn('Service key "complianceDoc" is deprecated; use "deliverable".')
+          legacyComplianceDocKeyWarned = true
+        }
+        return deliverableMock
+      },
       invoice,
       standards: new MockStandardsService(resolver),
       apiKey: new MockApiKeyService(resolver),

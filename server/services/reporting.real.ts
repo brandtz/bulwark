@@ -61,7 +61,7 @@ import { workOrders } from '../db/schema/work_orders'
 import { properties } from '../db/schema/properties'
 import { subcontractors } from '../db/schema/subcontractors'
 import { inspections } from '../db/schema/inspections'
-import { complianceDocs } from '../db/schema/compliance_docs'
+import { deliverables } from '../db/schema/deliverables'
 import { programs } from '../db/schema/programs'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 
@@ -165,13 +165,13 @@ export class RealReportingService implements IReportingService {
 
     const [complianceMonthRow] = await db
       .select({ count: sql<number>`cast(count(*) as int)` })
-      .from(complianceDocs)
+      .from(deliverables)
       .where(
         and(
-          eq(complianceDocs.organizationId, orgId),
-          sql`${complianceDocs.deletedAt} IS NULL`,
-          eq(complianceDocs.status, 'ready'),
-          gte(complianceDocs.createdAt, monthStart),
+          eq(deliverables.organizationId, orgId),
+          sql`${deliverables.deletedAt} IS NULL`,
+          eq(deliverables.status, 'ready'),
+          gte(deliverables.createdAt, monthStart),
         ),
       )
 
@@ -182,7 +182,7 @@ export class RealReportingService implements IReportingService {
         and(
           eq(properties.organizationId, orgId),
           sql`${properties.deletedAt} IS NULL`,
-          eq(properties.status, 'compliance_pending'),
+          eq(properties.status, 'deliverable_pending'),
         ),
       )
 
@@ -368,7 +368,7 @@ export class RealReportingService implements IReportingService {
       }))
     }
 
-    // openIssues — properties whose status is compliance_pending.
+    // openIssues — properties whose status is deliverable_pending.
     const rows = await db
       .select({
         propertyId: properties.id,
@@ -379,7 +379,7 @@ export class RealReportingService implements IReportingService {
         and(
           eq(properties.organizationId, input.organizationId),
           sql`${properties.deletedAt} IS NULL`,
-          eq(properties.status, 'compliance_pending'),
+          eq(properties.status, 'deliverable_pending'),
         ),
       )
       .orderBy(properties.addressLine1)

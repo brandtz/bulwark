@@ -22,7 +22,7 @@
  * - "Forms" conflicts with HTML forms throughout the UI.
  * - "Questionnaires" implies tick-the-box surveys; an inspection
  *   captures structured measurements + photos + signatures.
- * - "Templates" matches the existing `complianceDocTemplateId` pattern
+ * - "Templates" matches the program's `inspectionTemplateId` configuration
  *   on programs.
  */
 import { z } from 'zod'

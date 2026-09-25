@@ -68,6 +68,17 @@ export class MockTradeService implements ITradeService {
     return r && !r.deletedAt ? r : null
   }
 
+  async assertActiveSlugs(organizationId: string, slugs: readonly string[]): Promise<void> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const active = new Set(
+      rows
+        .filter((r) => r.organizationId === organizationId && r.isActive && !r.deletedAt)
+        .map((r) => r.slug),
+    )
+    const invalid = [...new Set(slugs)].find((slug) => !active.has(slug))
+    if (invalid) throw new Error(`Invalid trade slug: ${invalid}`)
+  }
+
   async create(input: TradeCreateInput): Promise<TradeRecord> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     if (rows.find((r) => r.organizationId === input.organizationId && r.slug === input.slug && !r.deletedAt)) {

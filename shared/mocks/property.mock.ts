@@ -17,19 +17,21 @@
  */
 import type {
   IPropertyService, Property, PropertyCreateInput, PropertyDepth, PropertyListInput,
-  PropertyListOutput, PropertyStatus, PropertyUpdateInput,
+  PropertyListOutput, PropertyStatusValue, PropertyUpdateInput,
 } from '../contracts/property'
 import { FIXTURE_PROPERTIES } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
 import type { MockBuildingService } from './building.mock'
 import type { MockContactService } from './contact.mock'
 import type { MockPropertyPhotoService } from './property-photo.mock'
+import { MockStatusPipelineService } from './status-pipeline.mock'
 
 const rows: Property[] = [...FIXTURE_PROPERTIES]
 const newId = () => crypto.randomUUID()
 const nowIso = () => new Date().toISOString()
 
 export class MockPropertyService implements IPropertyService {
+  private readonly statusPipelines: MockStatusPipelineService
   // W2-1 / EH-E — `getWithDepth` needs to read from sibling mock services.
   // The factory wires these in via `attachDepthSources` after all four
   // mocks are constructed (the contact mock needs the property mock too,
@@ -38,7 +40,9 @@ export class MockPropertyService implements IPropertyService {
   private contactSvc: MockContactService | null = null
   private photoSvc: MockPropertyPhotoService | null = null
 
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  constructor(private readonly tenantResolver?: TenantResolver) {
+    this.statusPipelines = new MockStatusPipelineService(tenantResolver)
+  }
 
   attachDepthSources(deps: {
     building: MockBuildingService
@@ -81,6 +85,12 @@ export class MockPropertyService implements IPropertyService {
 
   async create(input: PropertyCreateInput): Promise<Property> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    const pipeline = await this.statusPipelines.bootstrap({
+      organizationId: input.organizationId,
+      entityType: 'property',
+    })
+    const initialStatus = pipeline.nodes.find((node) => node.isInitial)
+    if (!initialStatus) throw new Error('Invalid property pipeline: no initial status')
     const now = nowIso()
     const row: Property = {
       id: newId(),
@@ -91,7 +101,7 @@ export class MockPropertyService implements IPropertyService {
       state: input.state,
       postalCode: input.postalCode,
       clientId: input.clientId ?? null,
-      status: 'lead',
+      status: initialStatus.slug,
       notes: input.notes ?? null,
       lotSizeAcres: input.lotSizeAcres ?? null,
       parcelNumber: input.parcelNumber ?? null,
@@ -123,10 +133,21 @@ export class MockPropertyService implements IPropertyService {
     r.deletedAt = nowIso()
   }
 
-  async updateStatus(id: string, status: PropertyStatus, organizationId: string): Promise<Property> {
+  async updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string): Promise<Property> {
     assertSameTenant(this.tenantResolver, organizationId)
     const r = rows.find(x => x.id === id && x.organizationId === organizationId)
     if (!r) throw new Error('Property not found')
+    const pipeline = await this.statusPipelines.bootstrap({ organizationId, entityType: 'property' })
+    const target = pipeline.nodes.find((node) => node.slug === status)
+    if (!target) throw new Error(`Invalid property status: ${status} is not in the active pipeline`)
+    const source = pipeline.nodes.find((node) => node.slug === r.status)
+    if (!source) throw new Error(`Invalid current property status: ${r.status} is not in the active pipeline`)
+    if (r.status !== status && !source.allowedTransitions.includes(status)) {
+      throw new Error(`Invalid property status transition: ${r.status} cannot transition to ${status}`)
+    }
+    if (r.status !== status && target.requiresReason && !reason?.trim()) {
+      throw new Error('Invalid property status transition: a reason is required')
+    }
     r.status = status
     r.updatedAt = nowIso()
     return r

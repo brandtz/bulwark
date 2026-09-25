@@ -5,7 +5,7 @@
  * UI components import the inferred TS types — they never inline a shape.
  */
 import { z } from 'zod'
-import { RoleSchema, UuidSchema } from './_shared'
+import { RoleSchema, StakeholderKindSchema, UuidSchema } from './_shared'
 
 export const LoginInputSchema = z.object({
   email: z.string().email(),
@@ -26,6 +26,7 @@ export const SessionUserSchema = z.object({
     organizationId: UuidSchema,
     organizationName: z.string(),
     role: RoleSchema,
+    stakeholderKind: StakeholderKindSchema.nullable().optional(),
   })),
 })
 export type SessionUser = z.infer<typeof SessionUserSchema>

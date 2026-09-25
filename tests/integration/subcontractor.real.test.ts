@@ -7,7 +7,9 @@ import { getDb } from '../../server/db/client'
 import { subcontractors } from '../../server/db/schema/subcontractors'
 import { auditLog } from '../../server/db/schema/audit_log'
 import { organizations } from '../../server/db/schema/organizations'
+import { trades } from '../../server/db/schema/trades'
 import { RealSubcontractorService } from '../../server/services/subcontractor.real'
+import { RealTradeService } from '../../server/services/trade.real'
 import { TenantViolationError } from '../../server/services/_tenant'
 
 const HAS_DB = !!process.env.DATABASE_URL
@@ -26,6 +28,7 @@ d('RealSubcontractorService (E11-S8)', () => {
     const [o2] = await db.insert(organizations).values({ name: 'E11-S8 Other', slug: `e11s8so-${stamp}` }).returning()
     orgId = o!.id
     otherOrgId = o2!.id
+    await new RealTradeService().bootstrap({ organizationId: orgId })
     const [a] = await db.insert(subcontractors).values({
       organizationId: orgId, companyName: 'Roofers Inc', contactName: 'A', email: 'a@x.test', phone: '555-1', trades: ['roofing'], licenseNumber: null, licenseExpiresAt: null, notes: null,
     }).returning()
@@ -40,6 +43,7 @@ d('RealSubcontractorService (E11-S8)', () => {
     const db = getDb()
     await db.delete(auditLog).where(eq(auditLog.organizationId, orgId))
     await db.delete(subcontractors).where(eq(subcontractors.organizationId, orgId))
+    await db.delete(trades).where(eq(trades.organizationId, orgId))
     await db.delete(organizations).where(eq(organizations.id, orgId))
     await db.delete(organizations).where(eq(organizations.id, otherOrgId))
   })

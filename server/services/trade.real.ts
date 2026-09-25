@@ -88,6 +88,25 @@ export class RealTradeService implements ITradeService {
     return row ? rowToContract(row) : null
   }
 
+  async assertActiveSlugs(organizationId: string, slugs: readonly string[]): Promise<void> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    if (!slugs.length) return
+    const db = getDb()
+    const rows = await db
+      .select({ slug: trades.slug })
+      .from(trades)
+      .where(
+        and(
+          eq(trades.organizationId, organizationId),
+          eq(trades.isActive, true),
+          sql`${trades.deletedAt} IS NULL`,
+        ),
+      )
+    const active = new Set(rows.map((row) => row.slug))
+    const invalid = [...new Set(slugs)].find((slug) => !active.has(slug))
+    if (invalid) throw new Error(`Invalid trade slug: ${invalid}`)
+  }
+
   async create(input: TradeCreateInput): Promise<TradeRecord> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     return await withAudit(async ({ tx, audit }) => {

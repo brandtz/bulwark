@@ -59,6 +59,7 @@ function nodeRowToContract(n: typeof statusPipelineNodes.$inferSelect): StatusPi
     sortOrder: n.sortOrder,
     isInitial: n.isInitial,
     isTerminal: n.isTerminal,
+    requiresReason: n.requiresReason,
     allowedTransitions: (n.allowedTransitions ?? []) as string[],
     createdAt: n.createdAt.toISOString(),
     updatedAt: n.updatedAt.toISOString(),
@@ -179,6 +180,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             sortOrder: n.sortOrder,
             isInitial: n.isInitial,
             isTerminal: n.isTerminal,
+            requiresReason: n.requiresReason ?? false,
             allowedTransitions: n.allowedTransitions,
           })),
         )
@@ -243,6 +245,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             sortOrder: n.sortOrder,
             isInitial: n.isInitial,
             isTerminal: n.isTerminal,
+            requiresReason: n.requiresReason ?? false,
             allowedTransitions: n.allowedTransitions,
           })),
         )
@@ -290,6 +293,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             sortOrder: n.sortOrder,
             isInitial: n.isInitial,
             isTerminal: n.isTerminal,
+            requiresReason: n.requiresReason ?? false,
             allowedTransitions: n.allowedTransitions,
           })),
         )
@@ -328,17 +332,18 @@ export class RealStatusPipelineService implements IStatusPipelineService {
         entityType: input.entityType,
       }))
     const from = active.nodes.find((n) => n.slug === input.fromSlug)
-    if (!from) return { allowed: false, reason: `Unknown from-status: ${input.fromSlug}` }
+    if (!from) return { allowed: false, requiresReason: false, reason: `Unknown from-status: ${input.fromSlug}` }
     const to = active.nodes.find((n) => n.slug === input.toSlug)
-    if (!to) return { allowed: false, reason: `Unknown to-status: ${input.toSlug}` }
-    if (input.fromSlug === input.toSlug) return { allowed: true }
+    if (!to) return { allowed: false, requiresReason: false, reason: `Unknown to-status: ${input.toSlug}` }
+    if (input.fromSlug === input.toSlug) return { allowed: true, requiresReason: false }
     if (!from.allowedTransitions.includes(input.toSlug)) {
       return {
         allowed: false,
+        requiresReason: to.requiresReason,
         reason: `Transition not permitted: ${input.fromSlug} → ${input.toSlug}`,
       }
     }
-    return { allowed: true }
+    return { allowed: true, requiresReason: to.requiresReason }
   }
 }
 

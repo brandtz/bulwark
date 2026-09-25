@@ -20,10 +20,11 @@
       stops propagation).
 -->
 <script setup lang="ts">
-import type { Property, PropertyStatus } from '~~/shared/contracts/property'
+import type { Property } from '~~/shared/contracts/property'
+import type { StatusPipelineNode } from '~~/shared/contracts/status-pipeline'
 
-defineProps<{ property: Property }>()
-defineEmits<{ 'change-status': [propertyId: string, status: PropertyStatus] }>()
+defineProps<{ property: Property; statuses: StatusPipelineNode[] }>()
+defineEmits<{ 'change-status': [propertyId: string, status: string, reason?: string] }>()
 </script>
 
 <template>
@@ -47,7 +48,8 @@ defineEmits<{ 'change-status': [propertyId: string, status: PropertyStatus] }>()
           <StatusBadge :status="property.status" />
           <PropertyStatusMenu
             :property="property"
-            @change-status="(s) => $emit('change-status', property.id, s)"
+            :statuses="statuses"
+            @change-status="(status, reason) => $emit('change-status', property.id, status, reason)"
           />
         </div>
       </div>

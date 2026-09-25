@@ -45,7 +45,7 @@ test.describe('storage health (L01-S4)', () => {
         'property_attachments.url',
         'org_branding.logo_url',
         'subcontractor_coi_docs.file_url',
-        'compliance_docs.result_url',
+        'deliverables.result_url',
         'users.avatar_url',
       ]),
     )

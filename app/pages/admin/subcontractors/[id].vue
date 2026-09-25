@@ -27,11 +27,11 @@
 import { ROLE_GROUPS } from '~/composables/usePermissions'
 import {
   TRADE_LABEL,
-  TradeSchema,
   type Subcontractor,
   type SubcontractorUpdateInput,
   type Trade,
 } from '~~/shared/contracts/subcontractor'
+import { BUILTIN_TRADES } from '~~/shared/contracts/trade'
 
 definePageMeta({
   middleware: ['role'],
@@ -60,9 +60,9 @@ const { data: bundle, refresh } = await useAsyncData(
 )
 
 // Trade options for the multi-select.
-const tradeOptions = TradeSchema.options.map((t) => ({
-  value: t,
-  label: TRADE_LABEL[t],
+const tradeOptions = BUILTIN_TRADES.map((trade) => ({
+  value: trade.slug,
+  label: TRADE_LABEL[trade.slug] ?? trade.name,
 }))
 
 // Editable form state — seeded from the loaded sub and reset on every reload.

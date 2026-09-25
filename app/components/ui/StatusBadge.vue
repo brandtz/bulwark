@@ -17,18 +17,18 @@
       re-exports the same strings so they stay in lockstep.
 -->
 <script setup lang="ts">
-import type { PropertyStatus } from '~~/shared/contracts/property'
+import type { PropertyStatus, PropertyStatusValue } from '~~/shared/contracts/property'
 import { PROPERTY_STATUS_LABEL } from '~~/shared/contracts/property'
 
 const props = withDefaults(defineProps<{
-  status: PropertyStatus
+  status: PropertyStatusValue
   size?: 'sm' | 'md'
 }>(), { size: 'md' })
 
 const { t: tLabel } = useLabel()
 
 // Tone groupings per STYLE_GUIDE §2.4 — a status maps to a color family.
-const toneByStatus: Record<PropertyStatus, string> = {
+const toneByStatus: Record<string, string> = {
   lead:                'bg-info-light text-info',
   scheduled:           'bg-info-light text-info',
   assessed:            'bg-purple-light text-purple',
@@ -36,8 +36,8 @@ const toneByStatus: Record<PropertyStatus, string> = {
   accepted:            'bg-success-light text-success-dark',
   in_progress:         'bg-primary-light text-primary',
   completed:           'bg-success-light text-success-dark',
-  compliance_pending:  'bg-warning-light text-warning',
-  compliance_complete: 'bg-success-light text-success-dark',
+  deliverable_pending:  'bg-warning-light text-warning',
+  deliverable_complete: 'bg-success-light text-success-dark',
   invoiced:            'bg-purple-light text-purple',
   paid:                'bg-success-light text-success-dark',
   on_hold:             'bg-blocked-light text-blocked',
@@ -47,7 +47,11 @@ const toneByStatus: Record<PropertyStatus, string> = {
 const sizeClass = computed(() => props.size === 'sm' ? 'text-tiny px-2 py-0.5' : 'text-small px-2.5 py-1')
 
 const displayText = computed(() =>
-  tLabel('status.property', props.status, PROPERTY_STATUS_LABEL[props.status]),
+  tLabel(
+    'status.property',
+    props.status,
+    PROPERTY_STATUS_LABEL[props.status as PropertyStatus] ?? props.status.replaceAll('_', ' '),
+  ),
 )
 </script>
 
@@ -55,7 +59,7 @@ const displayText = computed(() =>
   <span
     :class="[
       'inline-flex items-center rounded-pill font-medium whitespace-nowrap',
-      toneByStatus[status],
+      toneByStatus[status] ?? 'bg-info-light text-info',
       sizeClass,
     ]"
     :data-status="status"

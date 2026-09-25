@@ -4,24 +4,8 @@
  * Every assessment, quote, work order, compliance doc, and invoice ties back
  * to a property. Pipeline status is the kanban column on /admin/pipeline (E3).
  */
-import { pgTable, text, uuid, pgEnum, integer, numeric } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, integer, numeric } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
-
-export const propertyStatusEnum = pgEnum('property_status', [
-  'lead',
-  'scheduled',
-  'assessed',
-  'quoted',
-  'accepted',
-  'in_progress',
-  'completed',
-  'compliance_pending',
-  'compliance_complete',
-  'invoiced',
-  'paid',
-  'on_hold',
-  'cancelled',
-])
 
 export const properties = pgTable('properties', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -38,7 +22,7 @@ export const properties = pgTable('properties', {
   clientId: uuid('client_id'),
 
   // Pipeline
-  status: propertyStatusEnum('status').notNull().default('lead'),
+  status: text('status').notNull().default('lead'),
 
   // Free-text notes
   notes: text('notes'),

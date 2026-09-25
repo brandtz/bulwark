@@ -4,13 +4,14 @@
  */
 import { describe, expect, it } from 'vitest'
 import { renderComplianceDocHtml } from '../../server/jobs/render-compliance-doc'
-import type { ComplianceDoc } from '../../server/db/schema/compliance_docs'
+import type { Deliverable } from '../../server/db/schema/deliverables'
 import type { Property } from '../../server/db/schema/properties'
 import type { Organization } from '../../server/db/schema/organizations'
 
 const doc = {
   id: 'doc-1',
   organizationId: 'org-1',
+  kind: 'compliance_package',
   propertyId: 'prop-1',
   workOrderIds: ['wo-1'],
   includedSlotIds: ['slot-1'],
@@ -20,7 +21,7 @@ const doc = {
     signedAt: new Date('2026-07-01T00:00:00Z').toISOString(),
   },
   status: 'generating',
-} as unknown as ComplianceDoc
+} as unknown as Deliverable
 
 const property = {
   addressLine1: '42 Ember Lane',
@@ -34,7 +35,7 @@ const organization = { id: 'org-1', name: 'Bulwark Demo Co.' } as unknown as Org
 describe('renderComplianceDocHtml template inputs (L12-S2)', () => {
   it('renders identical defaults when no template is supplied', () => {
     const html = renderComplianceDocHtml({ doc, property, organization })
-    expect(html).toContain('per applicable Oregon wildfire-retrofit standards')
+    expect(html).toContain('This document records the completed scope of work')
     expect(html).toContain('#0f172a') // default heading color
     expect(html).not.toContain('CCB#')
   })
@@ -54,7 +55,7 @@ describe('renderComplianceDocHtml template inputs (L12-S2)', () => {
       },
     })
     expect(html).toContain('Custom attestation sentence for this tenant.')
-    expect(html).not.toContain('per applicable Oregon wildfire-retrofit standards')
+    expect(html).not.toContain('This document records the completed scope of work')
     expect(html).toContain('Questions? Contact our office.')
     expect(html).toContain('OR CCB# 242198')
     expect(html).toContain('#1E3A8A')

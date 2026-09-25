@@ -6,6 +6,7 @@
  */
 import { z } from 'zod'
 import { AuditFieldsSchema, ListOutputSchema, PaginationInputSchema, UuidSchema } from './_shared'
+import { StatusSlugSchema } from './status-pipeline'
 import { BuildingSchema, BuildingSectionSchema, type Building, type BuildingSection } from './building'
 import { ContactSchema, type Contact } from './contact'
 
@@ -17,14 +18,16 @@ export const PropertyStatusSchema = z.enum([
   'accepted',
   'in_progress',
   'completed',
-  'compliance_pending',
-  'compliance_complete',
+  'deliverable_pending',
+  'deliverable_complete',
   'invoiced',
   'paid',
   'on_hold',
   'cancelled',
 ])
 export type PropertyStatus = z.infer<typeof PropertyStatusSchema>
+export const PropertyStatusValueSchema = StatusSlugSchema
+export type PropertyStatusValue = z.infer<typeof PropertyStatusValueSchema>
 
 export const PROPERTY_STATUS_LABEL: Record<PropertyStatus, string> = {
   lead: 'Lead',
@@ -34,8 +37,8 @@ export const PROPERTY_STATUS_LABEL: Record<PropertyStatus, string> = {
   accepted: 'Accepted',
   in_progress: 'In progress',
   completed: 'Completed',
-  compliance_pending: 'Compliance pending',
-  compliance_complete: 'Compliance complete',
+  deliverable_pending: 'Deliverable pending',
+  deliverable_complete: 'Deliverable complete',
   invoiced: 'Invoiced',
   paid: 'Paid',
   on_hold: 'On hold',
@@ -51,7 +54,7 @@ export const PropertySchema = z.object({
   state: z.string().length(2),
   postalCode: z.string().min(1),
   clientId: UuidSchema.nullable(),
-  status: PropertyStatusSchema,
+  status: PropertyStatusValueSchema,
   notes: z.string().nullable(),
   // W2-1 / EH-E — richer property metadata (ADR-0018). All nullable so
   // legacy rows stay valid; UI surfaces blanks as "—".
@@ -101,7 +104,7 @@ export type PropertyUpdateInput = z.infer<typeof PropertyUpdateInputSchema>
 
 export const PropertyListInputSchema = PaginationInputSchema.extend({
   organizationId: UuidSchema,
-  status: PropertyStatusSchema.optional(),
+  status: PropertyStatusValueSchema.optional(),
   search: z.string().optional(),
 })
 export type PropertyListInput = z.infer<typeof PropertyListInputSchema>
@@ -136,7 +139,7 @@ export interface IPropertyService {
   create(input: PropertyCreateInput): Promise<Property>
   update(input: PropertyUpdateInput): Promise<Property>
   softDelete(id: string, organizationId: string): Promise<void>
-  updateStatus(id: string, status: PropertyStatus, organizationId: string): Promise<Property>
+  updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string): Promise<Property>
   /**
    * W2-1 / EH-E (ADR-0018). One-shot depth fetch for the overview hub.
    * Returns null when the property is missing or soft-deleted.

@@ -4,20 +4,15 @@
  *
  * # Why this contract exists
  *
- * The platform ships with a frozen `TradeSchema` Zod enum (roofing,
- * siding, gutters, eaves_vents, defensible_space, general_labor) used
- * by Work Order trade slots and Subcontractor `trades[]` arrays. Per
- * directive D-H2 admins must be able to:
+ * Work Order trade slots and Subcontractor `trades[]` arrays carry
+ * catalog-backed slugs. Services validate each slug against the active
+ * organization's trade catalog. Per directive D-H2 admins must be able to:
  *   - rename / recolor the built-in trades
  *   - reorder them in the chip picker
- *   - add CUSTOM trades (e.g. "framing", "solar-install") that the WO
- *     scaffolder offers as new slot kinds in Wave 2+
+ *   - add custom trades (e.g. "framing", "solar-install") for WO slots
  *
- * Today the Zod `TradeSchema` enum still constrains WO + Sub JSONB
- * columns, so the slug universe is bounded to those 6 values until
- * those contracts are widened (Wave 2-3). The `trades` table seeds
- * those 6 slugs as built-ins per org AND accepts custom slugs that
- * Wave 2 WO scaffolding can consume once the WO contract relaxes.
+ * The `trades` table seeds six built-in slugs per org and also accepts
+ * custom kebab-case or snake_case slugs for work orders and subcontractors.
  *
  * # Decisions captured (ADR-0008)
  *
@@ -28,9 +23,6 @@
  *
  * # Decision cast down
  *
- *   - Rejected: dropping the `TradeSchema` enum and unconstraining
- *     WO/Sub JSONB. That ripples through every quote/WO scaffold
- *     site + every fixture. Wave 2-3 work; flagged in the handoff.
  *   - Rejected: per-trade rate cards on the trade row. Catalog +
  *     pricing are separate concerns — Wave 2 W2-4 owns materials/
  *     labor rates. Trades here are taxonomy only.
@@ -42,7 +34,7 @@ export const TradeRecordSchema = z
   .object({
     id: UuidSchema,
     organizationId: UuidSchema,
-    slug: z.string().min(1).max(64).regex(/^[a-z0-9_]+$/u, 'slug must be snake_case'),
+    slug: z.string().min(1).max(64).regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/u, 'slug must be kebab-case or snake_case'),
     name: z.string().min(1).max(120),
     description: z.string().max(500).nullable(),
     color: z
@@ -92,6 +84,7 @@ export type TradeListOutput = z.infer<typeof TradeListOutputSchema>
 export interface ITradeService {
   list(input: TradeListInput): Promise<TradeListOutput>
   get(id: string, organizationId: string): Promise<TradeRecord | null>
+  assertActiveSlugs(organizationId: string, slugs: readonly string[]): Promise<void>
   create(input: TradeCreateInput): Promise<TradeRecord>
   update(input: TradeUpdateInput): Promise<TradeRecord>
   /** Built-in trades reject hard delete; deactivate via `update({ isActive: false })`. */

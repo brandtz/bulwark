@@ -5,9 +5,8 @@
  *   - A Subcontractor record is a small CRM-like row: company, contact,
  *     license info, list of trades they cover. Used by the work-order
  *     trade-assignment UI (E6-S3) and the subcontractor list (E6-S5).
- *   - `trades` is a `z.array(TradeSchema)` reusing the same enum the
- *     work-order contract reads from. One source of truth — both
- *     contracts import this enum.
+ *   - `trades` is a `z.array(TradeSchema)` containing organization
+ *     catalog slugs, shared with work-order trade slots.
  *   - License fields are optional but presence is required to mark
  *     a sub as "compliance-ready" in E7. We keep them lax here and
  *     enforce policy at higher levels.
@@ -29,16 +28,13 @@ import {
 } from './_shared'
 
 // ----------------------------------------------------------------------------
-// Trade enum — shared with work-order. Each trade is one row inside a WO.
+// Trade slugs are resolved against the active organization's trade catalog by services.
 // ----------------------------------------------------------------------------
-export const TradeSchema = z.enum([
-  'roofing',
-  'siding',
-  'gutters',
-  'eaves_vents',
-  'defensible_space',
-  'general_labor',
-])
+export const TradeSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/u, 'trade must be a kebab-case or snake_case slug')
 export type Trade = z.infer<typeof TradeSchema>
 
 export const TRADE_LABEL: Record<Trade, string> = {

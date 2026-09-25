@@ -16,12 +16,12 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { JobEnvelope, JobHandlerResult } from './index'
 import { getDb } from '../../db/client'
-import { complianceDocs } from '../../db/schema/compliance_docs'
+import { deliverables } from '../../db/schema/deliverables'
 import { properties } from '../../db/schema/properties'
 import { organizations } from '../../db/schema/organizations'
 import { orgBranding } from '../../db/schema/org_branding'
 import { labels } from '../../db/schema/labels'
-import { renderComplianceDocHtml, type RenderTemplate } from '../render-compliance-doc'
+import { renderDeliverableHtml, type RenderTemplate } from '../render-compliance-doc'
 import { signR2GetUrl, uploadToR2 } from '../r2'
 
 interface CompliancePayload {
@@ -39,7 +39,7 @@ export async function complianceDocHandler(env: JobEnvelope): Promise<JobHandler
   }
 
   const db = getDb()
-  const [doc] = await db.select().from(complianceDocs).where(eq(complianceDocs.id, docId)).limit(1)
+  const [doc] = await db.select().from(deliverables).where(eq(deliverables.id, docId)).limit(1)
   if (!doc) throw new Error(`Compliance doc not found: ${docId}`)
 
   const [property] = await db.select().from(properties).where(eq(properties.id, doc.propertyId)).limit(1)
@@ -77,7 +77,7 @@ export async function complianceDocHandler(env: JobEnvelope): Promise<JobHandler
     supportPhone: branding?.supportPhone ?? null,
   }
 
-  const html = renderComplianceDocHtml({ doc, property, organization, template })
+  const html = renderDeliverableHtml({ doc, property, organization, template })
 
   // Stub fast-path for tests + envs without R2/Chromium.
   if (process.env.BULWARK_PDF_STUB === '1') {

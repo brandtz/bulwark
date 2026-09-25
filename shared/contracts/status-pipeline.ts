@@ -83,17 +83,24 @@ export const HexColorSchema = z
   .string()
   .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/u, 'Expected hex color like #1E3A8A')
 
+export const StatusSlugSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9_]+$/u, 'status slug must be snake_case')
+
 export const StatusPipelineNodeSchema = z
   .object({
     id: UuidSchema,
     pipelineId: UuidSchema,
-    slug: z.string().min(1).max(64).regex(/^[a-z0-9_]+$/u, 'slug must be snake_case'),
+    slug: StatusSlugSchema,
     labelKey: z.string().min(1).max(120),
     color: HexColorSchema,
     description: z.string().max(500).nullable(),
     sortOrder: z.number().int(),
     isInitial: z.boolean(),
     isTerminal: z.boolean(),
+    requiresReason: z.boolean(),
     /** Slugs of nodes reachable from this one via a legal transition. */
     allowedTransitions: z.array(z.string().min(1).max(64)),
   })
@@ -137,6 +144,7 @@ export const StatusPipelineNodeInputSchema = z.object({
   sortOrder: z.number().int(),
   isInitial: z.boolean(),
   isTerminal: z.boolean(),
+  requiresReason: z.boolean().optional(),
   allowedTransitions: z.array(z.string().min(1).max(64)),
 })
 export type StatusPipelineNodeInput = z.infer<typeof StatusPipelineNodeInputSchema>
@@ -164,6 +172,7 @@ export type CanTransitionInput = z.infer<typeof CanTransitionInputSchema>
 
 export const CanTransitionOutputSchema = z.object({
   allowed: z.boolean(),
+  requiresReason: z.boolean(),
   reason: z.string().optional(),
 })
 export type CanTransitionOutput = z.infer<typeof CanTransitionOutputSchema>

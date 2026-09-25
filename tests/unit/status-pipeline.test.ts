@@ -4,8 +4,10 @@
  * Behaviour-level tests for MockStatusPipelineService. Mirrors program.test.
  */
 import { describe, it, expect } from 'vitest'
+import { randomUUID } from 'node:crypto'
 import { MockStatusPipelineService } from '~~/shared/mocks/status-pipeline.mock'
 import { DEFAULT_PIPELINES } from '~~/shared/pipelines/defaults'
+import { MockPropertyService } from '~~/shared/mocks/property.mock'
 import { FIXTURE_ORG_ID, FIXTURE_ORG_ID_2, FIXTURE_USER_ADMIN } from '~~/shared/mocks/fixtures'
 import { TenantViolationError, type TenantResolver } from '~~/shared/mocks/tenant'
 import {
@@ -111,11 +113,27 @@ describe('MockStatusPipelineService (Wave 1B / EH-H / W1-3)', () => {
       entityType: 'job',
       nodes: [
         { slug: 'pending', labelKey: 'status.job.pending', color: '#94A3B8', description: null, sortOrder: 10, isInitial: true, isTerminal: false, allowedTransitions: ['done'] },
-        { slug: 'done', labelKey: 'status.job.done', color: '#10B981', description: null, sortOrder: 20, isInitial: false, isTerminal: true, allowedTransitions: [] },
+        { slug: 'done', labelKey: 'status.job.done', color: '#10B981', description: null, sortOrder: 20, isInitial: false, isTerminal: true, requiresReason: true, allowedTransitions: [] },
       ],
     })
     expect(saved.version).toBe(2)
     expect(saved.isActive).toBe(true)
+    expect(saved.nodes.find((node) => node.slug === 'done')?.requiresReason).toBe(true)
+    expect(saved.nodes.find((node) => node.slug === 'pending')?.requiresReason).toBe(false)
+    const transition = await svc.canTransition({
+      organizationId: FIXTURE_ORG_ID,
+      entityType: 'job',
+      fromSlug: 'pending',
+      toSlug: 'done',
+    })
+    expect(transition).toMatchObject({ allowed: true, requiresReason: true })
+    const noop = await svc.canTransition({
+      organizationId: FIXTURE_ORG_ID,
+      entityType: 'job',
+      fromSlug: 'pending',
+      toSlug: 'pending',
+    })
+    expect(noop.requiresReason).toBe(false)
     const after = await svc.getActive({ organizationId: FIXTURE_ORG_ID, entityType: 'job' })
     expect(after?.id).toBe(saved.id)
     expect(after?.version).toBe(2)
@@ -140,5 +158,39 @@ describe('MockStatusPipelineService (Wave 1B / EH-H / W1-3)', () => {
     await expect(
       svc.getActive({ organizationId: FIXTURE_ORG_ID_2, entityType: 'quote' }),
     ).rejects.toBeInstanceOf(TenantViolationError)
+  })
+
+  it('uses active property-pipeline slugs and enforces configured transition reasons', async () => {
+    const organizationId = randomUUID()
+    const isolatedResolver: TenantResolver = () => ({
+      userId: FIXTURE_USER_ADMIN.userId,
+      organizationId,
+    })
+    const pipelineService = new MockStatusPipelineService(isolatedResolver)
+    await pipelineService.save({
+      organizationId,
+      entityType: 'property',
+      nodes: [
+        { slug: 'intake', labelKey: 'status.property.intake', color: '#94A3B8', sortOrder: 10, isInitial: true, isTerminal: false, allowedTransitions: ['review'] },
+        { slug: 'review', labelKey: 'status.property.review', color: '#10B981', sortOrder: 20, isInitial: false, isTerminal: true, requiresReason: true, allowedTransitions: [] },
+      ],
+    })
+    const propertyService = new MockPropertyService(isolatedResolver)
+    const property = await propertyService.create({
+      organizationId,
+      addressLine1: '1 Pipeline Way',
+      addressLine2: null,
+      city: 'Oakland',
+      state: 'CA',
+      postalCode: '94601',
+      clientId: null,
+      notes: null,
+    })
+
+    expect(property.status).toBe('intake')
+    await expect(propertyService.updateStatus(property.id, 'unknown', organizationId)).rejects.toThrow(/not in the active pipeline/i)
+    await expect(propertyService.updateStatus(property.id, 'review', organizationId)).rejects.toThrow(/reason is required/i)
+    const moved = await propertyService.updateStatus(property.id, 'review', organizationId, 'Inspection completed')
+    expect(moved.status).toBe('review')
   })
 })

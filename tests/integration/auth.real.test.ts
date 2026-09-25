@@ -68,6 +68,36 @@ d('RealAuthService (E11-S3)', () => {
     expect(adapter.getActiveUserId()).toBe(userId)
   })
 
+  it('currentUser() exposes stakeholder kind on the matching membership', async () => {
+    const stakeholderEmail = `e11s3-stakeholder-${stamp}@example.test`
+    const db = getDb()
+    const [stakeholder] = await db
+      .insert(users)
+      .values({ email: stakeholderEmail, fullName: 'Insurer Contact', isActive: true })
+      .returning()
+    await db.insert(memberships).values({
+      userId: stakeholder!.id,
+      organizationId: orgIdA,
+      role: 'stakeholder',
+      stakeholderKind: 'insurer',
+      isActive: true,
+    })
+
+    try {
+      const adapter = new InMemoryAuthSessionAdapter()
+      adapter.setActiveUserId(stakeholder!.id)
+      const session = await new RealAuthService(adapter).currentUser()
+      expect(session?.memberships).toContainEqual(expect.objectContaining({
+        organizationId: orgIdA,
+        role: 'stakeholder',
+        stakeholderKind: 'insurer',
+      }))
+    } finally {
+      await db.delete(memberships).where(eq(memberships.userId, stakeholder!.id))
+      await db.delete(users).where(eq(users.id, stakeholder!.id))
+    }
+  })
+
   it('login() rejects wrong password', async () => {
     const svc = new RealAuthService(new InMemoryAuthSessionAdapter())
     await expect(svc.login({ email, password: 'wrong' })).rejects.toThrow(/invalid/i)

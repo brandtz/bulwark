@@ -143,8 +143,8 @@ const PROPERTY_SEED = [
   ['244 Vista Drive',      'accepted',            'Lafayette',    'CA'],
   ['612 Ridgemont Way',    'in_progress',         'Moraga',       'CA'],
   ['1801 Sunset Trail',    'completed',           'Walnut Creek', 'CA'],
-  ['77 Oakhill Court',     'compliance_pending',  'Pleasant Hill','CA'],
-  ['338 Coyote Hills',     'compliance_complete', 'Fremont',      'CA'],
+  ['77 Oakhill Court',     'deliverable_pending',  'Pleasant Hill','CA'],
+  ['338 Coyote Hills',     'deliverable_complete', 'Fremont',      'CA'],
   ['915 Eagle Ridge',      'invoiced',            'Concord',      'CA'],
   ['200 Foothill Blvd',    'paid',                'Oakland',      'CA'],
   ['456 Forest View',      'on_hold',             'Berkeley',     'CA'],
@@ -398,7 +398,7 @@ try {
   // `homeowner_users_property_id_properties_id_fk` (and friends).
   await sql`DELETE FROM invoice_payments WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM change_orders WHERE organization_id = ANY(${DEMO_ORG_IDS})`
-  await sql`DELETE FROM compliance_docs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  await sql`DELETE FROM deliverables WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM jobs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM invoices WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM work_orders WHERE organization_id = ANY(${DEMO_ORG_IDS})`
@@ -565,8 +565,8 @@ try {
 
   // Compliance doc -----------------------------------------------------------
   await sql`
-    INSERT INTO compliance_docs (id, organization_id, property_id, work_order_ids, included_slot_ids, signature, job_id, status, result_url, error)
-    VALUES (${SEED_COMPLIANCE_DOC.id}, ${ORG_BULWARK.id}, ${SEED_COMPLIANCE_DOC.propertyId}, ${sql.json(SEED_COMPLIANCE_DOC.workOrderIds)}, ${sql.json(SEED_COMPLIANCE_DOC.includedSlotIds)}, ${sql.json(SEED_COMPLIANCE_DOC.signature)}, ${SEED_COMPLIANCE_DOC.jobId}, ${SEED_COMPLIANCE_DOC.status}, ${SEED_COMPLIANCE_DOC.resultUrl}, ${SEED_COMPLIANCE_DOC.error})
+    INSERT INTO deliverables (id, organization_id, kind, property_id, work_order_ids, included_slot_ids, signature, job_id, status, result_url, error)
+    VALUES (${SEED_COMPLIANCE_DOC.id}, ${ORG_BULWARK.id}, 'compliance_package', ${SEED_COMPLIANCE_DOC.propertyId}, ${sql.json(SEED_COMPLIANCE_DOC.workOrderIds)}, ${sql.json(SEED_COMPLIANCE_DOC.includedSlotIds)}, ${sql.json(SEED_COMPLIANCE_DOC.signature)}, ${SEED_COMPLIANCE_DOC.jobId}, ${SEED_COMPLIANCE_DOC.status}, ${SEED_COMPLIANCE_DOC.resultUrl}, ${SEED_COMPLIANCE_DOC.error})
     ON CONFLICT (id) DO UPDATE
       SET status = EXCLUDED.status,
           work_order_ids = EXCLUDED.work_order_ids,
@@ -865,9 +865,9 @@ try {
       { slug: 'quoted', color: '#A855F7', sortOrder: 40, isInitial: false, isTerminal: false, allowedTransitions: ['accepted', 'on_hold', 'cancelled'] },
       { slug: 'accepted', color: '#22C55E', sortOrder: 50, isInitial: false, isTerminal: false, allowedTransitions: ['in_progress', 'on_hold', 'cancelled'] },
       { slug: 'in_progress', color: '#F59E0B', sortOrder: 60, isInitial: false, isTerminal: false, allowedTransitions: ['completed', 'on_hold', 'cancelled'] },
-      { slug: 'completed', color: '#10B981', sortOrder: 70, isInitial: false, isTerminal: false, allowedTransitions: ['compliance_pending', 'invoiced'] },
-      { slug: 'compliance_pending', color: '#EAB308', sortOrder: 80, isInitial: false, isTerminal: false, allowedTransitions: ['compliance_complete', 'on_hold'] },
-      { slug: 'compliance_complete', color: '#059669', sortOrder: 90, isInitial: false, isTerminal: false, allowedTransitions: ['invoiced'] },
+      { slug: 'completed', color: '#10B981', sortOrder: 70, isInitial: false, isTerminal: false, allowedTransitions: ['deliverable_pending', 'invoiced'] },
+      { slug: 'deliverable_pending', color: '#EAB308', sortOrder: 80, isInitial: false, isTerminal: false, allowedTransitions: ['deliverable_complete', 'on_hold'] },
+      { slug: 'deliverable_complete', color: '#059669', sortOrder: 90, isInitial: false, isTerminal: false, allowedTransitions: ['invoiced'] },
       { slug: 'invoiced', color: '#0284C7', sortOrder: 100, isInitial: false, isTerminal: false, allowedTransitions: ['paid'] },
       { slug: 'paid', color: '#16A34A', sortOrder: 110, isInitial: false, isTerminal: true, allowedTransitions: [] },
       { slug: 'on_hold', color: '#EF4444', sortOrder: 120, isInitial: false, isTerminal: false, allowedTransitions: ['scheduled', 'in_progress', 'cancelled'] },

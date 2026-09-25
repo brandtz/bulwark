@@ -27,7 +27,7 @@ import type {
   TradeSlotStatus,
   WorkOrderPriority,
 } from '~~/shared/contracts/work-order'
-import { TRADE_LABEL, type Subcontractor } from '~~/shared/contracts/subcontractor'
+import { TRADE_LABEL, type Subcontractor, type Trade } from '~~/shared/contracts/subcontractor'
 import type { ChangeOrder } from '~~/shared/contracts/change-order'
 
 definePageMeta({
@@ -52,8 +52,8 @@ const { success: toastSuccess } = useToast()
 // ADR-0014 (we deliberately pilot useLabel on ≥2 surfaces — status badge
 // and this trade chip — before rolling it across the app in Wave 2).
 const { t: tLabel } = useLabel()
-function tradeLabel(trade: keyof typeof TRADE_LABEL): string {
-  return tLabel('trade', trade, TRADE_LABEL[trade])
+function tradeLabel(trade: Trade): string {
+  return tLabel('trade', trade, TRADE_LABEL[trade] ?? trade)
 }
 
 const workOrderId = computed(() => String(route.params.id))

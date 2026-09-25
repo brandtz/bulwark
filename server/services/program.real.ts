@@ -30,6 +30,7 @@ import type {
 import { getDb } from '../db/client'
 import { programs } from '../db/schema/programs'
 import { programMemberships } from '../db/schema/program_memberships'
+import { inspectionTemplates } from '../db/schema/inspection_templates'
 import type { Program as DbProgram } from '../db/schema/programs'
 import type { ProgramMembership as DbMembership } from '../db/schema/program_memberships'
 import { escapeLikeContains } from '../../shared/utils/likeEscape'
@@ -51,7 +52,7 @@ function rowToContract(r: DbProgram): Program {
     sortOrder: r.sortOrder,
     inspectionTemplateId: r.inspectionTemplateId,
     standardSetId: r.standardSetId,
-    complianceDocTemplateId: r.complianceDocTemplateId,
+    deliverableTemplateId: r.deliverableTemplateId,
     defaultTradeSlots: r.defaultTradeSlots,
     pricingDefaults: r.pricingDefaults,
     createdAt: r.createdAt.toISOString(),
@@ -191,7 +192,23 @@ export class RealProgramService implements IProgramService {
         .limit(1)
       if (!before) throw new Error('Program not found')
 
+      if (input.inspectionTemplateId) {
+        const [template] = await tx
+          .select({ id: inspectionTemplates.id })
+          .from(inspectionTemplates)
+          .where(
+            and(
+              eq(inspectionTemplates.id, input.inspectionTemplateId),
+              eq(inspectionTemplates.organizationId, input.organizationId),
+              sql`${inspectionTemplates.deletedAt} IS NULL`,
+            ),
+          )
+          .limit(1)
+        if (!template) throw new Error('Invalid inspection template: not found in this organization')
+      }
+
       const patch: Partial<typeof programs.$inferInsert> = { updatedAt: new Date() }
+      if (input.inspectionTemplateId !== undefined) patch.inspectionTemplateId = input.inspectionTemplateId
       if (input.name !== undefined) patch.name = input.name
       if (input.description !== undefined) patch.description = input.description
       if (input.color !== undefined) patch.color = input.color ?? null

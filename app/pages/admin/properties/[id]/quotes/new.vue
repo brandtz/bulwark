@@ -39,7 +39,7 @@ import {
   formatCents,
   parseDollarsToCents,
 } from '~~/shared/utils/money'
-import { evaluateCompliance, OREGON_DEFAULT_STANDARDS } from '~~/shared/utils/compliance'
+import { evaluateCompliance } from '~~/shared/utils/compliance'
 import type { ComplianceField, UpgradeItem } from '~~/shared/contracts/assessment'
 
 definePageMeta({
@@ -57,6 +57,7 @@ await ensureLoaded()
 const property = useService('property')
 const assessment = useService('assessment')
 const quote = useService('quote')
+const standardsService = useService('standards')
 
 const propertyId = computed(() => String(route.params.id))
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
@@ -65,11 +66,12 @@ const userId = computed(() => session.value?.userId ?? '')
 const { data: bundle } = await useAsyncData(
   () => `quote-builder-${propertyId.value}-${orgId.value}`,
   async () => {
-    const [prop, latest] = await Promise.all([
+    const [prop, latest, standards] = await Promise.all([
       property.get(propertyId.value, orgId.value),
       assessment.getLatestForProperty(propertyId.value, orgId.value),
+      standardsService.get(orgId.value),
     ])
-    return { property: prop, assessment: latest }
+    return { property: prop, assessment: latest, standards: standards.standards }
   },
   { watch: [propertyId, orgId] },
 )
@@ -81,8 +83,9 @@ const propertyAddress = computed(() => {
 
 const compliance = computed(() => {
   const a = bundle.value?.assessment
-  if (!a) return null
-  return evaluateCompliance(a, OREGON_DEFAULT_STANDARDS)
+  const standards = bundle.value?.standards
+  if (!a || !standards) return null
+  return evaluateCompliance(a, standards)
 })
 
 // E5-S2: when a non-compliant assessment exists, surface a button that

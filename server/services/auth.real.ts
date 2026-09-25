@@ -416,6 +416,7 @@ export class RealAuthService implements IAuthService {
         organizationId: memberships.organizationId,
         organizationName: organizations.name,
         role: memberships.role,
+        stakeholderKind: memberships.stakeholderKind,
       })
       .from(memberships)
       .innerJoin(organizations, eq(organizations.id, memberships.organizationId))
@@ -440,6 +441,7 @@ export class RealAuthService implements IAuthService {
         organizationId: r.organizationId,
         organizationName: r.organizationName,
         role: r.role,
+        stakeholderKind: r.stakeholderKind,
       })),
     }
   }

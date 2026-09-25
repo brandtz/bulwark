@@ -6,7 +6,7 @@
   landing surface.
 -->
 <script setup lang="ts">
-import type { Property, PropertyStatus } from '~~/shared/contracts/property'
+import type { Property } from '~~/shared/contracts/property'
 import { ROLE_GROUPS } from '~/composables/usePermissions'
 
 definePageMeta({
@@ -31,7 +31,7 @@ const { data } = await useAsyncData('admin.dashboard.properties', async () => {
 })
 
 const byStatus = computed(() => {
-  const map = new Map<PropertyStatus, Property[]>()
+  const map = new Map<string, Property[]>()
   for (const p of (data.value?.rows ?? [])) {
     const list = map.get(p.status) ?? []
     list.push(p)

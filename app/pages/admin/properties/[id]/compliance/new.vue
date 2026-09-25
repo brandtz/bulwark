@@ -263,7 +263,7 @@ async function onSubmit() {
             >
               <span class="flex flex-wrap items-center gap-2">
                 <span class="text-body font-medium text-text-primary">
-                  {{ TRADE_LABEL[entry.slot.trade] }}
+                  {{ TRADE_LABEL[entry.slot.trade] ?? entry.slot.trade }}
                 </span>
                 <span
                   class="rounded-full px-2 py-0.5 text-body-sm"

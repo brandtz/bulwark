@@ -61,7 +61,7 @@ import type { IWorkOrderService } from '../contracts/work-order'
 import type { IPropertyService } from '../contracts/property'
 import type { ISubcontractorService } from '../contracts/subcontractor'
 import type { IInspectionService } from '../contracts/inspection'
-import type { IComplianceDocService } from '../contracts/compliance'
+import type { IDeliverableService } from '../contracts/deliverable'
 import type { IProgramService } from '../contracts/program'
 import { aggregateArAging, type ArAgingInputRow } from '../utils/reporting'
 import { assertSameTenant, type TenantResolver } from './tenant'
@@ -74,7 +74,7 @@ export interface MockReportingDeps {
   property: IPropertyService
   subcontractor: ISubcontractorService
   inspection: IInspectionService
-  complianceDoc: IComplianceDocService
+  deliverable: IDeliverableService
   program: IProgramService
 }
 
@@ -116,12 +116,12 @@ export class MockReportingService implements IReportingService {
     const { from, to } = input.range
     const orgId = input.organizationId
 
-    const [quotes, invoices, workOrders, complianceDocs, payments, properties] =
+    const [quotes, invoices, workOrders, deliverables, payments, properties] =
       await Promise.all([
         this.deps.quote.list({ organizationId: orgId, page: 1, pageSize: LARGE_PAGE }),
         this.deps.invoice.list({ organizationId: orgId, page: 1, pageSize: LARGE_PAGE }),
         this.deps.workOrder.list({ organizationId: orgId, page: 1, pageSize: LARGE_PAGE }),
-        this.deps.complianceDoc.list({ organizationId: orgId }),
+        this.deps.deliverable.list({ organizationId: orgId }),
         this.deps.invoicePayment.list({
           organizationId: orgId,
           page: 1,
@@ -151,11 +151,11 @@ export class MockReportingService implements IReportingService {
       .filter((p) => p.receivedAt >= monthStart)
       .reduce((sum, p) => sum + p.amountCents, 0)
 
-    const complianceDocsThisMonth = complianceDocs.filter(
+    const complianceDocsThisMonth = deliverables.filter(
       (c) => c.createdAt >= monthStart && c.status === 'ready',
     ).length
     const openComplianceIssues = properties.rows.filter(
-      (p) => p.status === 'compliance_pending',
+      (p) => p.status === 'deliverable_pending',
     ).length
 
     return {
@@ -296,10 +296,10 @@ export class MockReportingService implements IReportingService {
       return collectTop(tally, propertyName, input.limit)
     }
 
-    // openIssues — properties whose status is compliance_pending.
+    // openIssues — properties whose status is deliverable_pending.
     const tally = new Map<string, number>()
     for (const p of properties.rows) {
-      if (p.status === 'compliance_pending') {
+      if (p.status === 'deliverable_pending') {
         tally.set(p.id, (tally.get(p.id) ?? 0) + 1)
       }
     }

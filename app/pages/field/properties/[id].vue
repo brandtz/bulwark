@@ -17,7 +17,7 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
-import { evaluateCompliance, OREGON_DEFAULT_STANDARDS } from '~~/shared/utils/compliance'
+import { evaluateCompliance } from '~~/shared/utils/compliance'
 
 definePageMeta({
   middleware: ['role'],
@@ -33,14 +33,18 @@ const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
 const property = useService('property')
 const assessment = useService('assessment')
+const standardsService = useService('standards')
 
 const { data: bundle } = await useAsyncData(
   () => `field-property-${propertyId.value}-${orgId.value}`,
   async () => {
     const p = await property.get(propertyId.value, orgId.value)
     if (!p) return { property: null, assessment: null }
-    const a = await assessment.getLatestForProperty(p.id, orgId.value)
-    return { property: p, assessment: a }
+    const [a, standards] = await Promise.all([
+      assessment.getLatestForProperty(p.id, orgId.value),
+      standardsService.get(orgId.value),
+    ])
+    return { property: p, assessment: a, standards: standards.standards }
   },
   { server: false, watch: [propertyId, orgId] },
 )
@@ -53,8 +57,9 @@ useHead(() => ({
 
 const compliance = computed(() => {
   const a = bundle.value?.assessment
-  if (!a) return null
-  return evaluateCompliance(a, OREGON_DEFAULT_STANDARDS)
+  const standards = bundle.value?.standards
+  if (!a || !standards) return null
+  return evaluateCompliance(a, standards)
 })
 </script>
 

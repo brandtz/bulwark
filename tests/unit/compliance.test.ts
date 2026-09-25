@@ -16,9 +16,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   evaluateCompliance,
-  OREGON_DEFAULT_STANDARDS,
 } from '~~/shared/utils/compliance'
 import type { ComplianceStandards } from '~~/shared/contracts/assessment'
+import { DEFAULT_WILDFIRE_STANDARDS } from '~~/shared/inspection-templates/wildfire-defaults'
 
 const COMPLIANT_INPUT = {
   roofMaterial: 'metal',
@@ -30,14 +30,14 @@ const COMPLIANT_INPUT = {
 
 describe('evaluateCompliance (E4-S1)', () => {
   it('returns overallCompliant=true when every field passes', () => {
-    const result = evaluateCompliance(COMPLIANT_INPUT)
+    const result = evaluateCompliance(COMPLIANT_INPUT, DEFAULT_WILDFIRE_STANDARDS)
     expect(result.overallCompliant).toBe(true)
     expect(result.nonCompliantFields).toEqual([])
     expect(result.requiredUpgrades).toEqual([])
   })
 
   it('flags wood_shake roof against default standards', () => {
-    const result = evaluateCompliance({ ...COMPLIANT_INPUT, roofMaterial: 'wood_shake' })
+    const result = evaluateCompliance({ ...COMPLIANT_INPUT, roofMaterial: 'wood_shake' }, DEFAULT_WILDFIRE_STANDARDS)
     expect(result.overallCompliant).toBe(false)
     expect(result.nonCompliantFields).toEqual(['roofMaterial'])
     expect(result.requiredUpgrades[0]).toMatchObject({
@@ -48,23 +48,23 @@ describe('evaluateCompliance (E4-S1)', () => {
   })
 
   it('flags vinyl siding', () => {
-    const result = evaluateCompliance({ ...COMPLIANT_INPUT, sidingMaterial: 'vinyl' })
+    const result = evaluateCompliance({ ...COMPLIANT_INPUT, sidingMaterial: 'vinyl' }, DEFAULT_WILDFIRE_STANDARDS)
     expect(result.nonCompliantFields).toEqual(['sidingMaterial'])
     expect(result.requiredUpgrades[0]!.standardRef).toBe('OAR 629-044-1040')
   })
 
   it('flags open eaves', () => {
-    const result = evaluateCompliance({ ...COMPLIANT_INPUT, eaveType: 'open' })
+    const result = evaluateCompliance({ ...COMPLIANT_INPUT, eaveType: 'open' }, DEFAULT_WILDFIRE_STANDARDS)
     expect(result.nonCompliantFields).toEqual(['eaveType'])
   })
 
   it('flags unscreened vents', () => {
-    const result = evaluateCompliance({ ...COMPLIANT_INPUT, ventType: 'unscreened' })
+    const result = evaluateCompliance({ ...COMPLIANT_INPUT, ventType: 'unscreened' }, DEFAULT_WILDFIRE_STANDARDS)
     expect(result.nonCompliantFields).toEqual(['ventType'])
   })
 
   it('flags missing defensible space when standard requires it', () => {
-    const result = evaluateCompliance({ ...COMPLIANT_INPUT, defensibleSpaceCleared: false })
+    const result = evaluateCompliance({ ...COMPLIANT_INPUT, defensibleSpaceCleared: false }, DEFAULT_WILDFIRE_STANDARDS)
     expect(result.nonCompliantFields).toEqual(['defensibleSpaceCleared'])
     expect(result.requiredUpgrades[0]!.currentValue).toBe('not cleared')
   })
@@ -76,7 +76,7 @@ describe('evaluateCompliance (E4-S1)', () => {
       eaveType: 'open',
       ventType: 'unscreened',
       defensibleSpaceCleared: false,
-    })
+    }, DEFAULT_WILDFIRE_STANDARDS)
     expect(result.overallCompliant).toBe(false)
     expect(result.nonCompliantFields).toHaveLength(5)
     expect(result.requiredUpgrades).toHaveLength(5)
@@ -86,8 +86,8 @@ describe('evaluateCompliance (E4-S1)', () => {
     // A tenant who has decided wood_shake is acceptable. Same input that
     // failed against defaults should now pass.
     const lenient: ComplianceStandards = {
-      ...OREGON_DEFAULT_STANDARDS,
-      compliantRoofMaterials: [...OREGON_DEFAULT_STANDARDS.compliantRoofMaterials, 'wood_shake'],
+      ...DEFAULT_WILDFIRE_STANDARDS,
+      compliantRoofMaterials: [...DEFAULT_WILDFIRE_STANDARDS.compliantRoofMaterials, 'wood_shake'],
     }
     const result = evaluateCompliance(
       { ...COMPLIANT_INPUT, roofMaterial: 'wood_shake' },
@@ -98,7 +98,7 @@ describe('evaluateCompliance (E4-S1)', () => {
 
   it('skips defensible-space check when standard does not require it', () => {
     const optional: ComplianceStandards = {
-      ...OREGON_DEFAULT_STANDARDS,
+      ...DEFAULT_WILDFIRE_STANDARDS,
       requireDefensibleSpace: false,
     }
     const result = evaluateCompliance(

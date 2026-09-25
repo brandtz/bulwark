@@ -1,11 +1,11 @@
 /**
- * server/jobs/render-compliance-doc.ts — HTML composition for compliance PDFs (E11-S10).
+ * server/jobs/render-compliance-doc.ts — HTML composition for generated deliverables.
  *
  * Pure function: takes the doc row + ancillary records, returns an HTML
  * string ready for Puppeteer. Kept separate from the handler so it can
  * be unit-tested without booting Chromium.
  */
-import type { ComplianceDoc } from '../db/schema/compliance_docs'
+import type { Deliverable } from '../db/schema/deliverables'
 import type { Property } from '../db/schema/properties'
 import type { Organization } from '../db/schema/organizations'
 
@@ -30,7 +30,7 @@ export interface RenderTemplate {
 }
 
 export interface RenderInput {
-  doc: ComplianceDoc
+  doc: Deliverable
   property: Property
   organization: Organization
   template?: RenderTemplate
@@ -45,7 +45,14 @@ function escapeHtml(s: string): string {
     .replace(/'/g, '&#39;')
 }
 
-export function renderComplianceDocHtml({
+const DELIVERABLE_TITLES = {
+  compliance_package: 'Compliance Package',
+  completion_report: 'Completion Report',
+  warranty_certificate: 'Warranty Certificate',
+  custom: 'Project Deliverable',
+} as const
+
+export function renderDeliverableHtml({
   doc,
   property,
   organization,
@@ -58,7 +65,7 @@ export function renderComplianceDocHtml({
     : '#0f172a'
   const declaration =
     template?.declarationText?.trim() ||
-    `This document attests that the listed retrofit scope was completed by ${organization.name} per applicable Oregon wildfire-retrofit standards.`
+    `This document records the completed scope of work performed by ${organization.name}.`
   const footerLine = template?.footerText?.trim() || ''
   const contactBits = [template?.supportEmail, template?.supportPhone]
     .filter((x): x is string => !!x && x.trim().length > 0)
@@ -68,7 +75,7 @@ export function renderComplianceDocHtml({
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Compliance Document — ${escapeHtml(property.addressLine1 ?? '')}</title>
+    <title>${DELIVERABLE_TITLES[doc.kind]} — ${escapeHtml(property.addressLine1 ?? '')}</title>
     <style>
       * { box-sizing: border-box; }
       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111; padding: 48px; }
@@ -88,7 +95,7 @@ export function renderComplianceDocHtml({
     </style>
   </head>
   <body>
-    <h1>Wildfire Retrofit Compliance Document</h1>
+    <h1>${DELIVERABLE_TITLES[doc.kind]}</h1>
     <div class="meta">${escapeHtml(organization.name)}${
       template?.licenseLabel ? ' &middot; ' + escapeHtml(template.licenseLabel) : ''
     } &middot; Generated ${escapeHtml(generatedAt)}</div>
@@ -125,3 +132,6 @@ export function renderComplianceDocHtml({
   </body>
 </html>`
 }
+
+/** @deprecated Use renderDeliverableHtml; retained for the compatibility job handler. */
+export const renderComplianceDocHtml = renderDeliverableHtml

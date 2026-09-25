@@ -76,7 +76,7 @@ export const programs = pgTable(
     // Wired in W2-2 (inspection template engine) — nullable until then.
     inspectionTemplateId: uuid('inspection_template_id'),
     standardSetId: uuid('standard_set_id'),
-    complianceDocTemplateId: uuid('compliance_doc_template_id'),
+    deliverableTemplateId: uuid('deliverable_template_id'),
 
     defaultTradeSlots: jsonb('default_trade_slots').$type<ProgramTradeDefault[]>(),
     pricingDefaults: jsonb('pricing_defaults').$type<ProgramPricingDefaults>(),

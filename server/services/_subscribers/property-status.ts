@@ -59,7 +59,7 @@ import {
 import { on, emit } from '../../../shared/events/bus'
 import { propertyStatusChanged } from '../../../shared/events/catalog'
 import { withAudit } from '../_tx'
-import type { PropertyStatus } from '../../../shared/contracts/property'
+import type { PropertyStatusValue } from '../../../shared/contracts/property'
 
 // ---------------------------------------------------------------------------
 // W1-3 pipeline service shim.
@@ -72,8 +72,8 @@ import type { PropertyStatus } from '../../../shared/contracts/property'
 type PipelineCheck = (
   organizationId: string,
   entity: 'property',
-  from: PropertyStatus,
-  to: PropertyStatus,
+  from: PropertyStatusValue,
+  to: PropertyStatusValue,
 ) => Promise<boolean> | boolean
 
 function resolvePipelineCheck(): PipelineCheck | undefined {
@@ -95,7 +95,7 @@ function resolvePipelineCheck(): PipelineCheck | undefined {
       fromSlug: from,
       toSlug: to,
     })
-    return res.allowed
+    return res.allowed && !res.requiresReason
   }
 }
 
@@ -105,7 +105,7 @@ function resolvePipelineCheck(): PipelineCheck | undefined {
 interface TransitionArgs {
   organizationId: string
   propertyId: string
-  to: PropertyStatus
+  to: PropertyStatusValue
   triggerEvent: string
   actorUserId: string | null
 }

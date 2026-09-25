@@ -56,6 +56,7 @@ export const statusPipelineNodes = pgTable(
     sortOrder: integer('sort_order').notNull().default(0),
     isInitial: boolean('is_initial').notNull().default(false),
     isTerminal: boolean('is_terminal').notNull().default(false),
+    requiresReason: boolean('requires_reason').notNull().default(false),
     allowedTransitions: jsonb('allowed_transitions').$type<string[]>().notNull().default([]),
     ...auditColumns,
   },

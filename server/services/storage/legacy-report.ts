@@ -29,7 +29,7 @@ import { sql, type SQL } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 import { getDb } from '../../db/client'
 import {
-  complianceDocs,
+  deliverables,
   orgBranding,
   memberships,
   propertyAttachments,
@@ -102,9 +102,9 @@ export async function countLegacyAssetRows(organizationId: string): Promise<Lega
       where: sql`${subcontractorCoiDocs.organizationId} = ${organizationId} and ${subcontractorCoiDocs.deletedAt} is null and ${placeholderPredicate(subcontractorCoiDocs.fileUrl)}`,
     },
     {
-      table: 'compliance_docs',
+      table: 'deliverables',
       column: 'result_url',
-      where: sql`${complianceDocs.organizationId} = ${organizationId} and ${complianceDocs.deletedAt} is null and ${complianceDocs.resultUrl} is not null and ${placeholderPredicate(complianceDocs.resultUrl)}`,
+      where: sql`${deliverables.organizationId} = ${organizationId} and ${deliverables.deletedAt} is null and ${deliverables.resultUrl} is not null and ${placeholderPredicate(deliverables.resultUrl)}`,
     },
   ]
 
@@ -113,7 +113,7 @@ export async function countLegacyAssetRows(organizationId: string): Promise<Lega
     property_attachments: propertyAttachments,
     org_branding: orgBranding,
     subcontractor_coi_docs: subcontractorCoiDocs,
-    compliance_docs: complianceDocs,
+    deliverables,
   } as const
 
   const results: LegacyAssetCount[] = []

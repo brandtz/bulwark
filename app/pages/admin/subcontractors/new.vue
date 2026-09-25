@@ -22,10 +22,10 @@ import { ROLE_GROUPS } from '~/composables/usePermissions'
 import {
   SubcontractorCreateInputSchema,
   TRADE_LABEL,
-  TradeSchema,
   type SubcontractorCreateInput,
   type Trade,
 } from '~~/shared/contracts/subcontractor'
+import { BUILTIN_TRADES } from '~~/shared/contracts/trade'
 
 definePageMeta({
   middleware: ['role'],
@@ -43,9 +43,9 @@ const { success: toastSuccess } = useToast()
 
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
-const tradeOptions = TradeSchema.options.map((t) => ({
-  value: t,
-  label: TRADE_LABEL[t],
+const tradeOptions = BUILTIN_TRADES.map((trade) => ({
+  value: trade.slug,
+  label: TRADE_LABEL[trade.slug] ?? trade.name,
 }))
 
 const form = reactive({

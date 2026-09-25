@@ -63,7 +63,7 @@ function seededWildfire(orgId: string, slugPrefix: string): Program {
     sortOrder: 0,
     inspectionTemplateId: null,
     standardSetId: null,
-    complianceDocTemplateId: null,
+    deliverableTemplateId: null,
     defaultTradeSlots: [
       { tradeSlug: 'roofing', quantity: 1 },
       { tradeSlug: 'siding', quantity: 1 },
@@ -87,7 +87,10 @@ const newId = () => crypto.randomUUID()
 const nowIso = () => new Date().toISOString()
 
 export class MockProgramService implements IProgramService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  constructor(
+    private readonly tenantResolver?: TenantResolver,
+    private readonly hasInspectionTemplate?: (templateId: string, organizationId: string) => Promise<boolean>,
+  ) {}
 
   async list(input: ProgramListInput): Promise<ProgramListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -145,7 +148,7 @@ export class MockProgramService implements IProgramService {
       sortOrder: input.sortOrder ?? rows.length,
       inspectionTemplateId: null,
       standardSetId: null,
-      complianceDocTemplateId: null,
+      deliverableTemplateId: null,
       defaultTradeSlots: input.defaultTradeSlots ?? null,
       pricingDefaults: input.pricingDefaults ?? null,
       createdAt: now,
@@ -158,10 +161,15 @@ export class MockProgramService implements IProgramService {
 
   async update(input: ProgramUpdateInput): Promise<Program> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    if (input.inspectionTemplateId && this.hasInspectionTemplate) {
+      const exists = await this.hasInspectionTemplate(input.inspectionTemplateId, input.organizationId)
+      if (!exists) throw new Error('Invalid inspection template: not found in this organization')
+    }
     const r = rows.find(
       (x) => x.id === input.id && x.organizationId === input.organizationId && !x.deletedAt,
     )
     if (!r) throw new Error('Program not found')
+    if (input.inspectionTemplateId !== undefined) r.inspectionTemplateId = input.inspectionTemplateId
     if (input.name !== undefined) r.name = input.name
     if (input.description !== undefined) r.description = input.description
     if (input.color !== undefined) r.color = input.color ?? null

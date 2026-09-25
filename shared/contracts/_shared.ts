@@ -19,8 +19,18 @@ export const RoleSchema = z.enum([
   'sub_contractor',
   'homeowner',
   'viewer',
+  'stakeholder',
 ])
 export type Role = z.infer<typeof RoleSchema>
+
+export const StakeholderKindSchema = z.enum([
+  'insurer',
+  'lender',
+  'hoa',
+  'property_manager',
+  'adjuster',
+])
+export type StakeholderKind = z.infer<typeof StakeholderKindSchema>
 
 // ----------------------------------------------------------------------------
 // Audit fields. At the API boundary timestamps are ISO strings, NOT Date

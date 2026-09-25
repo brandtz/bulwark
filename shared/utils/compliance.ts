@@ -1,5 +1,5 @@
 /**
- * shared/utils/compliance.ts — Oregon WUI compliance evaluator (E4-S1).
+ * shared/utils/compliance.ts — legacy assessment compatibility adapter.
  *
  * # Decisions (ADR-0008)
  *   - Pure function. No I/O, no clock, no dependency injection. Given
@@ -7,9 +7,9 @@
  *     `ComplianceResult`. This is what makes it cheap to unit-test and
  *     safe to call from server endpoints, mocks, or live UI without
  *     worrying about side-effects.
- *   - Default standards are exported as `OREGON_DEFAULT_STANDARDS` so
- *     E4-S2/S3 (form + summary) and E9 (per-tenant override) can both
- *     consume them. The defaults match BULWARK_TECH §8 verbatim.
+ *   - Wildfire defaults live with the seeded inspection template. New
+ *     program inspections use `evaluateInspection`; this adapter remains
+ *     only for legacy assessment rows during migration.
  *   - One upgrade item per failed field. We don't try to coalesce
  *     ("roof and siding both wrong"); the summary screen needs them
  *     listed individually with their own ORS/OAR reference.
@@ -36,17 +36,6 @@ import type {
   ComplianceStandards,
   UpgradeItem,
 } from '~~/shared/contracts/assessment'
-
-// ----------------------------------------------------------------------------
-// Default Oregon standards. BULWARK_TECH §8. Tenant overrides ship in E9.
-// ----------------------------------------------------------------------------
-export const OREGON_DEFAULT_STANDARDS: ComplianceStandards = {
-  compliantRoofMaterials: ['metal', 'tile', 'class_a_asphalt'],
-  compliantSidingMaterials: ['fiber_cement', 'stucco', 'metal', 'masonry', 'brick'],
-  compliantEaveTypes: ['enclosed', 'boxed'],
-  compliantVentTypes: ['ember_resistant'],
-  requireDefensibleSpace: true,
-}
 
 // Standard references (ORS/OAR). Surfaced alongside each upgrade item so the
 // summary view + generated PDFs can cite the authoritative source.
@@ -76,7 +65,7 @@ export type ComplianceInput = Pick<
 
 export function evaluateCompliance(
   input: ComplianceInput,
-  standards: ComplianceStandards = OREGON_DEFAULT_STANDARDS,
+  standards: ComplianceStandards,
 ): ComplianceResult {
   const upgrades: UpgradeItem[] = []
 

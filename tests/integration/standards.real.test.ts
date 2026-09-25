@@ -7,7 +7,7 @@ import { getDb } from '../../server/db/client'
 import { complianceStandards } from '../../server/db/schema/standards'
 import { auditLog } from '../../server/db/schema/audit_log'
 import { organizations } from '../../server/db/schema/organizations'
-import { OREGON_DEFAULT_STANDARDS } from '../../shared/utils/compliance'
+import { DEFAULT_WILDFIRE_STANDARDS } from '../../shared/inspection-templates/wildfire-defaults'
 import { RealStandardsService } from '../../server/services/standards.real'
 
 const HAS_DB = !!process.env.DATABASE_URL
@@ -30,22 +30,22 @@ d('RealStandardsService (E11)', () => {
     await db.delete(organizations).where(eq(organizations.id, orgId))
   })
 
-  it('get() returns OREGON_DEFAULT_STANDARDS when no row exists', async () => {
+  it('get() returns the seeded wildfire program standards when no override exists', async () => {
     const svc = new RealStandardsService()
     const r = await svc.get(orgId)
-    expect(r.standards).toEqual(OREGON_DEFAULT_STANDARDS)
+    expect(r.standards).toEqual(DEFAULT_WILDFIRE_STANDARDS)
     expect(r.updatedById).toBeNull()
   })
 
   it('save() upserts and re-read returns the patch', async () => {
     const svc = new RealStandardsService()
-    const patched = { ...OREGON_DEFAULT_STANDARDS, requireDefensibleSpace: false }
+    const patched = { ...DEFAULT_WILDFIRE_STANDARDS, requireDefensibleSpace: false }
     const r1 = await svc.save(orgId, patched, null)
     expect(r1.standards.requireDefensibleSpace).toBe(false)
     const r2 = await svc.get(orgId)
     expect(r2.standards.requireDefensibleSpace).toBe(false)
     // Second save updates the existing row (no duplicate PK).
-    const r3 = await svc.save(orgId, OREGON_DEFAULT_STANDARDS, null)
+    const r3 = await svc.save(orgId, DEFAULT_WILDFIRE_STANDARDS, null)
     expect(r3.standards.requireDefensibleSpace).toBe(true)
   })
 })

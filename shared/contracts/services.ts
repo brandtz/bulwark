@@ -14,6 +14,7 @@ import type { ISubcontractorService } from './subcontractor'
 import type { IWorkOrderService } from './work-order'
 import type { IJobService } from './job'
 import type { IComplianceDocService } from './compliance'
+import type { IDeliverableService } from './deliverable'
 import type { IInvoiceService } from './invoice'
 import type { IStandardsService } from './standards'
 import type { IApiKeyService } from './api-key'
@@ -60,6 +61,8 @@ export interface BulwarkServices {
   subcontractor: ISubcontractorService
   workOrder: IWorkOrderService
   job: IJobService
+  deliverable: IDeliverableService
+  /** @deprecated Use deliverable; removed in phase 3. */
   complianceDoc: IComplianceDocService
   invoice: IInvoiceService
   standards: IStandardsService

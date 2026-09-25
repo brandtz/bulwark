@@ -15,7 +15,7 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
-import { OREGON_DEFAULT_STANDARDS } from '~~/shared/utils/compliance'
+import { DEFAULT_WILDFIRE_STANDARDS } from '~~/shared/inspection-templates/wildfire-defaults'
 import type { ComplianceStandards } from '~~/shared/contracts/standards'
 
 definePageMeta({
@@ -63,11 +63,11 @@ const VENT_OPTIONS = [
 ] as const
 
 const form = reactive<ComplianceStandards>({
-  compliantRoofMaterials: [...OREGON_DEFAULT_STANDARDS.compliantRoofMaterials],
-  compliantSidingMaterials: [...OREGON_DEFAULT_STANDARDS.compliantSidingMaterials],
-  compliantEaveTypes: [...OREGON_DEFAULT_STANDARDS.compliantEaveTypes],
-  compliantVentTypes: [...OREGON_DEFAULT_STANDARDS.compliantVentTypes],
-  requireDefensibleSpace: OREGON_DEFAULT_STANDARDS.requireDefensibleSpace,
+  compliantRoofMaterials: [...DEFAULT_WILDFIRE_STANDARDS.compliantRoofMaterials],
+  compliantSidingMaterials: [...DEFAULT_WILDFIRE_STANDARDS.compliantSidingMaterials],
+  compliantEaveTypes: [...DEFAULT_WILDFIRE_STANDARDS.compliantEaveTypes],
+  compliantVentTypes: [...DEFAULT_WILDFIRE_STANDARDS.compliantVentTypes],
+  requireDefensibleSpace: DEFAULT_WILDFIRE_STANDARDS.requireDefensibleSpace,
 })
 
 const loaded = ref(false)

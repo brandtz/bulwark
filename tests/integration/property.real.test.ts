@@ -7,12 +7,14 @@
  *     (audit_log, properties) before the org so FKs are happy.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { getDb } from '../../server/db/client'
 import { properties } from '../../server/db/schema/properties'
+import { statusPipelineNodes, statusPipelines } from '../../server/db/schema/status_pipelines'
 import { auditLog } from '../../server/db/schema/audit_log'
 import { organizations } from '../../server/db/schema/organizations'
 import { RealPropertyService } from '../../server/services/property.real'
+import { RealStatusPipelineService } from '../../server/services/status-pipeline.real'
 import { TenantViolationError } from '../../server/services/_tenant'
 
 const HAS_DB = !!process.env.DATABASE_URL
@@ -34,6 +36,16 @@ d('RealPropertyService (E11-S5)', () => {
   afterAll(async () => {
     const db = getDb()
     await db.delete(auditLog).where(eq(auditLog.organizationId, orgId))
+    const pipelines = await db
+      .select({ id: statusPipelines.id })
+      .from(statusPipelines)
+      .where(eq(statusPipelines.organizationId, orgId))
+    if (pipelines.length) {
+      await db
+        .delete(statusPipelineNodes)
+        .where(inArray(statusPipelineNodes.pipelineId, pipelines.map((pipeline) => pipeline.id)))
+    }
+    await db.delete(statusPipelines).where(eq(statusPipelines.organizationId, orgId))
     await db.delete(properties).where(eq(properties.organizationId, orgId))
     await db.delete(organizations).where(eq(organizations.id, orgId))
     await db.delete(organizations).where(eq(organizations.id, otherOrgId))
@@ -104,6 +116,35 @@ d('RealPropertyService (E11-S5)', () => {
     const stateChange = rows.find((r) => r.action === 'state_change')
     expect(stateChange).toBeDefined()
     expect(stateChange!.metadata).toMatchObject({ from: 'lead', to: 'scheduled' })
+  })
+
+  it('creates and transitions properties using only the active pipeline statuses', async () => {
+    const pipeline = new RealStatusPipelineService()
+    await pipeline.save({
+      organizationId: orgId,
+      entityType: 'property',
+      nodes: [
+        { slug: 'intake', labelKey: 'status.property.intake', color: '#94A3B8', sortOrder: 10, isInitial: true, isTerminal: false, allowedTransitions: ['review'] },
+        { slug: 'review', labelKey: 'status.property.review', color: '#10B981', sortOrder: 20, isInitial: false, isTerminal: true, requiresReason: true, allowedTransitions: [] },
+      ],
+    })
+    const service = new RealPropertyService()
+    const property = await service.create({
+      organizationId: orgId,
+      addressLine1: '800 Custom Status St',
+      addressLine2: null,
+      city: 'Oakland',
+      state: 'CA',
+      postalCode: '94607',
+      clientId: null,
+      notes: null,
+    })
+
+    expect(property.status).toBe('intake')
+    await expect(service.updateStatus(property.id, 'not_configured', orgId)).rejects.toThrow(/not in the active pipeline/i)
+    await expect(service.updateStatus(property.id, 'review', orgId)).rejects.toThrow(/reason is required/i)
+    const reviewed = await service.updateStatus(property.id, 'review', orgId, 'Inspection completed')
+    expect(reviewed.status).toBe('review')
   })
 
   it('softDelete() hides the row from list/get and writes a delete audit row', async () => {

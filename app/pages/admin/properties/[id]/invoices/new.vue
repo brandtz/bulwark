@@ -134,7 +134,7 @@ watchEffect(() => {
     seed.push({
       uid: makeUid(),
       kind: 'labor',
-      description: `${TRADE_LABEL[slot.trade]} — ${slot.description}`,
+      description: `${TRADE_LABEL[slot.trade] ?? slot.trade} — ${slot.description}`,
       quantity: 1,
       unitCostDollars: '',
     })

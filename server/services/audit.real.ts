@@ -33,7 +33,7 @@ import { quotes } from '../db/schema/quotes'
 import { workOrders } from '../db/schema/work_orders'
 import { invoices } from '../db/schema/invoices'
 import { assessments } from '../db/schema/assessments'
-import { complianceDocs } from '../db/schema/compliance_docs'
+import { deliverables } from '../db/schema/deliverables'
 import { getDb } from '../db/client'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 // W3-5 / EH-Q (ADR-0034): structured logger fallback for
@@ -124,7 +124,7 @@ export class RealAuditService implements IAuditService {
       this.db.select({ id: workOrders.id }).from(workOrders).where(and(eq(workOrders.organizationId, input.organizationId), eq(workOrders.propertyId, input.propertyId))),
       this.db.select({ id: invoices.id }).from(invoices).where(and(eq(invoices.organizationId, input.organizationId), eq(invoices.propertyId, input.propertyId))),
       this.db.select({ id: assessments.id }).from(assessments).where(and(eq(assessments.organizationId, input.organizationId), eq(assessments.propertyId, input.propertyId))),
-      this.db.select({ id: complianceDocs.id }).from(complianceDocs).where(and(eq(complianceDocs.organizationId, input.organizationId), eq(complianceDocs.propertyId, input.propertyId))),
+      this.db.select({ id: deliverables.id }).from(deliverables).where(and(eq(deliverables.organizationId, input.organizationId), eq(deliverables.propertyId, input.propertyId))),
     ])
     const childIds = [...qIds, ...woIds, ...invIds, ...asmIds, ...cdIds].map((r) => r.id)
 

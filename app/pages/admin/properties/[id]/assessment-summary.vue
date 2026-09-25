@@ -2,11 +2,9 @@
   app/pages/admin/properties/[id]/assessment-summary.vue — E4-S3.
 
   # Decisions (ADR-0008)
-    - This page renders the *latest* assessment for the property,
-      evaluated against `OREGON_DEFAULT_STANDARDS`. The evaluator is
-      pure (E4-S1) so we just call it client-side; no extra service
-      round-trip. When E9 lands per-tenant standards we'll swap the
-      second arg for `useService('settings').getStandards(orgId)`.
+    - This legacy assessment summary evaluates against the standards
+      service, whose initial baseline is derived from the Wildfire Retrofit
+      inspection-template seed. New programs use the generic evaluator.
     - Layout splits into two cards: an overall pass/fail banner up
       top (status-color band, plain-language summary) and a
       `requiredUpgrades` table beneath. The table renders one row per
@@ -28,7 +26,7 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
-import { evaluateCompliance, OREGON_DEFAULT_STANDARDS } from '~~/shared/utils/compliance'
+import { evaluateCompliance } from '~~/shared/utils/compliance'
 import type { ComplianceField } from '~~/shared/contracts/assessment'
 
 definePageMeta({
@@ -44,6 +42,7 @@ await ensureLoaded()
 
 const property = useService('property')
 const assessment = useService('assessment')
+const standardsService = useService('standards')
 
 const propertyId = computed(() => String(route.params.id))
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
@@ -51,11 +50,12 @@ const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 const { data: bundle } = await useAsyncData(
   () => `assessment-summary-${propertyId.value}-${orgId.value}`,
   async () => {
-    const [prop, latest] = await Promise.all([
+    const [prop, latest, standards] = await Promise.all([
       property.get(propertyId.value, orgId.value),
       assessment.getLatestForProperty(propertyId.value, orgId.value),
+      standardsService.get(orgId.value),
     ])
-    return { property: prop, assessment: latest }
+    return { property: prop, assessment: latest, standards: standards.standards }
   },
   { watch: [propertyId, orgId] },
 )
@@ -67,8 +67,9 @@ const propertyAddress = computed(() => {
 
 const result = computed(() => {
   const a = bundle.value?.assessment
-  if (!a) return null
-  return evaluateCompliance(a, OREGON_DEFAULT_STANDARDS)
+  const standards = bundle.value?.standards
+  if (!a || !standards) return null
+  return evaluateCompliance(a, standards)
 })
 
 // Field labels for the upgrades table. Mirrors the form's option labels so

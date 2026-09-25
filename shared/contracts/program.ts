@@ -3,8 +3,8 @@
  *
  * # Why this contract exists (ADR-0008, ADR-0013)
  *
- * Bulwark today is implicitly wildfire-only: `OREGON_DEFAULT_STANDARDS`,
- * "compliance doc", "defensible space" — all hardcoded into the platform.
+ * Bulwark began wildfire-first: the Wildfire Retrofit inspection template
+ * carries its own seed rules; those rules are program data, not platform defaults.
  * Per the sponsor's GC-generalization mandate (PHASE1_HARDENING_PLAN §2
  * Pivot P1 / directive D-H4), Bulwark must be a **general contractor
  * field-service platform** that ships with a **Wildfire Retrofit
@@ -95,7 +95,7 @@ export const ProgramSchema = z.object({
   sortOrder: z.number().int(),
   inspectionTemplateId: UuidSchema.nullable(),
   standardSetId: UuidSchema.nullable(),
-  complianceDocTemplateId: UuidSchema.nullable(),
+  deliverableTemplateId: UuidSchema.nullable(),
   defaultTradeSlots: z.array(ProgramTradeDefaultSchema).nullable(),
   pricingDefaults: ProgramPricingDefaultsSchema.nullable(),
 }).merge(AuditFieldsSchema)
@@ -134,6 +134,7 @@ export type ProgramCreateInput = z.infer<typeof ProgramCreateInputSchema>
 export const ProgramUpdateInputSchema = z.object({
   id: UuidSchema,
   organizationId: UuidSchema,
+  inspectionTemplateId: UuidSchema.nullable().optional(),
   name: ProgramSchema.shape.name.optional(),
   description: z.string().nullable().optional(),
   color: ProgramSchema.shape.color.optional(),
