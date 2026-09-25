@@ -40,6 +40,12 @@ vt-*.txt
 .gs.*
 eslint-out*.txt
 
+# Local design exports and reproducible agent indexes
+/agents/design/
+/agents/codegraph/
+/agents/*.zip
+/audit-summary.txt
+
 # Netlify
 .netlify/
 

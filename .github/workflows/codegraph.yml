@@ -1,0 +1,39 @@
+# CodeGraph + work-package registry guard (agents/codegraph, agents/program)
+#
+# Fails the build when the graph is stale relative to source/tests/design specs, when a
+# work package references unknown designs/dependencies, or when two in-progress packages
+# overlap on files. Also publishes the graph as an artifact so reviewers/agents can query it.
+name: codegraph
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  codegraph:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Isolated codegraph tests
+        run: node --test scripts/codegraph/*.test.mjs
+      - name: Rebuild graph
+        run: node scripts/codegraph/build.mjs
+      - name: Freshness, registry and overlap checks
+        run: |
+          if [ -d agents/design/return ]; then
+            node scripts/codegraph/check.mjs
+          else
+            node scripts/codegraph/check.mjs --catalog-only
+          fi
+      - name: Screen readiness (report only)
+        run: node scripts/codegraph/screen-audit.mjs || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codegraph
+          path: agents/codegraph/
