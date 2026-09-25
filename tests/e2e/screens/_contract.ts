@@ -31,7 +31,7 @@ export const PERSONAS: Record<string, string> = {
   sub_contractor: 'jeff@bulwark.demo',
   viewer: 'vivian@bulwark.demo',
   homeowner: 'homer@bulwark.demo',
-  // stakeholder: seeded by WP-G1
+  stakeholder: 'insurer@bulwark.demo',
 }
 
 export const VIEWPORTS = {
@@ -48,6 +48,8 @@ export interface ScreenContract {
   route: string | ((ctx: { page: Page }) => Promise<string>)
   /** Roles allowed per SPEC "Roles:" line */
   roles: string[]
+  /** Public screens such as login do not require or gate on an authenticated role. */
+  publicRoute?: boolean
   /** Viewports to assert; FD/SC screens add 'tablet' */
   viewports?: ViewportName[]
   /** data-testid values the SPEC names for the default state */
@@ -76,10 +78,11 @@ async function collectRuntimeErrors(page: Page) {
 interface AxeViolation { id: string; impact?: string; help: string; nodes: { target: string[] }[] }
 interface AxeBuilderLike { disableRules(rules: string[]): AxeBuilderLike; analyze(): Promise<{ violations: AxeViolation[] }> }
 
-async function runAxe(page: Page, allow: Record<string, string> = {}) {
-  // Loaded lazily so the harness works before @axe-core/playwright is installed.
+export async function assertAxeClean(page: Page, allow: Record<string, string> = {}) {
   let AxeBuilder: (new (opts: { page: Page }) => AxeBuilderLike) | undefined
-  try { ({ default: AxeBuilder } = await import('@axe-core/playwright') as unknown as { default: new (opts: { page: Page }) => AxeBuilderLike }) } catch { test.skip(true, '@axe-core/playwright not installed'); return }
+  try { ({ default: AxeBuilder } = await import('@axe-core/playwright') as unknown as { default: new (opts: { page: Page }) => AxeBuilderLike }) } catch {
+    throw new Error('@axe-core/playwright is required for screen-contract tests')
+  }
   const results = await new AxeBuilder!({ page }).disableRules(Object.keys(allow)).analyze()
   const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
   expect(serious, serious.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)\n  ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n  ')}`).join('\n')).toEqual([])
@@ -109,11 +112,11 @@ export async function resolveRoute(page: Page, route: ScreenContract['route']) {
 export function describeScreen(contract: ScreenContract, extra?: () => void) {
   const viewports = contract.viewports ?? ['desktop', 'mobile']
   const primaryRole = contract.roles[0]
-  if (!primaryRole) throw new Error(`${contract.id}: screen contract requires an explicit persona`)
+  if (!contract.publicRoute && !primaryRole) throw new Error(`${contract.id}: screen contract requires an explicit persona`)
 
   test.describe(`${contract.id} — screen contract`, () => {
     test.beforeEach(async ({ page, context }) => {
-      await signIn(context, PERSONAS[primaryRole] ?? primaryRole)
+      if (!contract.publicRoute) await signIn(context, PERSONAS[primaryRole!] ?? primaryRole!)
       await contract.setup?.({ page, context })
     })
 
@@ -144,7 +147,7 @@ export function describeScreen(contract: ScreenContract, extra?: () => void) {
         await page.setViewportSize(VIEWPORTS.desktop)
         await setTheme(page, theme)
         await page.goto(await resolveRoute(page, contract.route))
-        await runAxe(page, contract.axeAllow)
+        await assertAxeClean(page, contract.axeAllow)
       })
     }
 
@@ -164,25 +167,35 @@ export function describeScreen(contract: ScreenContract, extra?: () => void) {
       })
     }
 
-    test.describe('role gate', () => {
-      for (const [role, email] of Object.entries(PERSONAS)) {
-        const allowed = contract.roles.includes(role)
-        test(`${role} is ${allowed ? 'allowed' : 'refused'}`, async ({ browser }) => {
-          const context = await browser.newContext()
-          await signIn(context, email)
-          const page = await context.newPage()
-          const route = await resolveRoute(page, contract.route)
-          const res = await page.goto(route)
-          if (allowed) {
-            expect(res?.status() ?? 200).toBeLessThan(400)
-            await expect(page).not.toHaveURL(/\/(403|login)/)
-          } else {
-            await expect(page).toHaveURL(/\/(403|login)|\/$/)
-          }
-          await context.close()
-        })
-      }
-    })
+    if (contract.publicRoute) {
+      test('anonymous visitors can reach the public route', async ({ page }) => {
+        const response = await page.goto(await resolveRoute(page, contract.route))
+        expect(response?.status() ?? 200).toBeLessThan(400)
+      })
+    } else {
+      test.describe('role gate', () => {
+        for (const [role, email] of Object.entries(PERSONAS)) {
+          const allowed = contract.roles.includes(role)
+          test(`${role} is ${allowed ? 'allowed' : 'refused'}`, async ({ browser }) => {
+            const context = await browser.newContext()
+            try {
+              await signIn(context, email)
+              const page = await context.newPage()
+              const route = await resolveRoute(page, contract.route)
+              const res = await page.goto(route)
+              if (allowed) {
+                expect(res?.status() ?? 200).toBeLessThan(400)
+                await expect(page).not.toHaveURL(/\/(403|login)/)
+              } else {
+                await expect(page).toHaveURL(/\/(403|login)|\/$/)
+              }
+            } finally {
+              await context.close()
+            }
+          })
+        }
+      })
+    }
 
     extra?.()
   })

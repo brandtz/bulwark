@@ -8,7 +8,7 @@
  * `snapshotPathTemplate` at that folder, so `toMatchSnapshot` compares the live app
  * against the design — the design is the target, not a previous app screenshot.
  *
- * Tolerance is loose (1.5%) because live seed data ≠ design sample data; pass `mask`
+ * Tolerance is bounded (0.5%) because live seed data ≠ design sample data; pass `mask`
  * for dynamic regions or `clip` a stable region. Never loosen globally — loosen per screen
  * with a comment citing the reason.
  */
@@ -46,5 +46,5 @@ export async function expectVisualParity(page: Page, opts: VisualOpts) {
   if (variant === 'dark') await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'))
   await page.waitForLoadState('networkidle')
   const actual = await page.screenshot({ fullPage: false, clip: opts.clip, mask: opts.mask?.map((m) => page.locator(m)), animations: 'disabled' })
-  expect(actual, `Visual parity ${opts.id}/${variant}`).toMatchSnapshot(name, { maxDiffPixelRatio: opts.maxDiffPixelRatio ?? 0.015 })
+  expect(actual, `Visual parity ${opts.id}/${variant}`).toMatchSnapshot(name, { maxDiffPixelRatio: opts.maxDiffPixelRatio ?? 0.005 })
 }

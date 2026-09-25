@@ -93,6 +93,8 @@ const USER_RESET_VICTIM_ID = mk('user-reset-victim')
 // exercise the full matrix without churning.
 const USER_MANAGER_ID = mk('user-morgan-manager')
 const USER_VIEWER_ID = mk('user-vivian-viewer')
+const USER_HOMEOWNER_ID = mk('user-homer-homeowner')
+const USER_STAKEHOLDER_ID = mk('user-insurer-stakeholder')
 const USER_ACME_ADMIN_ID = mk('user-ana-acme-admin')
 const USER_ACME_MANAGER_ID = mk('user-mike-acme-manager')
 const USER_ACME_FIELD_ID = mk('user-felix-acme-field')
@@ -111,6 +113,8 @@ const PERSONAS = [
   // Role-coverage padding (EH-C): manager + viewer on Bulwark Demo Co.
   { id: USER_MANAGER_ID, email: 'morgan@bulwark.demo',  fullName: 'Morgan Pratt',  memberships: [{ orgId: ORG_BULWARK.id, role: 'org_manager' }] },
   { id: USER_VIEWER_ID,  email: 'vivian@bulwark.demo',  fullName: 'Vivian Chu',    memberships: [{ orgId: ORG_BULWARK.id, role: 'viewer' }] },
+  { id: USER_HOMEOWNER_ID, email: 'homer@bulwark.demo', fullName: 'Homer Chen', memberships: [{ orgId: ORG_BULWARK.id, role: 'homeowner' }] },
+  { id: USER_STAKEHOLDER_ID, email: 'insurer@bulwark.demo', fullName: 'Irene Shah', memberships: [{ orgId: ORG_BULWARK.id, role: 'stakeholder', stakeholderKind: 'insurer' }] },
   // Full role matrix on Acme Restoration so cross-tenant + role-guard
   // specs have a complete second org to exercise.
   { id: USER_ACME_ADMIN_ID,   email: 'ana@acme.demo',   fullName: 'Ana Solis',     memberships: [{ orgId: ORG_ACME.id, role: 'org_admin' }] },
@@ -443,10 +447,10 @@ try {
     `
     for (const m of p.memberships) {
       await sql`
-        INSERT INTO memberships (user_id, organization_id, role, is_active)
-        VALUES (${p.id}, ${m.orgId}, ${m.role}, true)
+        INSERT INTO memberships (user_id, organization_id, role, stakeholder_kind, is_active)
+        VALUES (${p.id}, ${m.orgId}, ${m.role}, ${m.stakeholderKind ?? null}, true)
         ON CONFLICT (user_id, organization_id) DO UPDATE
-          SET role = EXCLUDED.role, is_active = true
+          SET role = EXCLUDED.role, stakeholder_kind = EXCLUDED.stakeholder_kind, is_active = true
       `
     }
   }

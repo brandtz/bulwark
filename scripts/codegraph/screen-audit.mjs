@@ -14,6 +14,20 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+const specFileArg = process.argv.find((arg) => arg.startsWith('--spec-file='))
+if (specFileArg) {
+  const specFile = path.resolve(specFileArg.slice('--spec-file='.length))
+  const src = await fs.readFile(specFile, 'utf8')
+  const problems = []
+  if (/test\.(fixme|skip)\(/.test(src)) problems.push('test.fixme/skip remaining')
+  if (!/403|not\.toBeVisible|toBeDisabled|toHaveCount\(0\)|toBeHidden|not\.toBeAttached/.test(src)) problems.push('no negative assertion found')
+  if (problems.length) {
+    console.log(`✖ ${path.basename(specFile)}\n   - ${problems.join('\n   - ')}`)
+    process.exit(1)
+  }
+  console.log(`✔ ${path.basename(specFile)}`)
+  process.exit(0)
+}
 const GRAPH = JSON.parse(await fs.readFile(path.join(ROOT, 'agents', 'codegraph', 'graph.json'), 'utf8'))
 const WPS = JSON.parse(await fs.readFile(path.join(ROOT, 'agents', 'program', 'work-packages.json'), 'utf8'))
 const wpId = process.argv[2]

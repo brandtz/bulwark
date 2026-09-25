@@ -17,9 +17,10 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const GRAPH = JSON.parse(await fs.readFile(path.join(ROOT, 'agents', 'codegraph', 'graph.json'), 'utf8'))
-const OUT = path.join(ROOT, 'tests', 'e2e', 'screens')
 const args = process.argv.slice(2)
 const force = args.includes('--force')
+const outDirArg = args.find((a) => a.startsWith('--out-dir='))
+const OUT = outDirArg ? path.resolve(outDirArg.slice('--out-dir='.length)) : path.join(ROOT, 'tests', 'e2e', 'screens')
 const ids = args.includes('--all-received')
   ? GRAPH.nodes.filter((n) => n.type === 'design' && n.status === 'received' && n.spec).map((n) => n.id.replace('design:', ''))
   : args.filter((a) => !a.startsWith('--'))
@@ -53,6 +54,7 @@ for (const id of ids) {
   const spec = parseSpec(md)
   const route = (node.routes ?? [])[0] ?? '/'
   const hasParams = route.includes(':')
+  const publicRoute = route === '/login'
   const viewports = spec.isField ? `['desktop', 'tablet', 'mobile']` : `['desktop', 'mobile']`
 
   const stateTests = spec.states.map((s) => `
@@ -94,6 +96,7 @@ describeScreen({
   id: ID,
   route,
   roles: ${JSON.stringify(spec.roles)},
+  ${publicRoute ? 'publicRoute: true,' : ''}
   viewports: ${viewports},
   testIds: ${JSON.stringify(spec.testIds)},
   // axeAllow: { 'rule-id': 'ED-xxx justification' },

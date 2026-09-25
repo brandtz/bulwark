@@ -18,6 +18,7 @@ describeScreen({
   id: ID,
   route,
   roles: ["org_admin"],
+  publicRoute: true,
   viewports: ['desktop', 'mobile'],
   testIds: [],
   // axeAllow: { 'rule-id': 'ED-xxx justification' },
