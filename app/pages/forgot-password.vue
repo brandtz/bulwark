@@ -13,8 +13,8 @@
   - **Standalone layout** (`layout: false`): same shell-less treatment as
     /login. Pre-auth pages share aesthetics, not chrome.
   - **Always show success state**: enumeration-resistant by design. The
-    real backend (E11-S2) will fire-and-forget the actual send and respond
-    identically.
+    real backend sends a reset link through the organization's configured
+    email provider and responds identically for unknown accounts.
   - **Dev-only "Open reset link" affordance**: when running mock-backed,
     `requestPasswordReset()` returns a `devToken`. We render that as a
     clickable link to /reset-password?token=... so sponsors / Playwright

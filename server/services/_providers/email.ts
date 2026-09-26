@@ -96,7 +96,11 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   if (cfg.provider === 'resend') {
     const apiKey = typeof cfg.config.apiKey === 'string' ? cfg.config.apiKey : ''
-    const from = typeof cfg.config.from === 'string' ? cfg.config.from : 'notifications@bulwark.local'
+    const from = typeof cfg.config.from === 'string'
+      ? cfg.config.from
+      : typeof cfg.config.fromAddress === 'string'
+        ? cfg.config.fromAddress
+        : 'notifications@bulwark.local'
     if (!apiKey) {
        
       console.warn('[email] resend provider missing apiKey; falling back to stub')

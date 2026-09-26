@@ -243,6 +243,7 @@ export class MockUserService implements IUserService {
       inviteId: rec.id,
       inviteUrl: `/accept-invite?token=${rawToken}`,
       inviteToken: rawToken,
+      emailSent: false,
     }
   }
 
@@ -274,6 +275,7 @@ export class MockUserService implements IUserService {
       inviteId: inv.id,
       inviteUrl: `/accept-invite?token=${rawToken}`,
       inviteToken: rawToken,
+      emailSent: false,
     }
   }
 

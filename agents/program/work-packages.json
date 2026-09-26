@@ -24,6 +24,21 @@
   ],
   "packages": [
     {
+      "id": "WP-H1",
+      "title": "Priority SH-01 sign-in, invite, and password recovery",
+      "lane": "SCR", "phase": "0-foundation", "status": "in-progress", "size": "M", "owner": "copilot/auth-recovery (2026-09-26)",
+      "goal": "Deliver the requested SH-01 login design and usable invitation/password-recovery paths ahead of the broader auth screen family.",
+      "scope": ["Match the approved SH-01 Packet A public login design across desktop, mobile, light, and dark surfaces", "Expose Forgot password and Open your invite link; support direct and pasted invitation links", "Send real invitation/resend and password-reset links through the configured organization email provider, with explicit invite delivery fallback and safe reset enumeration", "Implement Keep me signed in as a 30-day persistent session, preserved across MFA; unchecked login remains a browser-session cookie", "Document how production admins access, update, and invite users"],
+      "outOfScope": ["Remaining SH-02…SH-14 screens/states", "Magic-link authentication", "Production database administration or direct password setting"],
+      "designs": ["SH-01"],
+      "files": ["app/pages/login.vue", "app/pages/accept-invite.vue", "app/pages/settings/users.vue", "server/services/auth.real.ts", "server/services/user.real.ts", "server/services/_providers/auth-links.ts", "server/services/_providers/email.ts", "server/utils/services-factory.ts", "shared/contracts/auth.ts", "shared/contracts/user.ts", "shared/mocks/user.mock.ts", "tests/e2e/auth.spec.ts", "tests/e2e/auth-recovery.spec.ts", "tests/integration/auth.real.test.ts", "tests/unit/auth-links.test.ts", "tests/unit/user-admin.test.ts", "docs/PRODUCTION_USER_ACCESS.md", ".env.example"],
+      "acceptance": ["SH-01 has usable Forgot password and Open your invite link actions and matches Packet A across supported viewport/theme variants", "Valid same-origin invite links open directly or through paste, and invalid/off-origin links are rejected", "Keep me signed in sets a 30-day session and survives MFA; unchecked login remains a browser-session cookie", "Production auth emails use configured canonical HTTPS links and the configured Resend sender fields", "Invite admin sees whether email was sent and can copy the link when delivery is unavailable", "Reset requests stay enumeration-safe and never return a production token", "Production admin instructions accurately describe existing-user management and invite-only account creation"],
+      "tests": ["tests/unit/auth-links.test.ts", "tests/unit/user-admin.test.ts", "tests/e2e/auth.spec.ts and tests/e2e/auth-recovery.spec.ts", "tests/integration/auth.real.test.ts"],
+      "dependsOn": [],
+      "decisions": [],
+      "agentNotes": "2026-09-26: priority implementation started. Focused auth lint passed; user-admin/rate-limit unit tests 20/20 and auth-link unit tests 3/3 passed. Added per-login 30-day persistence with MFA propagation and same-origin invite URL enforcement. At user direction on 2026-09-26, remaining verification was waived to ship this branch. Risk: DB-backed email/session assertions, Chromium (including mobile/dark), Lighthouse, and skeptic review are unverified; production email requires BULWARK_APP_URL plus an active organization Resend provider. Keep status in-progress until the waived gates are completed; pushing this branch does not itself deploy production."
+    },
+    {
       "id": "WP-O2",
       "title": "Browser-safe mock crypto prerequisite",
       "lane": "BE", "phase": "0-foundation", "status": "done", "size": "S",
@@ -323,15 +338,15 @@
       "title": "Auth & error family screens (SH-01…SH-09b, SH-14)",
       "lane": "SCR", "phase": "1-shared", "status": "todo", "size": "M",
       "goal": "Login (+MFA, lockout, offline), forgot/reset (strength meter), accept-invite (3 role variants, magic-link option), org switcher, root splash, 403/404/500/429/maintenance/offline, goodbye — per received SPECs.",
-      "scope": ["Rebuild pages with Packet A components; tenant-branded public page frame", "Lockout + cooldown states wired to rate-limit rules", "zxcvbn-ts client + HIBP server (EH-I hooks)", "Magic-link request path for external roles (token issue + email) — reuse pending_invites/tokens", "Announcement banner (ED-007)"],
+      "scope": ["Rebuild auth pages with Packet A tokens and responsive light/dark public frame", "Login provides Forgot password and Open your invite link paths; invite URL can be opened directly or pasted", "Send single-use invitation and password-reset links through the configured organization email provider, with enumeration-safe reset responses and copy-link fallback", "Lockout + cooldown states wired to rate-limit rules", "zxcvbn-ts client + HIBP server (EH-I hooks)", "Magic-link request path for external roles (token issue + email) — reuse pending_invites/tokens", "Announcement banner (ED-007)"],
       "outOfScope": ["Sessions list (WP-S3)"],
       "designs": ["SH-01", "SH-02", "SH-03", "SH-04", "SH-05", "SH-06", "SH-07", "SH-08", "SH-09", "SH-09b", "SH-14"],
-      "files": ["app/pages/login.vue", "app/pages/forgot-password.vue", "app/pages/reset-password.vue", "app/pages/accept-invite.vue", "app/pages/org-switcher.vue", "app/pages/index.vue", "app/pages/403.vue", "app/error.vue", "app/pages/goodbye.vue", "app/pages/maintenance.vue", "app/composables/login-flow-helpers.ts", "server/api/services/auth/**", "server/services/auth.real.ts", "shared/mocks/auth.mock.ts", "shared/contracts/auth.ts"],
-      "acceptance": ["Every state in each SPEC's States table has a test (scaffold fixmes all resolved)", "Brute-force: 6th failed attempt shows lockout state and API returns 429 (e2e + integration)", "Reset token reuse → 'expired/used' state; enumeration: same response for unknown email (e2e)", "Magic link single-use, 15 min expiry (integration clock-skew tests)", "Accept-invite shows correct role copy for staff/client/stakeholder fixtures"],
-      "tests": ["tests/e2e/screens/SH-01.spec.ts … SH-14.spec.ts (scaffolded)", "tests/integration/auth-lockout.real.test.ts", "tests/integration/magic-link.real.test.ts", "tests/e2e/auth.spec.ts & auth-recovery.spec.ts updated to new selectors"],
-      "dependsOn": ["WP-A3", "WP-Q1"],
+      "files": ["app/pages/login.vue", "app/pages/forgot-password.vue", "app/pages/reset-password.vue", "app/pages/accept-invite.vue", "app/pages/org-switcher.vue", "app/pages/index.vue", "app/pages/403.vue", "app/error.vue", "app/pages/goodbye.vue", "app/pages/maintenance.vue", "app/pages/settings/users.vue", "app/composables/login-flow-helpers.ts", "server/api/services/auth/**", "server/services/auth.real.ts", "server/services/user.real.ts", "server/services/_providers/auth-links.ts", "server/services/_providers/email.ts", "shared/mocks/auth.mock.ts", "shared/mocks/user.mock.ts", "shared/contracts/auth.ts", "shared/contracts/user.ts", "tests/e2e/auth.spec.ts", "tests/e2e/auth-recovery.spec.ts", "tests/integration/auth.real.test.ts", "tests/unit/auth-links.test.ts", "tests/unit/user-admin.test.ts", "docs/PRODUCTION_USER_ACCESS.md", ".env.example"],
+      "acceptance": ["Every state in each SPEC's States table has a test (scaffold fixmes all resolved)", "SH-01 matches the approved Packet A desktop/mobile/dark auth design and exposes working Forgot password and Open your invite link workflows", "Production invite and reset emails use canonical HTTPS URLs; invite delivery status and copy-link fallback are explicit", "Reset token reuse → 'expired/used' state; enumeration: same response for unknown email (e2e)", "Brute-force: 6th failed attempt shows lockout state and API returns 429 (e2e + integration)", "Magic link single-use, 15 min expiry (integration clock-skew tests)", "Accept-invite shows correct role copy for staff/client/stakeholder fixtures"],
+      "tests": ["tests/e2e/screens/SH-01.spec.ts … SH-14.spec.ts (scaffolded)", "tests/e2e/auth.spec.ts and tests/e2e/auth-recovery.spec.ts", "tests/integration/auth.real.test.ts", "tests/unit/auth-links.test.ts and tests/unit/user-admin.test.ts", "tests/integration/auth-lockout.real.test.ts", "tests/integration/magic-link.real.test.ts"],
+      "dependsOn": ["WP-A3", "WP-Q1", "WP-H1"],
       "decisions": ["ED-001", "ED-002", "ED-003", "ED-004", "ED-006", "ED-007", "ED-00F"],
-      "agentNotes": ""
+      "agentNotes": "WP-H1 owns the prioritized SH-01 and email-backed account recovery slice. Start the broader auth/error family only after its dependencies and WP-H1 are complete."
     },
     {
       "id": "WP-S2",

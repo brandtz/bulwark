@@ -116,6 +116,8 @@ export const InviteOutputSchema = z.object({
   inviteUrl: z.string(),
   /** Raw token by itself, for tests that want to bypass URL parsing. */
   inviteToken: z.string(),
+  /** False means the admin should share the displayed link manually. */
+  emailSent: z.boolean(),
 })
 export type InviteOutput = z.infer<typeof InviteOutputSchema>
 

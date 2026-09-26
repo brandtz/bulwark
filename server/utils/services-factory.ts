@@ -97,7 +97,7 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
     return (s.user as SessionUserShape | undefined)?.userId ?? null
   }
 
-  async setActiveUserId(id: string | null): Promise<void> {
+  async setActiveUserId(id: string | null, options?: { maxAgeSeconds?: number }): Promise<void> {
     if (id === null) {
       await clearUserSession(this.event)
       // Belt-and-suspenders: clearUserSession sets Set-Cookie to expire the
@@ -109,7 +109,11 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
     }
     const s = await getUserSession(this.event)
     const prev = (s.user ?? {}) as SessionUserShape
-    await setUserSession(this.event, { user: { ...prev, userId: id } })
+    await setUserSession(
+      this.event,
+      { user: { ...prev, userId: id } },
+      options?.maxAgeSeconds ? { maxAge: options.maxAgeSeconds } : undefined,
+    )
   }
 
   async getActiveOrgOverride(): Promise<string | null> {

@@ -31,11 +31,11 @@ definePageMeta({ layout: false })
 useHead({ title: 'Accept invitation · Bulwark' })
 
 const route = useRoute()
+const router = useRouter()
 const { acceptInvite, previewInvite, loading, error } = useAuth()
 
-const token = computed(() =>
-  typeof route.query.token === 'string' ? route.query.token : '',
-)
+const token = ref(typeof route.query.token === 'string' ? route.query.token : '')
+const inviteLink = ref('')
 
 const preview = ref<InvitePreview | null>(null)
 const previewError = ref<string | null>(null)
@@ -46,13 +46,14 @@ const password = ref('')
 const confirmPassword = ref('')
 const mismatch = ref(false)
 
-onMounted(async () => {
-  if (!token.value) {
-    previewError.value = 'This invitation link is missing its token.'
+async function loadInviteToken(value: string) {
+  if (!value) {
     previewLoading.value = false
     return
   }
-  const p = await previewInvite(token.value)
+  previewLoading.value = true
+  previewError.value = null
+  const p = await previewInvite(value)
   if (p) {
     preview.value = p
   } else {
@@ -62,7 +63,27 @@ onMounted(async () => {
     previewError.value = error.value ?? 'This invitation link is invalid or has expired.'
   }
   previewLoading.value = false
-})
+}
+
+onMounted(() => loadInviteToken(token.value))
+
+async function openInviteLink() {
+  previewError.value = null
+  let parsed: URL
+  try {
+    parsed = new URL(inviteLink.value.trim(), window.location.origin)
+  } catch {
+    previewError.value = 'Enter the full invitation link from your administrator.'
+    return
+  }
+  if (parsed.origin !== window.location.origin || parsed.pathname !== '/accept-invite' || !parsed.searchParams.get('token')) {
+    previewError.value = 'That link does not look like a Bulwark invitation. Ask your administrator for a new link.'
+    return
+  }
+  token.value = parsed.searchParams.get('token')!
+  await router.replace({ path: '/accept-invite', query: { token: token.value } })
+  await loadInviteToken(token.value)
+}
 
 async function submit() {
   mismatch.value = false
@@ -107,6 +128,38 @@ async function submit() {
       >
         <p class="text-small text-text-secondary">Checking invitation…</p>
       </div>
+
+      <form
+        v-else-if="!token"
+        class="space-y-4 bg-surface rounded-card p-6 shadow"
+        data-testid="invite-link-entry"
+        @submit.prevent="openInviteLink"
+      >
+        <h1 class="text-h2 text-text-primary">Open your invite link</h1>
+        <p class="text-small text-text-secondary">
+          Paste the invitation link your administrator shared with you.
+        </p>
+        <div
+          v-if="previewError"
+          role="alert"
+          class="rounded-input border border-status-error/30 bg-status-error/5 px-3 py-2 text-small text-status-error"
+        >{{ previewError }}</div>
+        <BulwarkInput
+          v-model="inviteLink"
+          type="text"
+          label="Invitation link"
+          placeholder="https://…/accept-invite?token=…"
+          autocomplete="url"
+          required
+          data-testid="invite-link-input"
+        />
+        <BulwarkButton type="submit" variant="primary" class="w-full" data-testid="invite-link-submit">
+          Continue
+        </BulwarkButton>
+        <NuxtLink to="/login" class="block text-center text-small text-primary hover:underline">
+          Back to sign in
+        </NuxtLink>
+      </form>
 
       <div
         v-else-if="previewError"

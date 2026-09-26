@@ -6,10 +6,10 @@
  *     `invited` rows come from `pending_invites` (not yet accepted).
  *     `active` / `suspended` / `deactivated` derive from
  *     `(users.isActive, memberships.isActive)`.
- *   - `invite()` writes a `pending_invites` row with sha256(token) hex
- *     AND emits a `user.invited` event. The signed-URL invite token
- *     that the recipient clicks lives in the email — for Phase 1 the
- *     admin copies it from the success toast (W3-1 wires Resend).
+ *   - `invite()` writes a `pending_invites` row with sha256(token) hex,
+ *     emits a `user.invited` event, and sends the raw token URL through
+ *     the active organization email provider. If delivery is unavailable,
+ *     the admin receives a one-time copyable link.
  *   - We deliberately keep `acceptInvite` in `IAuthService` (already
  *     implemented in auth.real.ts). The user-service invite path only
  *     CREATES the pending invite + token. The auth service consumes
@@ -34,12 +34,15 @@ import type {
 } from '../../shared/contracts/user'
 import type { Role } from '../../shared/contracts/_shared'
 import { users, memberships } from '../db/schema/users'
+import { organizations } from '../db/schema/organizations'
 import { pendingInvites } from '../db/schema/pending_invites'
 import { getDb } from '../db/client'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { emit } from '../../shared/events/bus'
 import { userInvited, type UserInvitedPayload } from '../../shared/events/catalog'
+import { sendEmail } from './_providers/email'
+import { buildAuthLink, escapeEmailHtml } from './_providers/auth-links'
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -54,7 +57,28 @@ function deriveStatus(userActive: boolean, membershipActive: boolean): UserAdmin
 }
 
 export class RealUserService implements IUserService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  constructor(
+    private readonly tenantResolver?: TenantResolver,
+    private readonly emailSender: typeof sendEmail = sendEmail,
+  ) {}
+
+  private async sendInviteEmail(organizationId: string, email: string, role: Role, organizationName: string, token: string): Promise<boolean> {
+    const inviteUrl = buildAuthLink('/accept-invite', token)
+    if (!inviteUrl) return false
+    try {
+      const result = await this.emailSender({
+        organizationId,
+        to: email,
+        subject: `Invitation to join ${organizationName} on Bulwark`,
+        text: `You've been invited to join ${organizationName} as ${role}. Accept your invitation within seven days:\n\n${inviteUrl}`,
+        html: `<p>You've been invited to join <strong>${escapeEmailHtml(organizationName)}</strong> as ${escapeEmailHtml(role)}.</p><p><a href="${escapeEmailHtml(inviteUrl)}">Open your invite link</a></p><p>This link expires in seven days.</p>`,
+      })
+      return !result.stub
+    } catch (error) {
+      console.warn('[users] invite email could not be sent', error instanceof Error ? error.message : 'unknown error')
+      return false
+    }
+  }
 
   async list(input: UserListInput): Promise<UserListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
@@ -170,10 +194,19 @@ export class RealUserService implements IUserService {
     }
     await emit(userInvited, payload)
 
+    const [organization] = await getDb()
+      .select({ name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.id, input.organizationId))
+      .limit(1)
+    const emailSent = await this.sendInviteEmail(input.organizationId, email, input.role, organization?.name ?? 'your organization', rawToken)
+    const inviteUrl = buildAuthLink('/accept-invite', rawToken) ?? `/accept-invite?token=${rawToken}`
+
     return {
       inviteId: result.id,
-      inviteUrl: `/accept-invite?token=${rawToken}`,
+      inviteUrl,
       inviteToken: rawToken,
+      emailSent,
     }
   }
 
@@ -240,10 +273,18 @@ export class RealUserService implements IUserService {
       })
       return row!
     })
+    const [organization] = await getDb()
+      .select({ name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1)
+    const emailSent = await this.sendInviteEmail(organizationId, result.email, result.role as Role, organization?.name ?? 'your organization', rawToken)
+    const inviteUrl = buildAuthLink('/accept-invite', rawToken) ?? `/accept-invite?token=${rawToken}`
     return {
       inviteId: result.id,
-      inviteUrl: `/accept-invite?token=${rawToken}`,
+      inviteUrl,
       inviteToken: rawToken,
+      emailSent,
     }
   }
 

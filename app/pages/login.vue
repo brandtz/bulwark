@@ -17,7 +17,6 @@
     order at /admin/work-orders/123 bounces through /login then back).
     Decision cast down: always return to `/`. Rejected because the demo's
     share-link behaviour was a daily papercut.
-  - No "Forgot password" yet — that page lands in E2-S3.
   - Demo persona quick-pick block is gated behind `import.meta.dev` so it
     doesn't ship to production builds.
   - Form submit binds Enter to the same `submit()` function as the button
@@ -41,6 +40,9 @@ type Step =
 
 const email = ref('')
 const password = ref('')
+const passwordVisible = ref(false)
+const rememberMe = ref(false)
+const errorSummary = ref<HTMLElement | null>(null)
 const code = ref('')
 const step = ref<Step>({ kind: 'idle' })
 const now = ref(Date.now())
@@ -69,10 +71,21 @@ const retrySecondsLeft = computed(() => {
   return Math.max(0, Math.ceil((step.value.until - now.value) / 1000))
 })
 const retryAfterDisplay = computed(() => formatRetryAfter(retrySecondsLeft.value))
+const nextDestination = computed(() => {
+  const next = typeof route.query.next === 'string' ? route.query.next : ''
+  return next.startsWith('/') && !next.startsWith('//') ? next : ''
+})
+const passwordResetComplete = computed(() => route.query.reset === 'ok')
+
+watch(error, async (message) => {
+  if (!message) return
+  await nextTick()
+  errorSummary.value?.focus()
+})
 
 async function submit() {
   if (!email.value || !password.value) return
-  const r = await loginEx({ email: email.value, password: password.value })
+  const r = await loginEx({ email: email.value, password: password.value, rememberMe: rememberMe.value })
   if (r.ok && r.kind === 'session') {
     await goToPostLoginDestination()
     return
@@ -156,194 +169,309 @@ async function goToPostLoginDestination() {
 </script>
 
 <template>
-  <main class="min-h-screen bg-surface-muted md:bg-white" data-testid="login-page-root">
-    <div class="min-h-screen flex flex-col md:flex-row">
-      <aside class="hidden md:flex md:w-1/2 bg-slate-950 text-white relative overflow-hidden">
-        <div class="absolute inset-0 pointer-events-none">
-          <div class="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-primary/25 blur-3xl" />
-          <div class="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
+  <main class="auth-page" data-testid="login-page-root">
+    <a class="skip-link" href="#login-form">Skip to sign in</a>
+
+    <header class="auth-header">
+      <NuxtLink to="/login" class="brand-lockup" aria-label="Bulwark sign in">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <span class="brand-copy">
+          <strong>Bulwark</strong>
+          <small>Operations workspace</small>
+        </span>
+      </NuxtLink>
+      <span class="help-copy">Need help? Contact your administrator.</span>
+    </header>
+
+    <section class="auth-content" aria-labelledby="login-heading">
+      <div class="auth-card">
+        <div v-if="step.kind !== 'mfa'" class="auth-title">
+          <h1 id="login-heading">Sign in</h1>
+          <p>Use your work email and password to continue.</p>
         </div>
 
-        <div class="relative z-10 flex h-full w-full flex-col justify-between p-12 lg:p-16">
-          <div>
-            <div class="mb-16 flex items-center gap-3">
-              <div class="h-10 w-10 rounded-[10px] bg-primary text-white grid place-items-center font-bold shadow">B</div>
-              <span class="text-3xl font-semibold tracking-tight">Bulwark</span>
-            </div>
-            <h1 class="text-5xl font-bold leading-tight">Field operations<br>simplified.</h1>
-            <p class="mt-5 max-w-md text-slate-300 text-lg">
-              The complete operations platform for wildfire retrofit contractors and property management.
-            </p>
+        <div
+          v-if="passwordResetComplete"
+          class="auth-banner auth-banner--success"
+          role="status"
+          data-testid="login-reset-success"
+        >Your password has been updated. Sign in with your new password.</div>
+        <div
+          v-if="nextDestination && step.kind !== 'mfa'"
+          class="auth-banner auth-banner--info"
+          data-testid="login-next-notice"
+        >Sign in to continue to <span class="font-mono">{{ nextDestination }}</span>.</div>
 
-            <div class="mt-12 max-w-xl space-y-4">
-              <div class="rounded-card border border-slate-800 bg-slate-900/60 p-5">
-                <p class="text-white font-semibold">Fast Data Entry</p>
-                <p class="mt-1 text-sm text-slate-300">Optimized for gloved hands and challenging field conditions.</p>
-              </div>
-              <div class="rounded-card border border-slate-800 bg-slate-900/60 p-5">
-                <p class="text-white font-semibold">Compliance Docs</p>
-                <p class="mt-1 text-sm text-slate-300">Instant PDF generation with legal text and certifications.</p>
-              </div>
-            </div>
-          </div>
-
-          <p class="text-slate-400 text-sm">© {{ new Date().getFullYear() }} Bulwark Operations Inc.</p>
+        <div
+          v-if="step.kind === 'locked'"
+          role="alert"
+          class="auth-banner auth-banner--warning"
+          data-testid="login-locked-banner"
+        >
+          <strong>{{ t('login.locked', 'title', 'Account temporarily locked') }}</strong>
+          <span data-testid="login-locked-retry">Try again in {{ retryAfterDisplay }}.</span>
         </div>
-      </aside>
 
-      <section class="w-full md:w-1/2 flex items-center justify-center px-4 py-8 sm:px-8 lg:px-14">
-        <div class="w-full max-w-[460px] rounded-card border border-border bg-surface shadow p-6 md:border-none md:shadow-none md:p-0">
-          <div class="mb-8 text-center md:hidden">
-            <div class="mx-auto h-12 w-12 rounded-[12px] bg-primary text-white grid place-items-center font-bold shadow">B</div>
-            <p class="mt-4 text-3xl font-semibold text-text-primary">Bulwark</p>
-            <p class="text-small text-text-secondary mt-1">Field operations simplified.</p>
+        <form
+          v-if="step.kind === 'mfa'"
+          id="login-form"
+          class="auth-form"
+          data-testid="login-mfa-form"
+          @submit.prevent="submitMfa"
+        >
+          <div class="auth-title auth-title--compact">
+            <h1 id="login-heading">{{ t('login.mfa', 'title', 'Two-factor required') }}</h1>
+            <p>Enter the {{ step.useBackup ? 'backup code' : '6-digit code' }} for {{ step.email }}.</p>
           </div>
-
-          <header class="mb-8 hidden md:block">
-            <p class="text-4xl font-semibold text-text-primary">Welcome back</p>
-            <h1 class="mt-1 text-h2 text-text-primary">Sign in</h1>
-            <p class="mt-2 text-body text-text-secondary">Please enter your details to sign in.</p>
-          </header>
-
-          <div
-            v-if="step.kind === 'locked'"
-            role="alert"
-            class="mb-4 rounded-card border border-status-warning/40 bg-status-warning/10 px-4 py-3 text-small text-text-primary"
-            data-testid="login-locked-banner"
-          >
-            <p class="font-medium">{{ t('login.locked', 'title', 'Account temporarily locked') }}</p>
-            <p class="mt-1 text-text-secondary" data-testid="login-locked-retry">
-              Try again in <span class="font-mono">{{ retryAfterDisplay }}</span>.
-            </p>
+          <div v-if="error" ref="errorSummary" role="alert" tabindex="-1" class="auth-banner auth-banner--danger">{{ error }}</div>
+          <BulwarkInput
+            v-model="code"
+            :label="step.useBackup ? 'Backup code' : 'Code'"
+            :placeholder="step.useBackup ? 'XXXX-XXXX' : '123456'"
+            autocomplete="one-time-code"
+            inputmode="numeric"
+            required
+            data-testid="login-mfa-input"
+          />
+          <BulwarkButton type="submit" variant="primary" size="lg" :loading="loading" class="auth-submit" data-testid="login-mfa-submit">
+            Verify
+          </BulwarkButton>
+          <div class="auth-link-row">
+            <button type="button" class="auth-link" data-testid="login-mfa-toggle-backup" @click="toggleBackupCodeMode">
+              {{ step.useBackup ? 'Use authenticator code' : 'Use backup code' }}
+            </button>
+            <button type="button" class="auth-link auth-link--muted" data-testid="login-mfa-cancel" @click="cancelMfa">Back</button>
           </div>
+        </form>
 
-          <form
-            v-if="step.kind === 'mfa'"
-            class="space-y-4"
-            data-testid="login-mfa-form"
-            @submit.prevent="submitMfa"
-          >
-            <h1 class="text-h2 text-text-primary">{{ t('login.mfa', 'title', 'Two-factor required') }}</h1>
-            <p class="text-small text-text-secondary">
-              Enter the {{ step.useBackup ? 'backup code' : '6-digit code' }} for
-              <span class="font-medium text-text-primary">{{ step.email }}</span>.
-            </p>
-
-            <div
-              v-if="error"
-              role="alert"
-              class="rounded-input border border-status-error/30 bg-status-error/5 px-3 py-2 text-small text-status-error"
-            >{{ error }}</div>
-
-            <BulwarkInput
-              v-model="code"
-              :label="step.useBackup ? 'Backup code' : 'Code'"
-              :placeholder="step.useBackup ? 'XXXX-XXXX' : '123456'"
-              autocomplete="one-time-code"
-              inputmode="numeric"
-              required
-              data-testid="login-mfa-input"
-            />
-
-            <BulwarkButton
-              type="submit"
-              variant="primary"
-              :loading="loading"
-              class="w-full"
-              data-testid="login-mfa-submit"
-            >Verify</BulwarkButton>
-
-            <div class="flex items-center justify-between text-small">
-              <button
-                type="button"
-                class="text-primary hover:underline"
-                data-testid="login-mfa-toggle-backup"
-                @click="toggleBackupCodeMode"
-              >{{ step.useBackup ? 'Use authenticator code' : 'Use backup code' }}</button>
-              <button
-                type="button"
-                class="text-text-secondary hover:underline"
-                data-testid="login-mfa-cancel"
-                @click="cancelMfa"
-              >Cancel</button>
-            </div>
-          </form>
-
-          <form
-            v-else
-            class="space-y-4"
-            :class="{ 'opacity-60 pointer-events-none': step.kind === 'locked' }"
-            @submit.prevent="submit"
-          >
-            <div
-              v-if="error && step.kind !== 'locked'"
-              role="alert"
-              class="rounded-input border border-status-error/30 bg-status-error/5 px-3 py-2 text-small text-status-error"
-              data-testid="login-error-summary"
-            >{{ error }}</div>
-
-            <BulwarkInput
-              v-model="email"
-              type="email"
-              label="Email Address"
-              placeholder="name@company.com"
-              autocomplete="email"
-              required
-            />
+        <form
+          v-else
+          id="login-form"
+          class="auth-form"
+          :class="{ 'auth-form--locked': step.kind === 'locked' }"
+          @submit.prevent="submit"
+        >
+          <div v-if="error && step.kind !== 'locked'" ref="errorSummary" role="alert" tabindex="-1" class="auth-banner auth-banner--danger" data-testid="login-error-summary">{{ error }}</div>
+          <BulwarkInput
+            v-model="email"
+            type="email"
+            label="Email"
+            placeholder="you@company.com"
+            autocomplete="username"
+            required
+            :disabled="step.kind === 'locked' || loading"
+          />
+          <div class="password-control">
             <BulwarkInput
               v-model="password"
-              type="password"
+              :type="passwordVisible ? 'text' : 'password'"
               label="Password"
               autocomplete="current-password"
               required
+              :disabled="step.kind === 'locked' || loading"
             />
-
-            <div class="flex items-center justify-between pt-1">
-              <label class="inline-flex items-center gap-2 text-small text-text-primary">
-                <input type="checkbox" class="h-4 w-4 rounded border-border text-primary focus:ring-primary/40">
-                Remember me
-              </label>
-              <NuxtLink to="/forgot-password" class="text-small text-text-secondary hover:text-text-primary">
-                Forgot password?
-              </NuxtLink>
-            </div>
-
-            <BulwarkButton
-              type="submit"
-              variant="primary"
-              :loading="loading"
-              :disabled="step.kind === 'locked'"
-              class="w-full"
-            >
-              Log In
-            </BulwarkButton>
-          </form>
-
-          <div v-if="showDevPersonas && step.kind !== 'mfa'" class="mt-6 rounded-card border border-border bg-surface p-4">
-            <p class="text-small font-medium text-text-primary">Demo personas (mock auth)</p>
-            <p class="text-tiny text-text-secondary mt-0.5 mb-3">
-              Click any persona to sign in instantly. The mock backend ignores the password.
-            </p>
-            <div class="flex flex-col gap-2">
-              <BulwarkButton
-                v-for="p in personas"
-                :key="p.email"
-                type="button"
-                variant="secondary"
-                :data-persona="p.email"
-                @click="quickLogin(p.email)"
-              >
-                {{ p.label }}
-              </BulwarkButton>
-            </div>
+            <button
+              type="button"
+              class="password-toggle"
+              :aria-label="passwordVisible ? 'Hide password' : 'Show password'"
+              :aria-pressed="passwordVisible"
+              :disabled="step.kind === 'locked' || loading"
+              @click="passwordVisible = !passwordVisible"
+            >{{ passwordVisible ? 'Hide' : 'Show' }}</button>
           </div>
 
-          <p class="mt-8 text-center text-small text-text-secondary">
-            Need an account?
-            <span class="text-primary font-medium">Contact Admin</span>
-          </p>
+          <div class="auth-link-row auth-link-row--after-password">
+            <label class="remember-control">
+              <input v-model="rememberMe" type="checkbox" data-testid="remember-me-checkbox">
+              <span>Keep me signed in on this device</span>
+            </label>
+            <NuxtLink to="/forgot-password" class="auth-link" data-testid="forgot-password-link">Forgot password?</NuxtLink>
+          </div>
+
+          <BulwarkButton
+            type="submit"
+            variant="primary"
+            size="lg"
+            :loading="loading"
+            :disabled="step.kind === 'locked'"
+            class="auth-submit"
+            data-testid="login-submit"
+          >Sign In</BulwarkButton>
+        </form>
+
+        <div v-if="showDevPersonas && step.kind !== 'mfa'" class="dev-personas">
+          <p class="dev-personas-title">Demo personas</p>
+          <div class="dev-persona-list">
+            <BulwarkButton
+              v-for="persona in personas"
+              :key="persona.email"
+              type="button"
+              variant="secondary"
+              :data-persona="persona.email"
+              @click="quickLogin(persona.email)"
+            >{{ persona.label }}</BulwarkButton>
+          </div>
         </div>
-      </section>
-    </div>
+
+        <p v-if="step.kind !== 'mfa'" class="invite-prompt">
+          Already invited?
+          <NuxtLink to="/accept-invite" class="auth-link" data-testid="open-invite-link">Open your invite link</NuxtLink>
+        </p>
+      </div>
+    </section>
+
+    <footer class="auth-footer">
+      <span>Powered by <strong>BULWARK</strong></span>
+      <span class="footer-legal">Secure access for your organization</span>
+    </footer>
   </main>
 </template>
+
+<style scoped>
+.auth-page {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 28px clamp(20px, 5vw, 72px) 20px;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  font-family: var(--font-body);
+}
+
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  transform: translateY(-150%);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-inverse);
+  background: var(--accent);
+}
+
+.skip-link:focus { transform: translateY(0); }
+
+.auth-header, .auth-footer {
+  width: min(100%, 1100px);
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 10px;
+  color: var(--on-accent);
+  background: var(--accent);
+  font-weight: 700;
+}
+
+.brand-copy { display: grid; gap: 1px; }
+.brand-copy strong { font-size: 16px; line-height: 1.2; font-weight: 600; }
+.brand-copy small, .help-copy, .auth-footer { color: var(--text-secondary); font-size: 12px; }
+.help-copy { text-align: right; }
+
+.auth-content {
+  display: grid;
+  place-items: center;
+  padding-block: 48px;
+}
+
+.auth-card {
+  width: min(100%, 440px);
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-1);
+  animation: auth-enter 180ms var(--ease-out) both;
+}
+
+.auth-title { margin-bottom: 24px; }
+.auth-title h1 { margin: 0; font-size: 22px; line-height: 1.3; font-weight: 600; }
+.auth-title p { margin: 6px 0 0; color: var(--text-secondary); font-size: 14px; line-height: 1.5; }
+.auth-title--compact { margin-bottom: 0; }
+.auth-form { display: grid; gap: 16px; }
+.auth-form--locked { opacity: 0.65; }
+.auth-banner { display: grid; gap: 3px; padding: 11px 12px; border: 1px solid; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.45; }
+.auth-banner--info { margin-bottom: 16px; color: var(--info-strong); background: var(--info-bg); border-color: var(--info-border); }
+.auth-banner--success { margin-bottom: 16px; color: var(--success-strong); background: var(--success-bg); border-color: var(--success-border); }
+.auth-banner--warning { margin-bottom: 16px; color: var(--warning-strong); background: var(--warning-bg); border-color: var(--warning-border); }
+.auth-banner--danger { color: var(--danger-strong); background: var(--danger-bg); border-color: var(--danger-border); }
+
+.password-control { position: relative; }
+.password-control :deep(input) { padding-right: 58px; }
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  min-width: 44px;
+  min-height: 32px;
+  padding-inline: 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-link);
+  background: transparent;
+  font: 500 12px var(--font-body);
+  cursor: pointer;
+}
+.password-toggle:focus-visible, .auth-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.auth-link-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.auth-link-row--after-password { margin-top: -9px; }
+.auth-link, .auth-link--muted { min-height: 32px; display: inline-flex; align-items: center; color: var(--text-link); font-size: 13px; font-weight: 500; text-decoration: none; }
+.auth-link:hover { text-decoration: underline; }
+.auth-link--muted { color: var(--text-secondary); }
+.remember-control { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; color: var(--text-secondary); font-size: 12px; line-height: 1.35; cursor: pointer; }
+.remember-control input { width: 16px; height: 16px; flex: none; accent-color: var(--accent); }
+.auth-submit { width: 100%; background: var(--accent) !important; color: var(--on-accent) !important; }
+.auth-submit:hover:not(:disabled) { background: var(--accent-700) !important; }
+.invite-prompt { margin: 22px 0 0; padding-top: 16px; border-top: 1px solid var(--divider); color: var(--text-secondary); font-size: 13px; text-align: center; }
+.invite-prompt .auth-link { margin-left: 4px; }
+.dev-personas { display: grid; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--divider); }
+.dev-personas-title { margin: 0; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.dev-persona-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.dev-persona-list :deep(button) { min-height: 36px; }
+.auth-footer { min-height: 32px; }
+.auth-footer strong { color: var(--text-primary); font-size: 10px; letter-spacing: 0.04em; }
+
+@keyframes auth-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 499px) {
+  .auth-page { padding: 20px; }
+  .help-copy { display: none; }
+  .auth-content { place-items: start center; padding-block: 48px 24px; }
+  .auth-card { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .auth-title { margin-bottom: 24px; }
+  .auth-title h1 { font-size: 20px; }
+  .auth-form { gap: 18px; }
+  .auth-form :deep(input) { min-height: 48px; }
+  .auth-submit { min-height: 48px; }
+  .password-toggle { bottom: 8px; }
+  .invite-prompt { margin-top: 20px; }
+  .auth-footer { align-items: flex-start; flex-direction: column; gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card { animation: none; }
+}
+</style>

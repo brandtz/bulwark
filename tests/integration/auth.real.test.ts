@@ -13,12 +13,15 @@ import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { getDb } from '../../server/db/client'
 import { users, memberships } from '../../server/db/schema/users'
+import { pendingInvites } from '../../server/db/schema/pending_invites'
+import { auditLog } from '../../server/db/schema/audit_log'
 import { organizations } from '../../server/db/schema/organizations'
 import {
   InMemoryAuthSessionAdapter,
   RealAuthService,
   mintInviteToken,
 } from '../../server/services/auth.real'
+import { RealUserService } from '../../server/services/user.real'
 
 const HAS_DB = !!process.env.DATABASE_URL
 const d = HAS_DB ? describe : describe.skip
@@ -60,12 +63,13 @@ d('RealAuthService (E11-S3)', () => {
   it('login() succeeds with correct password and populates session', async () => {
     const adapter = new InMemoryAuthSessionAdapter()
     const svc = new RealAuthService(adapter)
-    const result = await svc.login({ email, password })
+    const result = await svc.login({ email, password, rememberMe: true })
     if (result.kind !== 'session') throw new Error('expected session')
     expect(result.user.email).toBe(email)
     expect(result.user.userId).toBe(userId)
     expect(result.user.memberships).toHaveLength(2)
     expect(adapter.getActiveUserId()).toBe(userId)
+    expect(adapter.lastMaxAgeSeconds).toBe(30 * 24 * 60 * 60)
   })
 
   it('currentUser() exposes stakeholder kind on the matching membership', async () => {
@@ -145,6 +149,70 @@ d('RealAuthService (E11-S3)', () => {
     const svc = new RealAuthService(new InMemoryAuthSessionAdapter())
     const r = await svc.requestPasswordReset({ email: 'nope@example.test' })
     expect(r.devToken).toBeNull()
+  })
+
+  it('sends production reset links without returning the token to the caller', async () => {
+    const previousNodeEnv = process.env.NODE_ENV
+    const previousAppUrl = process.env.BULWARK_APP_URL
+    const delivered: Array<{ to: string; text?: string }> = []
+    process.env.NODE_ENV = 'production'
+    process.env.BULWARK_APP_URL = 'https://bulwark.example'
+    const svc = new RealAuthService(new InMemoryAuthSessionAdapter(), async (message) => {
+      delivered.push(message)
+      return { id: 'test-email', stub: false, provider: 'test' }
+    })
+    try {
+      const result = await svc.requestPasswordReset({ email })
+      expect(result.devToken).toBeNull()
+      expect(delivered).toHaveLength(1)
+      expect(delivered[0]?.to).toBe(email)
+      expect(delivered[0]?.text).toMatch(/https:\/\/bulwark\.example\/reset-password\?token=/u)
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = previousNodeEnv
+      if (previousAppUrl === undefined) delete process.env.BULWARK_APP_URL
+      else process.env.BULWARK_APP_URL = previousAppUrl
+    }
+  })
+
+  it('emails an absolute invitation link and reports delivery status', async () => {
+    const previousNodeEnv = process.env.NODE_ENV
+    const previousAppUrl = process.env.BULWARK_APP_URL
+    const delivered: Array<{ to: string; text?: string }> = []
+    const inviteEmail = `invite-${stamp}@example.test`
+    process.env.NODE_ENV = 'production'
+    process.env.BULWARK_APP_URL = 'https://bulwark.example'
+    const svc = new RealUserService(
+      () => ({ userId, organizationId: orgIdA }),
+      async (message) => {
+        delivered.push(message)
+        return { id: 'test-invite', stub: false, provider: 'test' }
+      },
+    )
+    let inviteId: string | undefined
+    try {
+      const result = await svc.invite({
+        organizationId: orgIdA,
+        email: inviteEmail,
+        role: 'field',
+        invitedByUserId: userId,
+      })
+      inviteId = result.inviteId
+      expect(result.emailSent).toBe(true)
+      expect(result.inviteUrl).toMatch(/^https:\/\/bulwark\.example\/accept-invite\?token=/u)
+      expect(delivered[0]?.to).toBe(inviteEmail)
+      expect(delivered[0]?.text).toContain(result.inviteUrl)
+    } finally {
+      if (inviteId) {
+        const db = getDb()
+        await db.delete(auditLog).where(eq(auditLog.entityId, inviteId))
+        await db.delete(pendingInvites).where(eq(pendingInvites.id, inviteId))
+      }
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = previousNodeEnv
+      if (previousAppUrl === undefined) delete process.env.BULWARK_APP_URL
+      else process.env.BULWARK_APP_URL = previousAppUrl
+    }
   })
 
   it('resetPassword() rotates the hash and signs the user in', { timeout: 20_000 }, async () => {

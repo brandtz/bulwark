@@ -7,8 +7,8 @@
       union from IUserService.list). Each row carries `kind` so the
       action menu branches.
     - Status pill copy goes through `useLabel().t('user.status', ...)`.
-    - Invite flow: modal → POST → success banner shows the inviteUrl
-      ONCE (W3-1 will send the email).
+    - Invite flow: modal → POST → email delivery status plus a one-time
+      copyable inviteUrl fallback.
     - Role change is inline select; suspend/reactivate/deactivate/
       revoke/resend hang inline per row.
 
@@ -54,7 +54,7 @@ const showInviteModal = ref(false)
 const inviteEmail = ref('')
 const inviteRole = ref<Role>('field')
 const inviting = ref(false)
-const justInvited = ref<{ email: string; url: string } | null>(null)
+const justInvited = ref<{ email: string; url: string; emailSent: boolean } | null>(null)
 
 const ROLE_CHOICES: Role[] = [
   'org_admin',
@@ -74,7 +74,7 @@ async function onInvite() {
       role: inviteRole.value,
       invitedByUserId: session.value?.userId ?? null,
     })
-    justInvited.value = { email: inviteEmail.value, url: result.inviteUrl }
+    justInvited.value = { email: inviteEmail.value, url: absoluteInviteUrl(result.inviteUrl), emailSent: result.emailSent }
     showInviteModal.value = false
     inviteEmail.value = ''
     inviteRole.value = 'field'
@@ -129,8 +129,23 @@ async function onRevoke(row: UserAdminRow) {
 async function onResend(row: UserAdminRow) {
   if (row.kind !== 'invite') return
   const result = await userService.resendInvite(row.id, orgId.value)
-  justInvited.value = { email: row.email, url: result.inviteUrl }
+  justInvited.value = { email: row.email, url: absoluteInviteUrl(result.inviteUrl), emailSent: result.emailSent }
   await load()
+}
+
+function absoluteInviteUrl(url: string): string {
+  if (import.meta.server || /^https?:\/\//iu.test(url)) return url
+  return new URL(url, window.location.origin).toString()
+}
+
+async function copyInviteUrl() {
+  if (!justInvited.value) return
+  try {
+    await navigator.clipboard.writeText(justInvited.value.url)
+    toastSuccess('Invite link copied')
+  } catch {
+    toastError('Could not copy invite link', 'Select and copy the link below.')
+  }
 }
 
 function statusPill(status: UserAdminRow['status']): { cls: string; text: string } {
@@ -172,8 +187,8 @@ function statusPill(status: UserAdminRow['status']): { cls: string; text: string
       class="mt-4 border-status-warning bg-status-warning/5"
       data-testid="invite-success-banner"
     >
-      <p class="text-body font-medium text-status-warning">
-        Copy this invite link now — it will not be shown again.
+      <p class="text-body font-medium" :class="justInvited.emailSent ? 'text-status-success' : 'text-status-warning'">
+        {{ justInvited.emailSent ? 'Invitation email sent.' : 'Email delivery is unavailable. Copy this link and send it to the invitee.' }}
       </p>
       <p class="text-small text-text-secondary mt-1">
         Sent to {{ justInvited.email }}
@@ -182,9 +197,10 @@ function statusPill(status: UserAdminRow['status']): { cls: string; text: string
         class="block mt-2 break-all rounded-card bg-surface-muted p-2 text-small"
         data-testid="invite-success-url"
       >{{ justInvited.url }}</code>
-      <div class="mt-2 flex justify-end">
+      <div class="mt-2 flex justify-end gap-2">
+        <BulwarkButton size="sm" variant="secondary" @click="copyInviteUrl">Copy invite link</BulwarkButton>
         <BulwarkButton size="sm" variant="secondary" @click="justInvited = null">
-          I've saved it
+          Dismiss
         </BulwarkButton>
       </div>
     </BulwarkCard>

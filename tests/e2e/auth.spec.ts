@@ -42,11 +42,13 @@ test.describe('Auth — login form + middleware', () => {
   test('manual form submit with admin email signs in and ?next= is honoured', async ({ page }) => {
     await page.goto('/login?next=%2Fadmin%2Fproperties')
     await page.waitForLoadState('networkidle')
+    await expect(page.getByTestId('remember-me-checkbox')).not.toBeChecked()
+    await page.getByTestId('remember-me-checkbox').check()
     await page.getByLabel('Email').fill('drew@bulwark.demo')
     await page
       .getByLabel('Password')
       .fill(process.env.BULWARK_BACKEND === 'real' ? 'BulwarkDemo!1' : 'whatever')
-    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.getByRole('button', { name: 'Sign In' }).click()
     await expect(page).toHaveURL('/admin/properties')
   })
 

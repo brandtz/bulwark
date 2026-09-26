@@ -10,8 +10,9 @@ import { RoleSchema, StakeholderKindSchema, UuidSchema } from './_shared'
 export const LoginInputSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1, 'Password required'),
+  rememberMe: z.boolean().default(false),
 })
-export type LoginInput = z.infer<typeof LoginInputSchema>
+export type LoginInput = z.input<typeof LoginInputSchema>
 
 export const SessionUserSchema = z.object({
   userId: UuidSchema,

@@ -6,11 +6,10 @@
  *     runs on Vercel's Node runtime without native bindings — the
  *     argon2/native-bcrypt route requires custom build steps we don't
  *     want for a Phase 2 MVP.
- *   - Reset + invite tokens are **stateless signed JWTs** (`jose`),
- *     keyed off `JWT_SECRET` (or `NUXT_SESSION_PASSWORD` as fallback in
- *     dev). No `password_resets` table — verification is purely "did
- *     this server sign it, and is `exp` in the future?" That's enough
- *     for MVP and avoids a whole table + cleanup cron.
+ *   - Password-reset tokens are stateless signed JWTs (`jose`), keyed
+ *     off `JWT_SECRET` (or `NUXT_SESSION_PASSWORD` as fallback in dev).
+ *     Admin-created invite tokens are opaque and stored as SHA-256 hashes
+ *     in `pending_invites`; legacy JWT invites remain accepted temporarily.
  *   - **Session storage is delegated** to a `RealAuthSessionAdapter`
  *     interface. The adapter holds (a) the active user's UUID and (b)
  *     an optional active-org override. Production wiring (E11-S4) will
@@ -28,9 +27,9 @@
  *   - argon2id. Rejected for Phase 2 — Vercel deploy + serverless cold
  *     start adds friction we don't need yet. Re-evaluate when we move
  *     off Vercel or pull native modules in for other reasons.
- *   - Returning the JWT as the only "did we send the email?" signal.
- *     Kept (`devToken` in the result) but ONLY in dev/test. Production
- *     wiring strips it before sending the response (E11-S4).
+ *   - Returning the password-reset JWT to the caller. Kept as `devToken`
+ *     only outside production; production sends the link through the
+ *     organization email provider and never returns the token.
  */
 import bcrypt from 'bcryptjs'
 import { SignJWT, jwtVerify } from 'jose'
@@ -66,10 +65,12 @@ import { pendingInvites } from '../db/schema/pending_invites'
 import { authAttempts } from '../db/schema/auth_attempts'
 import { seedDefaultNotifications } from './notification-subscription.real'
 import { RealMfaService } from './mfa.real'
+import { sendEmail } from './_providers/email'
+import { buildAuthLink, escapeEmailHtml } from './_providers/auth-links'
 
 export interface RealAuthSessionAdapter {
   getActiveUserId(): Promise<string | null> | string | null
-  setActiveUserId(userId: string | null): Promise<void> | void
+  setActiveUserId(userId: string | null, options?: { maxAgeSeconds?: number }): Promise<void> | void
   getActiveOrgOverride(): Promise<string | null> | string | null
   setActiveOrgOverride(organizationId: string | null): Promise<void> | void
 }
@@ -78,8 +79,12 @@ export interface RealAuthSessionAdapter {
 export class InMemoryAuthSessionAdapter implements RealAuthSessionAdapter {
   private userId: string | null = null
   private orgOverride: string | null = null
+  lastMaxAgeSeconds: number | undefined
   getActiveUserId() { return this.userId }
-  setActiveUserId(id: string | null) { this.userId = id }
+  setActiveUserId(id: string | null, options?: { maxAgeSeconds?: number }) {
+    this.userId = id
+    this.lastMaxAgeSeconds = options?.maxAgeSeconds
+  }
   getActiveOrgOverride() { return this.orgOverride }
   setActiveOrgOverride(id: string | null) { this.orgOverride = id }
 }
@@ -95,6 +100,7 @@ const LOCKOUT_THRESHOLD = 5
 const LOCKOUT_WINDOW_MS = 15 * 60 * 1000
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000
 const MFA_TOKEN_TTL_MS = 5 * 60 * 1000
+const REMEMBER_ME_SESSION_SECONDS = 30 * 24 * 60 * 60
 
 function getJwtSecret(): Uint8Array {
   const raw = process.env.JWT_SECRET ?? process.env.NUXT_SESSION_PASSWORD
@@ -114,7 +120,7 @@ async function signToken(payload: Record<string, unknown>, ttlMs: number): Promi
 }
 
 interface ResetPayload { kind: 'reset'; userId: string }
-interface MfaTokenPayload { kind: 'mfa'; userId: string }
+interface MfaTokenPayload { kind: 'mfa'; userId: string; rememberMe?: boolean }
 interface InvitePayload {
   kind: 'invite'
   email: string
@@ -136,7 +142,10 @@ async function verifyTokenOfKind<T extends { kind: string }>(token: string, kind
 }
 
 export class RealAuthService implements IAuthService {
-  constructor(private readonly adapter: RealAuthSessionAdapter) {}
+  constructor(
+    private readonly adapter: RealAuthSessionAdapter,
+    private readonly emailSender: typeof sendEmail = sendEmail,
+  ) {}
 
   // --- bcrypt helpers (exported for the seed script) ----------------------
   static async hashPassword(plain: string): Promise<string> {
@@ -183,12 +192,12 @@ export class RealAuthService implements IAuthService {
     if (status.enabled) {
       // Don't record this as a success yet — issue a step-up token.
       await db.insert(authAttempts).values({ email, ipAddress, success: false, reason: 'mfa_required' })
-      const mfaToken = await signToken({ kind: 'mfa', userId: row.id } satisfies MfaTokenPayload, MFA_TOKEN_TTL_MS)
+      const mfaToken = await signToken({ kind: 'mfa', userId: row.id, rememberMe: input.rememberMe } satisfies MfaTokenPayload, MFA_TOKEN_TTL_MS)
       return { kind: 'mfa_required', mfaToken, email }
     }
 
     await db.insert(authAttempts).values({ email, ipAddress, success: true, reason: null })
-    await this.adapter.setActiveUserId(row.id)
+    await this.adapter.setActiveUserId(row.id, input.rememberMe ? { maxAgeSeconds: REMEMBER_ME_SESSION_SECONDS } : undefined)
     await this.adapter.setActiveOrgOverride(null)
     const session = await this.buildSessionUser(row.id)
     if (!session) throw new Error('Account has no active memberships')
@@ -226,7 +235,7 @@ export class RealAuthService implements IAuthService {
       success: true,
       reason: usedBackup ? 'mfa_backup' : 'mfa_totp',
     })
-    await this.adapter.setActiveUserId(user.id)
+    await this.adapter.setActiveUserId(user.id, payload.rememberMe ? { maxAgeSeconds: REMEMBER_ME_SESSION_SECONDS } : undefined)
     await this.adapter.setActiveOrgOverride(null)
     const session = await this.buildSessionUser(user.id)
     if (!session) throw new Error('Account has no active memberships')
@@ -275,9 +284,28 @@ export class RealAuthService implements IAuthService {
       return { devToken: null }
     }
     const token = await signToken({ kind: 'reset', userId: row.id } satisfies ResetPayload, RESET_TTL_MS)
-    // E11-S4 will swap the response: caller-side strip in production,
-    // keep `devToken` in dev so Playwright can click straight through.
     const isProd = process.env.NODE_ENV === 'production'
+    const [membership] = await db
+      .select({ organizationId: memberships.organizationId })
+      .from(memberships)
+      .where(and(eq(memberships.userId, row.id), eq(memberships.isActive, true)))
+      .limit(1)
+    const resetUrl = membership ? buildAuthLink('/reset-password', token) : null
+    if (resetUrl && membership) {
+      try {
+        await this.emailSender({
+          organizationId: membership.organizationId,
+          to: input.email,
+          subject: 'Reset your Bulwark password',
+          text: `Use this link to reset your password. It expires in one hour.\n\n${resetUrl}`,
+          html: `<p>Use this link to reset your password. It expires in one hour.</p><p><a href="${escapeEmailHtml(resetUrl)}">Reset password</a></p>`,
+        })
+      } catch (error) {
+        console.warn('[auth] password reset email could not be sent', error instanceof Error ? error.message : 'unknown error')
+      }
+    } else if (isProd) {
+      console.warn('[auth] password reset email not sent: BULWARK_APP_URL or active membership is missing')
+    }
     return { devToken: isProd ? null : token }
   }
 

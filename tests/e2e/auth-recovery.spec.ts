@@ -48,6 +48,25 @@ function mintInviteToken(opts: {
 }
 
 test.describe('Auth recovery — forgot / reset / invite', () => {
+  test('login exposes password recovery and opens a pasted invitation link', async ({ page }) => {
+    await page.goto('/login')
+    await page.getByTestId('forgot-password-link').click()
+    await expect(page).toHaveURL('/forgot-password')
+    await expect(page.getByTestId('forgot-submit')).toBeVisible()
+
+    await page.goto('/login')
+    await page.getByTestId('open-invite-link').click()
+    await expect(page).toHaveURL('/accept-invite')
+    await expect(page.getByTestId('invite-link-entry')).toBeVisible()
+    await page.getByTestId('invite-link-input').fill('https://attacker.example/accept-invite?token=forged')
+    await page.getByTestId('invite-link-submit').click()
+    await expect(page.getByRole('alert')).toContainText('does not look like a Bulwark invitation')
+    const token = mintInviteToken({ email: 'pasted-invite@bulwark.demo' })
+    await page.getByTestId('invite-link-input').fill(`http://localhost:3000/accept-invite?token=${token}`)
+    await page.getByTestId('invite-link-submit').click()
+    await expect(page.getByTestId('invite-summary')).toContainText('pasted-invite@bulwark.demo')
+  })
+
   test('forgot-password shows success state and a dev reset link for known email', async ({ page }) => {
     await page.goto('/forgot-password')
     await page.waitForLoadState('networkidle')
