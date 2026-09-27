@@ -23,6 +23,7 @@ export const COUNTERS = {
   webhooksDeliveredTotal: 'webhooks_delivered_total',
   webhooksFailedTotal: 'webhooks_failed_total',
   notificationsDispatchedTotal: 'notifications_dispatched_total',
+  commsDeliveryFailedTotal: 'comms_delivery_failed_total',
   // W5-1 / EH-R (ADR-0035) — incremented every time the rate-limit
   // middleware short-circuits a request with 429. Kept at the same
   // tier as request totals so /api/metrics can compute a block ratio.

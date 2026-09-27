@@ -6,22 +6,22 @@
  *   - Single `sendEmail({ to, subject, html, text })` API. The provider
  *     is selected by reading the active `provider_configs` row of
  *     kind `email` for the caller's org (or the supplied
- *     `organizationId`). If no row is active OR
- *     `BULWARK_NOTIFICATIONS_DISABLED=1`, we log + return a stub id.
+ *     `organizationId`). Development/test failures are ledgered as stubs;
+ *     production transactional failures throw and fan-out failures return
+ *     an explicit failed outcome.
  *   - **No new npm deps in Phase 1**. The `resend` branch calls the
  *     public HTTPS API directly with `fetch` — same payload shape the
  *     SDK uses. Promotion to the official SDK is a Phase 2 swap if
  *     ergonomics demand.
  *   - **Test mode default**: when `NODE_ENV === 'test'` or
- *     `BULWARK_NOTIFICATIONS_DISABLED=1` we never make a real network
- *     call. CI stays quiet and unit tests can assert on the stub id.
- *   - Returns `{ id, stub }`. `stub: true` means no provider call was
- *     attempted; receivers can branch on that for instrumentation.
+ *     `BULWARK_NOTIFICATIONS_DISABLED=1` outside production, no network
+ *     call is made. CI stays quiet and attempts are recorded as stubs.
+ *   - Every attempt stores a keyed recipient hash; raw email addresses
+ *     are not persisted in the delivery ledger.
  *
  * # Decisions cast down
- *   - Rejected: throwing on missing provider config. The notification
- *     subscriber must be defensive — a single missing provider can't
- *     poison the in-app + sms paths. We log + stub instead.
+ *   - Rejected: throwing on every fan-out failure. A missing provider
+ *     must not poison the in-app notification path.
  */
 import { randomUUID } from 'node:crypto'
 import { getDb } from '../../db/client'
@@ -29,6 +29,9 @@ import { providerConfigs } from '../../db/schema/provider_configs'
 import { and, eq } from 'drizzle-orm'
 // W5-2 / ADR-0036 — provider rows store credentials sealed at rest.
 import { unsealProviderConfig } from '../provider-config.real'
+import { recordDeliveryAttempt } from './delivery-ledger'
+
+type DeliveryMode = 'transactional' | 'fanout'
 
 export interface SendEmailInput {
   organizationId: string
@@ -36,12 +39,18 @@ export interface SendEmailInput {
   subject: string
   html?: string
   text?: string
+  mode?: DeliveryMode
+  eventType?: string
+  relatedEntityType?: string
+  relatedEntityId?: string
 }
 
 export interface SendEmailResult {
-  id: string
+  id: string | null
   stub: boolean
   provider: string
+  status: 'sent' | 'stubbed' | 'failed'
+  error?: string
 }
 
 function isDisabled(): boolean {
@@ -84,59 +93,72 @@ async function resolveActiveProvider(organizationId: string): Promise<{
  * provider's official SDK in Phase 2.
  */
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
+  const production = process.env.NODE_ENV === 'production'
+  const finish = async (
+    provider: string,
+    status: 'sent' | 'stubbed' | 'failed',
+    opts: { id?: string | null; error?: string } = {},
+  ): Promise<SendEmailResult> => {
+    await recordDeliveryAttempt({
+      organizationId: input.organizationId,
+      channel: 'email',
+      provider,
+      recipient: input.to,
+      status,
+      providerMessageId: opts.id,
+      error: opts.error,
+      eventType: input.eventType,
+      relatedEntityType: input.relatedEntityType,
+      relatedEntityId: input.relatedEntityId,
+    })
+    if (status === 'failed' && input.mode !== 'fanout') {
+      throw new Error(`Email delivery failed (${provider}): ${opts.error ?? 'unknown error'}`)
+    }
+    return {
+      id: opts.id ?? (status === 'stubbed' ? `stub-${randomUUID()}` : null),
+      stub: status === 'stubbed',
+      provider,
+      status,
+      ...(opts.error ? { error: opts.error } : {}),
+    }
+  }
+  const failure = (provider: string, error: string) => finish(provider, production ? 'failed' : 'stubbed', { error })
+
   if (isDisabled()) {
-    return { id: `stub-${randomUUID()}`, stub: true, provider: 'stub' }
+    if (production) return failure('disabled', 'Outbound notifications are disabled')
+    return finish('stub', 'stubbed')
   }
   const cfg = await resolveActiveProvider(input.organizationId)
-  if (!cfg) {
-     
-    console.log(`[email] (stub) to=${input.to} subject=${input.subject}`)
-    return { id: `stub-${randomUUID()}`, stub: true, provider: 'stub' }
-  }
+  if (!cfg) return failure('none', 'No active email provider is configured')
 
-  if (cfg.provider === 'resend') {
-    const apiKey = typeof cfg.config.apiKey === 'string' ? cfg.config.apiKey : ''
-    const from = typeof cfg.config.from === 'string'
+  if (cfg.provider !== 'resend') return failure(cfg.provider, 'Email provider is unsupported')
+  const apiKey = typeof cfg.config.apiKey === 'string' ? cfg.config.apiKey : ''
+  const from = typeof cfg.config.fromAddress === 'string'
+    ? cfg.config.fromAddress
+    : typeof cfg.config.from === 'string'
       ? cfg.config.from
-      : typeof cfg.config.fromAddress === 'string'
-        ? cfg.config.fromAddress
-        : 'notifications@bulwark.local'
-    if (!apiKey) {
-       
-      console.warn('[email] resend provider missing apiKey; falling back to stub')
-      return { id: `stub-${randomUUID()}`, stub: true, provider: 'resend' }
-    }
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          from,
-          to: input.to,
-          subject: input.subject,
-          html: input.html ?? `<p>${input.text ?? ''}</p>`,
-          text: input.text ?? '',
-        }),
-      })
-      if (!res.ok) {
-         
-        console.warn(`[email] resend non-2xx status=${res.status}`)
-        return { id: `stub-${randomUUID()}`, stub: true, provider: 'resend' }
-      }
-      const body = (await res.json().catch(() => ({}))) as { id?: string }
-      return { id: body.id ?? `resend-${randomUUID()}`, stub: false, provider: 'resend' }
-    } catch (err) {
-       
-      console.warn('[email] resend send failed', (err as Error).message)
-      return { id: `stub-${randomUUID()}`, stub: true, provider: 'resend' }
-    }
-  }
+      : ''
+  if (!apiKey || !from) return failure('resend', 'Resend sender configuration is incomplete')
 
-  // Unknown provider — log + stub. Phase 2 may add postmark / sendgrid.
-   
-  console.log(`[email] (stub) provider=${cfg.provider} to=${input.to}`)
-  return { id: `stub-${randomUUID()}`, stub: true, provider: cfg.provider }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        from,
+        to: input.to,
+        subject: input.subject,
+        html: input.html ?? `<p>${input.text ?? ''}</p>`,
+        text: input.text ?? '',
+      }),
+    })
+    if (!res.ok) return failure('resend', `Resend returned HTTP ${res.status}`)
+    const body = (await res.json().catch(() => ({}))) as { id?: string }
+    return finish('resend', 'sent', { id: body.id ?? `resend-${randomUUID()}` })
+  } catch {
+    return failure('resend', 'Resend request failed')
+  }
 }

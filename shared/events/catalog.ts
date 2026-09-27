@@ -153,6 +153,14 @@ export interface NotificationSentPayload extends DomainEventBase {
 }
 export const notificationSent = defineEvent<NotificationSentPayload>('notification.sent')
 
+export interface CommsDeliveryFailedPayload extends DomainEventBase {
+  channel: 'email' | 'sms'
+  provider: string
+  sourceEventType: string | null
+  error: string
+}
+export const commsDeliveryFailed = defineEvent<CommsDeliveryFailedPayload>('comms.delivery_failed')
+
 // ---------------------------------------------------------------------------
 // Portal events (W3-4 / EH-N + EH-O / ADR-0031/0032).
 // ---------------------------------------------------------------------------
@@ -220,6 +228,7 @@ export type AnyDomainEventPayload =
   | UserInvitedPayload
   | WebhookDeliveredPayload
   | NotificationSentPayload
+  | CommsDeliveryFailedPayload
   | SubQuoteRespondedPayload
   | SubCoiUploadedPayload
   | SubCoiExpiringSoonPayload

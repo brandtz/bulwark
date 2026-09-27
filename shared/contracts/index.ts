@@ -3,6 +3,7 @@
  */
 export * from './_shared'
 export * from './auth'
+export * from './delivery'
 export * from './property'
 export * from './client'
 export * from './assessment'

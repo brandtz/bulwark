@@ -33,14 +33,16 @@ export interface FanoutSinks {
   }) => Promise<{ id: string | null }>
   emailSink: (args: {
     organizationId: string
+    userId: string
     to: string
     rendered: RenderedNotification
-  }) => Promise<{ stub: boolean; provider: string }>
+  }) => Promise<{ stub: boolean; provider: string; status?: 'sent' | 'stubbed' | 'failed'; error?: string }>
   smsSink: (args: {
     organizationId: string
+    userId: string
     to: string
     rendered: RenderedNotification
-  }) => Promise<{ stub: boolean; provider: string }>
+  }) => Promise<{ stub: boolean; provider: string; status?: 'sent' | 'stubbed' | 'failed'; error?: string }>
   /** Optional per-(channel, outcome) audit hook. */
   auditSink?: (args: {
     organizationId: string
@@ -58,6 +60,7 @@ export interface FanoutResult {
   channels: Array<{
     channel: 'inApp' | 'email' | 'sms'
     outcome: 'ok' | 'stub' | 'error'
+    provider?: string
     detail?: string
     notificationId?: string | null
   }>
@@ -110,11 +113,13 @@ export async function fanoutForRecipient(opts: {
     try {
       const r = await opts.sinks.emailSink({
         organizationId: opts.organizationId,
+        userId: opts.recipient.userId,
         to: opts.recipient.email,
         rendered: opts.rendered,
       })
-      const outcome = r.stub ? 'stub' : 'ok'
-      out.channels.push({ channel: 'email', outcome, detail: r.provider, notificationId: inAppId })
+      const outcome = r.status === 'failed' ? 'error' : r.stub ? 'stub' : 'ok'
+      const detail = r.error ?? r.provider
+      out.channels.push({ channel: 'email', outcome, provider: r.provider, detail, notificationId: inAppId })
       await opts.sinks.auditSink?.({
         organizationId: opts.organizationId,
         userId: opts.recipient.userId,
@@ -122,7 +127,7 @@ export async function fanoutForRecipient(opts: {
         channel: 'email',
         eventType: opts.eventType,
         outcome,
-        detail: r.provider,
+        detail,
       })
     } catch (err) {
       const detail = (err as Error).message?.slice(0, 200)
@@ -143,11 +148,13 @@ export async function fanoutForRecipient(opts: {
     try {
       const r = await opts.sinks.smsSink({
         organizationId: opts.organizationId,
+        userId: opts.recipient.userId,
         to: opts.recipient.email,
         rendered: opts.rendered,
       })
-      const outcome = r.stub ? 'stub' : 'ok'
-      out.channels.push({ channel: 'sms', outcome, detail: r.provider, notificationId: inAppId })
+      const outcome = r.status === 'failed' ? 'error' : r.stub ? 'stub' : 'ok'
+      const detail = r.error ?? r.provider
+      out.channels.push({ channel: 'sms', outcome, provider: r.provider, detail, notificationId: inAppId })
       await opts.sinks.auditSink?.({
         organizationId: opts.organizationId,
         userId: opts.recipient.userId,
@@ -155,7 +162,7 @@ export async function fanoutForRecipient(opts: {
         channel: 'sms',
         eventType: opts.eventType,
         outcome,
-        detail: r.provider,
+        detail,
       })
     } catch (err) {
       const detail = (err as Error).message?.slice(0, 200)

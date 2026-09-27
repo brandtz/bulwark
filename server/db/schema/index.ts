@@ -63,6 +63,7 @@ export * from './mfa_backup_codes'
 export * from './permissions'
 // W3-1 / EH-J — in-app notification feed (ADR-0027).
 export * from './notifications'
+export * from './message_deliveries'
 // W3-4 / EH-N + EH-O — subcontractor + homeowner portals (ADR-0031/0032).
 export * from './subcontractor_users'
 export * from './homeowner_users'

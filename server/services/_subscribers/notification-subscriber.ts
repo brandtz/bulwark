@@ -36,7 +36,8 @@
  *     env-var path above.
  */
 import { and, eq, isNull } from 'drizzle-orm'
-import { onAny } from '../../../shared/events/bus'
+import { emit, onAny } from '../../../shared/events/bus'
+import { commsDeliveryFailed } from '../../../shared/events/catalog'
 import { getDb } from '../../db/client'
 import { users, memberships  } from '../../db/schema/users'
 
@@ -146,6 +147,7 @@ async function resolveRecipients(
 }
 
 async function dispatchEvent(eventName: string, payload: unknown): Promise<void> {
+  if (eventName === commsDeliveryFailed.name) return
   if (notificationsDisabled()) return
   const orgId = (payload as { organizationId?: string } | null | undefined)?.organizationId
   if (!orgId) return
@@ -171,7 +173,7 @@ async function dispatchEvent(eventName: string, payload: unknown): Promise<void>
       email: r.email,
       channels: r.channels,
     }
-    await fanoutForRecipient({
+    const result = await fanoutForRecipient({
       organizationId: orgId,
       recipient: fr,
       eventType: eventName,
@@ -193,23 +195,32 @@ async function dispatchEvent(eventName: string, payload: unknown): Promise<void>
             .returning({ id: notifications.id })
           return { id: row?.id ?? null }
         },
-        emailSink: async ({ organizationId, to, rendered: rd }) => {
+        emailSink: async ({ organizationId, userId, to, rendered: rd }) => {
           const res = await sendEmail({
             organizationId,
             to,
             subject: rd.title,
             text: rd.body,
             html: `<p>${rd.body}</p>`,
+            mode: 'fanout',
+            eventType,
+            relatedEntityType: rd.relatedEntityType,
+            relatedEntityId: rd.relatedEntityId ?? userId,
           })
-          return { stub: res.stub, provider: res.provider }
+          return { stub: res.stub, provider: res.provider, status: res.status, error: res.error }
         },
-        smsSink: async ({ organizationId, to, rendered: rd }) => {
+        smsSink: async ({ organizationId, userId, rendered: rd }) => {
           const res = await sendSms({
             organizationId,
-            to,
+            to: '',
             body: `${rd.title}: ${rd.body}`,
+            mode: 'fanout',
+            eventType,
+            relatedEntityType: rd.relatedEntityType,
+            relatedEntityId: rd.relatedEntityId ?? userId,
+            failureReason: 'User phone number is not configured',
           })
-          return { stub: res.stub, provider: res.provider }
+          return { stub: res.stub, provider: res.provider, status: res.status, error: res.error }
         },
         auditSink: async ({
           organizationId,
@@ -232,6 +243,20 @@ async function dispatchEvent(eventName: string, payload: unknown): Promise<void>
         },
       },
     })
+    for (const channel of result.channels) {
+      if ((channel.channel !== 'email' && channel.channel !== 'sms') || channel.outcome !== 'error') continue
+      incCounter(COUNTERS.commsDeliveryFailedTotal)
+      await emit(commsDeliveryFailed, {
+        organizationId: orgId,
+        entityId: r.userId,
+        actorUserId: null,
+        timestamp: new Date().toISOString(),
+        channel: channel.channel,
+        provider: channel.provider ?? 'unknown',
+        sourceEventType: eventName,
+        error: channel.detail ?? 'Delivery failed',
+      })
+    }
   }
 }
 

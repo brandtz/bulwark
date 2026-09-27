@@ -96,4 +96,39 @@ describe('fanoutForRecipient', () => {
     const emailOutcome = result.channels.find((c) => c.channel === 'email')?.outcome
     expect(emailOutcome).toBe('stub')
   })
+
+  it('marks configured provider failure as error and audits its reason', async () => {
+    const inApp = vi.fn().mockResolvedValue({ id: 'notif-1' })
+    const email = vi.fn().mockResolvedValue({
+      stub: false,
+      status: 'failed',
+      provider: 'none',
+      error: 'No active email provider is configured',
+    })
+    const sms = vi.fn()
+    const audit = vi.fn().mockResolvedValue(undefined)
+
+    const result = await fanoutForRecipient({
+      organizationId: orgId,
+      recipient: {
+        userId,
+        email: 'drew@example.com',
+        channels: { inApp: true, email: true, sms: false },
+      },
+      eventType: 'quote.accepted',
+      rendered,
+      sinks: { inAppSink: inApp, emailSink: email, smsSink: sms as never, auditSink: audit },
+    })
+
+    expect(result.channels.find((channel) => channel.channel === 'email')).toMatchObject({
+      outcome: 'error',
+      provider: 'none',
+      detail: 'No active email provider is configured',
+    })
+    expect(audit).toHaveBeenCalledWith(expect.objectContaining({
+      channel: 'email',
+      outcome: 'error',
+      detail: 'No active email provider is configured',
+    }))
+  })
 })

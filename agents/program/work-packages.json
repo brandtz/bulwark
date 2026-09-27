@@ -36,8 +36,7 @@
       "tests": ["tests/unit/auth-links.test.ts", "tests/unit/user-admin.test.ts", "tests/e2e/auth.spec.ts and tests/e2e/auth-recovery.spec.ts", "tests/integration/auth.real.test.ts"],
       "dependsOn": [],
       "decisions": [],
-      "agentNotes": "2026-09-26: priority implementation started. Focused auth lint passed; user-admin/rate-limit unit tests 20/20 and auth-link unit tests 3/3 passed. Added per-login 30-day persistence with MFA propagation and same-origin invite URL enforcement. At user direction on 2026-09-26, remaining verification was waived to ship this branch. Risk: DB-backed email/session assertions, Chromium (including mobile/dark), Lighthouse, and skeptic review are unverified; production email requires BULWARK_APP_URL plus an active organization Resend provider. Keep status in-progress until the waived gates are completed; pushing this branch does not itself deploy production."
-        "agentNotes": "2026-09-26: priority implementation pushed in commit f53db1e. Focused auth lint passed; user-admin/rate-limit unit tests 20/20 and auth-link unit tests 3/3 passed. Added per-login 30-day persistence with MFA propagation and same-origin invite URL enforcement. At user direction, remaining verification was waived and package moved to review to unblock the queue. Risk: DB-backed email/session assertions, Chromium (including mobile/dark), Lighthouse, and skeptic review are unverified; production email requires BULWARK_APP_URL plus an active organization Resend provider. Pushed branch does not itself deploy production."
+      "agentNotes": "2026-09-26: priority implementation pushed in commit f53db1e. Focused auth lint passed; user-admin/rate-limit unit tests 20/20 and auth-link unit tests 3/3 passed. Added per-login 30-day persistence with MFA propagation and same-origin invite URL enforcement. At user direction, remaining verification was waived and package moved to review to unblock the queue. Risk: DB-backed email/session assertions, Chromium (including mobile/dark), Lighthouse, and skeptic review are unverified; production email requires BULWARK_APP_URL plus an active organization Resend provider. Pushed branch does not itself deploy production."
     },
     {
       "id": "WP-O2",
@@ -829,12 +828,12 @@
       "goal": "Per agents/epics/L03-comms-hardening.md; provides the delivery log ST-27 and communication log AD-05 read from.",
       "scope": ["As epic"], "outOfScope": [],
       "designs": [],
-      "files": ["server/services/_providers/email*.ts", "server/services/_providers/sms*.ts", "server/db/schema/message_deliveries.ts", "server/services/comms/**", "shared/contracts/delivery.ts"],
+      "files": ["server/services/_providers/email*.ts", "server/services/_providers/sms*.ts", "server/services/_providers/delivery-ledger.ts", "server/services/_subscribers/notification-subscriber.ts", "server/db/schema/message_deliveries.ts", "server/db/migrations/**", "server/services/comms/**", "server/utils/metrics.ts", "shared/contracts/delivery.ts", "shared/contracts/index.ts", "shared/events/catalog.ts", "shared/notifications/dispatch.ts", "tests/integration/comms-failloud.test.ts", "tests/unit/notification-subscriber.test.ts"],
       "acceptance": ["Per epic acceptance"],
-      "tests": ["tests/integration/comms-failloud.test.ts"],
+      "tests": ["tests/integration/comms-failloud.test.ts", "tests/unit/notification-subscriber.test.ts"],
       "dependsOn": [],
       "decisions": [],
-      "agentNotes": "2026-09-26: started as the next ready package after WP-SH01. This is a complementary follow-up for fail-loud delivery outcomes and message_deliveries auditing; no implementation changes included in the WP-SH01 push."
+      "agentNotes": "2026-09-26: started after WP-SH01. Slice 1 adds migration 0017/message_deliveries with HMAC recipient hashes, provider statuses, event/entity context, and per-attempt rows. Email/SMS adapters now throw for transactional production failures and return explicit fan-out failures; notification subscriber audits outcomes, increments the comms failure metric, and emits a non-recursive comms.delivery_failed event. SMS fan-out no longer sends the user's email address to Twilio; it records missing phone as failed. Local localhost:5432/bulwark_dev migration applied; focused integration tests pass 3/3 and fan-out unit tests pass 4/4; lint and drizzle-kit check pass. Admin delivery-health panel, bounded retries/provider contract tests, and production-key acceptance remain open."
     },
     {
       "id": "WP-L06",
