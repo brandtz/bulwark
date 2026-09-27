@@ -91,7 +91,7 @@
     {
       "id": "WP-A2",
       "title": "Restyle existing ui/ primitives to Packet A spec (names preserved)",
-      "lane": "DS", "phase": "0-foundation", "status": "todo", "size": "L",
+      "lane": "DS", "phase": "0-foundation", "status": "ready", "size": "L",
       "goal": "Every existing Bulwark* primitive matches components/SPEC.md props, variants, states, a11y and tokens; /dev/ui mirrors components/INDEX.html.",
       "scope": [
         "BulwarkButton, Input, Textarea, Select, MultiSelect, Toggle, PassFailToggle, DatePicker, SegmentedControl, SearchField, FilePicker, Card, KpiCard, JobCard, StatusBadge (data-hue driven), Avatar, EmptyState, Skeleton, TableSkeleton, Pagination, Breadcrumbs, Modal (→bottom sheet <768), Drawer, Tabs, Stepper, ToastHost/Toast, SignaturePad, Icon (Lucide set per tokens/ICONS.md), Toggle",
@@ -240,7 +240,7 @@
     {
       "id": "WP-Q2",
       "title": "Persona × route × action matrix and adversarial test standards",
-      "lane": "QA", "phase": "0-foundation", "status": "todo", "size": "M",
+      "lane": "QA", "phase": "0-foundation", "status": "ready", "size": "M",
       "goal": "Expand persona-matrix.spec.ts from routes to actions: for every write action in received SPECs (Actions table → Permission column), assert the permitted role can and every other role cannot (UI absent AND API 403).",
       "scope": ["Generate matrix data from codegraph (design actions + roles) into tests/e2e/_matrix.generated.json via scripts/codegraph/export-matrix.mjs", "API-level negative tests hitting /api/services/<svc>/<method> as wrong role and wrong tenant", "Mutation-ish guard: a test that flips one permission in the mock and asserts the matrix catches it (proves tests aren't tautological)"],
       "outOfScope": [],
@@ -251,6 +251,21 @@
       "dependsOn": ["WP-Q1"],
       "decisions": [],
       "agentNotes": ""
+    },
+    {
+      "id": "WP-Q3",
+      "title": "Real-backend e2e green-up (20 pre-existing chromium failures)",
+      "lane": "QA", "phase": "1-shared", "status": "ready", "size": "M",
+      "goal": "The CI e2e job runs in mock mode, so real-backend regressions went unnoticed. Make the chromium suite green against the real backend and a built server, then add a real-backend e2e CI job.",
+      "scope": ["Triage and fix the 20 failures measured on 2026-09-27 at 70bf04a (identical before and after WP-L07): dashboard charts, field check-in, launch/quote happy paths, inspection-dynamic, invoice partial payments, invoices-list (seed dates drift: sent invoices age into overdue), property-depth, quote preview/revise/tiers/list, reports CSV, settings inspection-templates/numbering/trades, storage-presign (dev fs upload route on a built server), work-order-create", "Make seed dates relative to 'now' where specs depend on status buckets", "Add a CI job running the real-backend chromium suite on Postgres + built server"],
+      "outOfScope": ["Screen-contract per-state specs (SCR WPs)"],
+      "designs": [],
+      "files": ["tests/e2e/dashboard.spec.ts", "tests/e2e/field-check-in.spec.ts", "tests/e2e/happy-path-*.spec.ts", "tests/e2e/inspection-dynamic.spec.ts", "tests/e2e/invoice*.spec.ts", "tests/e2e/property-depth.spec.ts", "tests/e2e/quote*.spec.ts", "tests/e2e/reports-csv.spec.ts", "tests/e2e/settings-inspection-templates.spec.ts", "tests/e2e/settings-numbering.spec.ts", "tests/e2e/settings-trades.spec.ts", "tests/e2e/storage-presign.spec.ts", "tests/e2e/work-order-create.spec.ts", "tests/e2e/_debug-persona.spec.ts", "scripts/db-seed.mjs"],
+      "acceptance": ["pnpm test:e2e --project=chromium with BULWARK_BACKEND=real against a built server has zero failures and no new skips", "Each fix states whether the app or the test was wrong; app bugs get a regression test", "CI runs the real-backend suite on every push to main"],
+      "tests": ["tests/e2e/** (chromium, real backend)"],
+      "dependsOn": ["WP-Q1"],
+      "decisions": [],
+      "agentNotes": "Created 2026-09-27 by claude-code from the WP-L07 baseline comparison. Failure list and first error per spec recorded in that session; app bugs already fixed under L07: reporting.revenueTrend GROUP BY and /api/field/my-day Date param (dashboard spec still fails on another cause)."
     },
     {
       "id": "WP-O1",
@@ -848,17 +863,18 @@
     {
       "id": "WP-L07",
       "title": "L07 Security hardening (CSRF, MFA policy, lockout, session timeout, SAST)",
-      "lane": "HRD", "phase": "2-admin-core", "status": "ready", "size": "L",
+      "lane": "HRD", "phase": "2-admin-core", "status": "in-progress", "size": "L", "owner": "claude-code (2026-09-26)", "branch": "main (sliced commits)",
       "goal": "Per agents/epics/L07-security-hardening.md + ADR-0006; backs ST-23 and SH-01 lockout states.",
-      "scope": ["As epic + security_policies table"], "outOfScope": [], "designs": [],
-      "files": ["server/middleware/**", "server/utils/**", "server/db/schema/security_policies.ts", "shared/contracts/security-policy.ts", "server/services/security-policy.real.ts", "shared/mocks/security-policy.mock.ts", ".github/workflows/security.yml"],
-      "acceptance": ["Per epic"], "tests": ["tests/integration/csrf.test.ts", "tests/integration/lockout.test.ts", "tests/e2e/session-timeout.spec.ts"],
-      "dependsOn": [], "decisions": ["ED-001", "ED-002", "ED-015"], "agentNotes": ""
+      "scope": ["As epic + security_policies table", "S7 (added 2026-09-26, P0 from SH01/L03 reviews): server-side RBAC — deny-by-default RPC role policy, homeowner/sub portal self-scoping, server-derived audit actors"], "outOfScope": [], "designs": [],
+      "files": ["server/middleware/**", "server/utils/**", "server/db/schema/security_policies.ts", "shared/contracts/security-policy.ts", "server/services/security-policy.real.ts", "shared/mocks/security-policy.mock.ts", ".github/workflows/security.yml", "server/api/services/[service]/[method].post.ts", "server/services/homeowner.real.ts", "shared/contracts/homeowner.ts", "shared/mocks/homeowner.mock.ts", "server/services/subcontractor.real.ts", "server/services/quote.real.ts", "server/services/user.real.ts", "app/pages/homeowner/**", "app/plugins/csrf*.ts", "app/composables/useService.ts", "app/plugins/services.ts", "scripts/security/**", "docs/CONVENTIONS.md", "docs/BULWARK_TECH.md", "docs/BULWARK_HANDOFF.md", "server/db/schema/user_mfa.ts", "tests/unit/rpc-policy.test.ts", "tests/unit/audit-gate.test.ts", "tests/unit/env-guard.test.ts", "tests/integration/homeowner-portal.real.test.ts", "tests/integration/portal-scoping.real.test.ts", "tests/integration/tenant-firewall-coverage.test.ts", "tests/integration/csrf.test.ts", "tests/integration/lockout.test.ts", "tests/e2e/rbac.spec.ts", "tests/e2e/csrf.spec.ts", "tests/e2e/session-timeout.spec.ts", "server/services/_caller.ts", "server/services/api-key.real.ts", "server/services/feature-flag.real.ts", "server/services/reporting.real.ts", "server/services/work-order.real.ts", "shared/mocks/factory.ts", "app/utils/csrf.ts", "app/composables/useOfflineQueue.ts", "agents/program/ENGINEERING-DECISIONS.md", "tests/e2e/_helpers.ts", "tests/e2e/auth.spec.ts", "tests/e2e/sub-coi-upload.spec.ts", "tests/integration/date-param-regressions.real.test.ts"],
+      "acceptance": ["Per epic (S1-S6)", "S7: every RPC method is classified in server/utils/rpc-policy.ts (unclassified = test failure); non-admins get 403 on admin/system methods; portal roles cannot call whole-org staff reads; homeowner/sub portal reads and writes are bound to the session identity"],
+      "tests": ["tests/unit/rpc-policy.test.ts", "tests/integration/homeowner-portal.real.test.ts", "tests/integration/portal-scoping.real.test.ts", "tests/e2e/rbac.spec.ts", "tests/integration/csrf.test.ts", "tests/integration/lockout.test.ts", "tests/e2e/session-timeout.spec.ts"],
+      "dependsOn": [], "decisions": ["ED-001", "ED-002", "ED-015"], "agentNotes": "2026-09-27 (claude-code): S7 RBAC + S1 CSRF + S6 docs shipped. S7: server/utils/rpc-policy.ts classifies all ~330 contract methods (deny by default, ED-055) and the dispatcher enforces it before service code; homeowner portal moved to self-scoped listMy*/getMy* reads; subcontractor methods bind to the session user/own company and subs only see/answer quotes on properties where they hold a slot (ED-054); audit/invited-by actors come from the session. S1: double-submit CSRF for authenticated sessions + cross-origin Origin refusal for all unsafe /api calls; SSR uses a server-only internal token. Tests: rpc-policy 10, homeowner-portal 5, portal-scoping 5, csrf 7, e2e rbac 6 + csrf 2. Full real-backend chromium e2e: 172 pass, no regressions vs pre-L07 baseline (same 20 pre-existing failures, now WP-Q3). Also fixed two live 500s (reporting.revenueTrend GROUP BY; /api/field/my-day Date param). Remaining: S2 MFA policy + security_policies (idle timeout, lockout config), S3 tenant-coverage test, S4 env guard, S5 dependency gate (scripts/security/audit-gate.mjs written; tree has 33 high/4 critical prod advisories to remediate before wiring CI)."
     },
     {
       "id": "WP-L08",
       "title": "L08 Observability (Sentry, metrics, health) + L09 a11y gates + L10 perf budgets in CI",
-      "lane": "HRD", "phase": "2-admin-core", "status": "todo", "size": "M",
+      "lane": "HRD", "phase": "2-admin-core", "status": "ready", "size": "M",
       "goal": "Per epics L08/L09/L10; axe + Lighthouse budgets become CI gates used by every SCR WP.",
       "scope": ["As epics"], "outOfScope": [], "designs": [],
       "files": ["server/plugins/**", "server/utils/logger*.ts", ".github/workflows/**", "lighthouserc.*"],
