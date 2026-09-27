@@ -8,7 +8,7 @@
  *     uses `?` (jsonb contains) via raw SQL since drizzle-orm's helper
  *     for JSONB membership isn't ergonomic for a single value.
  */
-import { and, desc, eq, sql, isNull, type SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql, isNull, type SQL } from 'drizzle-orm'
 import { randomBytes, createHash } from 'node:crypto'
 import type {
   ISubcontractorService,
@@ -33,7 +33,8 @@ import { users, memberships } from '../db/schema/users'
 import { pendingInvites } from '../db/schema/pending_invites'
 import { workOrders } from '../db/schema/work_orders'
 import { quotes } from '../db/schema/quotes'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
+import { assertActsAsSelf, assertOwnSubcontractor, subcontractorPropertyIds } from './_caller'
 import { withAudit } from './_tx'
 import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
 import { emit } from '../../shared/events/bus'
@@ -187,6 +188,7 @@ export class RealSubcontractorService implements ISubcontractorService {
     organizationId: string,
   ): Promise<SubcontractorUser[]> {
     assertSameTenant(this.tenantResolver, organizationId)
+    await assertOwnSubcontractor(this.tenantResolver, subcontractorId, organizationId)
     const db = getDb()
     const rows = await db
       .select({
@@ -282,7 +284,7 @@ export class RealSubcontractorService implements ISubcontractorService {
           organizationId: input.organizationId,
           email,
           role: 'sub_contractor',
-          invitedByUserId: input.invitedByUserId ?? null,
+          invitedByUserId: resolveActorUserId(this.tenantResolver) ?? input.invitedByUserId ?? null,
           tokenHash,
           expiresAt,
         })
@@ -293,7 +295,7 @@ export class RealSubcontractorService implements ISubcontractorService {
         entityType: 'subcontractor_user',
         entityId: membershipRow!.id,
         action: 'create',
-        actorUserId: input.invitedByUserId ?? null,
+        actorUserId: resolveActorUserId(this.tenantResolver) ?? input.invitedByUserId ?? null,
         after: { subcontractorId: input.subcontractorId, email },
       })
 
@@ -341,6 +343,7 @@ export class RealSubcontractorService implements ISubcontractorService {
     organizationId: string,
   ): Promise<{ subcontractorId: string } | null> {
     assertSameTenant(this.tenantResolver, organizationId)
+    await assertActsAsSelf(this.tenantResolver, userId, organizationId)
     const db = getDb()
     const [row] = await db
       .select({ subcontractorId: subcontractorUsers.subcontractorId })
@@ -358,6 +361,7 @@ export class RealSubcontractorService implements ISubcontractorService {
 
   async listMyAssignments(userId: string, organizationId: string): Promise<unknown[]> {
     assertSameTenant(this.tenantResolver, organizationId)
+    await assertActsAsSelf(this.tenantResolver, userId, organizationId)
     const link = await this.resolveSubForUser(userId, organizationId)
     if (!link) return []
     const db = getDb()
@@ -377,12 +381,15 @@ export class RealSubcontractorService implements ISubcontractorService {
 
   async listMyQuotesRequested(userId: string, organizationId: string): Promise<unknown[]> {
     assertSameTenant(this.tenantResolver, organizationId)
+    await assertActsAsSelf(this.tenantResolver, userId, organizationId)
     const link = await this.resolveSubForUser(userId, organizationId)
     if (!link) return []
     const db = getDb()
-    // Quotes table doesn't carry sub references in v1; we surface every
-    // sent quote for the org so the sub can preview pricing. Real
-    // implementation would filter on a sub-request flag.
+    // ED-054 (WP-L07 S7): quotes carry no sub-request link yet, so a sub sees
+    // sent quotes only on properties where it holds a work-order slot — never
+    // every customer's pricing in the organization.
+    const propertyIds = await subcontractorPropertyIds(link.subcontractorId, organizationId)
+    if (!propertyIds.length) return []
     const rows = await db
       .select()
       .from(quotes)
@@ -391,6 +398,7 @@ export class RealSubcontractorService implements ISubcontractorService {
           eq(quotes.organizationId, organizationId),
           eq(quotes.status, 'sent'),
           isNull(quotes.deletedAt),
+          inArray(quotes.propertyId, propertyIds),
         ),
       )
       .orderBy(desc(quotes.createdAt))
@@ -403,6 +411,7 @@ export class RealSubcontractorService implements ISubcontractorService {
     organizationId: string,
   ): Promise<SubcontractorCoiDoc[]> {
     assertSameTenant(this.tenantResolver, organizationId)
+    await assertOwnSubcontractor(this.tenantResolver, subcontractorId, organizationId)
     const db = getDb()
     const rows = await db
       .select()
@@ -420,6 +429,7 @@ export class RealSubcontractorService implements ISubcontractorService {
 
   async uploadCoi(input: SubCoiUploadInput): Promise<SubcontractorCoiDoc> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    await assertOwnSubcontractor(this.tenantResolver, input.subcontractorId, input.organizationId)
     // L01-S3: reject placeholder asset URLs in prod. L13-S4 migrates COI docs to storage.
     assertStorableUrlOrKey(input.fileUrl)
     const row = await withAudit(async ({ tx, audit }) => {

@@ -24,25 +24,18 @@ const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 const userId = computed(() => session.value?.userId ?? '')
 
 const homeowner = useService('homeowner')
-const quote = useService('quote')
-const invoice = useService('invoice')
 
 const { data: bag } = await useAsyncData(
   () => `ho-home-${orgId.value}-${userId.value}`,
   async () => {
     if (!orgId.value || !userId.value) return { properties: 0, quotes: 0, invoices: 0 }
-    const memberships = await homeowner.listForUser(userId.value, orgId.value)
-    const propertyIds = memberships.map((m) => m.propertyId)
-    // Quote/invoice counts: list and filter to the homeowner's properties.
-    const [quotes, invoices] = await Promise.all([
-      quote.list({ organizationId: orgId.value, page: 1, pageSize: 100 }),
-      invoice.list({ organizationId: orgId.value, page: 1, pageSize: 100 }),
+    // WP-L07: counts come from self-scoped reads; the server never sends other customers' records.
+    const [properties, quotes, invoices] = await Promise.all([
+      homeowner.listMyProperties(orgId.value),
+      homeowner.listMyQuotes(orgId.value),
+      homeowner.listMyInvoices(orgId.value),
     ])
-    return {
-      properties: propertyIds.length,
-      quotes: quotes.rows.filter((q) => propertyIds.includes(q.propertyId)).length,
-      invoices: invoices.rows.filter((i) => propertyIds.includes(i.propertyId)).length,
-    }
+    return { properties: properties.length, quotes: quotes.length, invoices: invoices.length }
   },
   { server: false, watch: [orgId, userId] },
 )

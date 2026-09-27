@@ -145,6 +145,8 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
   let snapshot: TenantContext | null = null
   try {
     const session = await auth.currentUser()
+    // WP-L07 S7: the RPC dispatcher authorizes on this same snapshot's role.
+    event.context.bulwarkSession = session ?? null
     if (session) {
       snapshot = {
         userId: session.userId,

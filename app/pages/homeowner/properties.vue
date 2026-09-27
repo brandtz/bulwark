@@ -1,7 +1,7 @@
 <!--
   app/pages/homeowner/properties.vue — list of the homeowner's
-  properties (W3-4 / EH-O / ADR-0032). Read via homeowner.listForUser
-  + property.get per row.
+  properties (W3-4 / EH-O / ADR-0032). Read via the self-scoped
+  homeowner.listMyProperties (WP-L07).
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
@@ -21,17 +21,13 @@ const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 const userId = computed(() => session.value?.userId ?? '')
 
 const homeowner = useService('homeowner')
-const property = useService('property')
 
 const { data: rows } = await useAsyncData(
   () => `ho-props-${orgId.value}-${userId.value}`,
   async () => {
     if (!orgId.value || !userId.value) return []
-    const memberships = await homeowner.listForUser(userId.value, orgId.value)
-    const props = await Promise.all(
-      memberships.map((m) => property.get(m.propertyId, orgId.value)),
-    )
-    return props.filter((p): p is NonNullable<typeof p> => p !== null)
+    // WP-L07: self-scoped on the server; portal roles cannot call the staff property service.
+    return await homeowner.listMyProperties(orgId.value)
   },
   { server: false, watch: [orgId, userId] },
 )

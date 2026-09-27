@@ -44,8 +44,9 @@ Bulwark is multi-tenant from day one. Architecture is **Option A: shared databas
 
 The tenant firewall lives at the **service layer**, not the route layer.
 
-- `requireOrgMembership(userId, organizationId)` is called as the first line of every service method that touches tenant data.
-- `organizationId` is **never** taken from the request body. Always from the auth context (session or JWT claims).
+- `assertSameTenant(resolver, organizationId)` (server/services/_tenant.ts) is called as the first line of every service method that touches tenant data. The resolver is a per-request snapshot of the session's user and active organization.
+- RPC arguments carry an `organizationId`, but it is never trusted: the firewall rejects any value other than the session's active organization. Actor ids (audit, "invited by") come from the resolver, not the request.
+- Role authorization is a second, independent layer: `server/utils/rpc-policy.ts` classifies every RPC method (deny by default) and self-scoped methods bind to the session identity.
 - Cross-tenant data leaks are a critical violation; the architect role review checks for this on every prompt.
 
 ### Role Taxonomy
@@ -59,7 +60,7 @@ The tenant firewall lives at the **service layer**, not the route layer.
 | Org | `sub_contractor` | Phase 2 — assigned-jobs-only portal |
 | Org | `viewer` | Phase 2 — read-only |
 
-`super_admin` is enforced separately from organization roles. A super_admin acting on tenant data still goes through `requireOrgMembership` for audit purposes, with an explicit override that is logged.
+`super_admin` is enforced separately from organization roles. A super_admin acting on tenant data still passes through the same tenant firewall and role policy; there is no silent bypass.
 
 ---
 
@@ -126,7 +127,7 @@ bulwark/
 │   │   │   ├── jwt.ts            # JOSE only
 │   │   │   ├── apiKeys.ts
 │   │   │   └── requireAuth.ts
-│   │   ├── tenancy.ts            # requireOrgMembership firewall
+│   │   ├── rpc-policy.ts         # RPC role policy (tenant firewall: services/_tenant.ts)
 │   │   ├── validation.ts
 │   │   ├── pagination.ts
 │   │   ├── rateLimit.ts
@@ -246,7 +247,7 @@ Three authentication paths, one middleware.
 
 `requireAuth(event)` is the **first line** of every API route handler. It resolves the auth path, attaches `AuthContext` to the event, and rejects unauthenticated requests with `AuthorizationError`.
 
-`requireOrgMembership(userId, organizationId)` is the **first line** of every service method touching tenant data.
+`assertSameTenant(resolver, organizationId)` (server/services/_tenant.ts) is the **first line** of every service method touching tenant data; the RPC role policy in `server/utils/rpc-policy.ts` runs before the method is invoked.
 
 API key scopes (defined upfront, enforced everywhere):
 - `properties:read`, `properties:write`

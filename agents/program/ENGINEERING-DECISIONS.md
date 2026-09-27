@@ -77,6 +77,13 @@
 | ED-052 | AD-42 | Materials read-only summary until PB/PO → **Acceptable**; `work_order_materials` table lands in phase 3 with PO module. All slots complete → **prompt ("Mark job complete?")**, never auto. |
 | ED-053 | AD-43 | Partial completion reason → **optional note only**. Hours → **one total per submission; TT splits later**. |
 
+## Security hardening (WP-L07, 2026-09-26)
+
+| ID | Screen / area | Decision |
+|---|---|---|
+| ED-054 | SB-02 sub quotes, `quote.respondToQuote` | Quotes carry no sub-request link yet. Until one exists, a subcontractor sees and may answer **only sent quotes on properties where it holds a work-order trade slot** (the same boundary as `listMyAssignments`). Previously every sent quote in the org — every customer's pricing — was returned to every sub. A proper `quote_sub_requests` link replaces this rule when WP-E1 builds the sub portal. |
+| ED-055 | RPC authorization | **Deny by default.** Every `service.method` reachable over `/api/services` is classified in `server/utils/rpc-policy.ts` (roles, `public`, or `system`); unclassified methods are refused and fail `tests/unit/rpc-policy.test.ts`. Portal roles (homeowner, sub_contractor, stakeholder) never receive whole-org staff reads; they use self-scoped methods bound to the session identity. Viewers are read-only. Audit actors come from the session, never from request arguments. |
+
 ## Decisions Design asked us to confirm elsewhere (already answered above)
 
 - Client-type configurability → ED-027 · Fourth KPI → ED-026 · Map provider → ED-00C ·

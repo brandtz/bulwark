@@ -215,7 +215,7 @@ export function createMockServices(
       savedView: new MockSavedViewService(resolver),
       reporting: reportingMock,
       // W3-4 / EH-O (ADR-0032): homeowner portal.
-      homeowner: new MockHomeownerService(resolver),
+      homeowner: new MockHomeownerService(resolver, { property: propertyMock, quote: quoteMock, invoice }),
       // W5-4 (ADR-0038): per-user DSR — export + delete + purge.
       account: new MockAccountService(),
       themePreferences: new MockThemePreferencesService(resolver),

@@ -24,7 +24,7 @@ import { KNOWN_FLAGS } from '../../shared/contracts/feature-flag'
 import { featureFlags } from '../db/schema/feature_flags'
 import type { FeatureFlagRow } from '../db/schema/feature_flags'
 import { getDb } from '../db/client'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 
 function rowToContract(r: FeatureFlagRow): FeatureFlag {
@@ -83,7 +83,7 @@ export class RealFeatureFlagService implements IFeatureFlagService {
           .set({
             value: input.value,
             description: input.description ?? existing.description,
-            updatedByUserId: input.updatedByUserId,
+            updatedByUserId: resolveActorUserId(this.tenantResolver) ?? input.updatedByUserId,
             updatedAt: new Date(),
           })
           .where(eq(featureFlags.id, existing.id))
@@ -97,7 +97,7 @@ export class RealFeatureFlagService implements IFeatureFlagService {
             slug: input.slug,
             value: input.value,
             description: input.description ?? null,
-            updatedByUserId: input.updatedByUserId,
+            updatedByUserId: resolveActorUserId(this.tenantResolver) ?? input.updatedByUserId,
           })
           .returning()
         row = inserted!
@@ -108,7 +108,7 @@ export class RealFeatureFlagService implements IFeatureFlagService {
         entityType: 'feature_flag',
         entityId: row.id,
         action: existing ? 'update' : 'create',
-        actorUserId: input.updatedByUserId,
+        actorUserId: resolveActorUserId(this.tenantResolver) ?? input.updatedByUserId,
         before: existing ? { value: existing.value } : null,
         after: { value: input.value },
       })

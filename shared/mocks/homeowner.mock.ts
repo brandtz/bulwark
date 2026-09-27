@@ -17,6 +17,16 @@ import type {
   HomeownerInviteOutput,
 } from '../contracts/homeowner'
 import { assertSameTenant, type TenantResolver } from './tenant'
+import type { IPropertyService, Property } from '../contracts/property'
+import type { IQuoteService, Quote } from '../contracts/quote'
+import type { IInvoiceService, Invoice } from '../contracts/invoice'
+
+/** Sibling mocks used by the self-scoped portal reads (WP-L07 S7). */
+export interface HomeownerPortalDeps {
+  property: Pick<IPropertyService, 'get'>
+  quote: Pick<IQuoteService, 'list' | 'get'>
+  invoice: Pick<IInvoiceService, 'list' | 'get'>
+}
 
 const rows: HomeownerUser[] = []
 let memId = 1
@@ -31,7 +41,52 @@ export function __resetHomeownerMock(): void {
 }
 
 export class MockHomeownerService implements IHomeownerService {
-  constructor(private readonly tenantResolver?: TenantResolver) {}
+  constructor(
+    private readonly tenantResolver?: TenantResolver,
+    private readonly deps?: HomeownerPortalDeps,
+  ) {}
+
+  private async myPropertyIds(organizationId: string): Promise<string[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const userId = this.tenantResolver?.()?.userId
+    if (!userId || userId === 'system') throw new Error('Authentication required')
+    return [...new Set((await this.listForUser(userId, organizationId)).map((m) => m.propertyId))]
+  }
+
+  private portalDeps(): HomeownerPortalDeps {
+    if (!this.deps) throw new Error('MockHomeownerService portal reads need property/quote/invoice mocks')
+    return this.deps
+  }
+
+  async listMyProperties(organizationId: string): Promise<Property[]> {
+    const ids = await this.myPropertyIds(organizationId)
+    const rows = await Promise.all(ids.map((id) => this.portalDeps().property.get(id, organizationId)))
+    return rows.filter((p): p is Property => p !== null)
+  }
+
+  async listMyQuotes(organizationId: string): Promise<Quote[]> {
+    const ids = await this.myPropertyIds(organizationId)
+    const pages = await Promise.all(ids.map((propertyId) => this.portalDeps().quote.list({ organizationId, propertyId, page: 1, pageSize: 200 })))
+    return pages.flatMap((p) => p.rows).filter((q) => q.status !== 'draft')
+  }
+
+  async getMyQuote(quoteId: string, organizationId: string): Promise<Quote | null> {
+    const ids = await this.myPropertyIds(organizationId)
+    const quote = await this.portalDeps().quote.get(quoteId, organizationId).catch(() => null)
+    return quote && quote.status !== 'draft' && ids.includes(quote.propertyId) ? quote : null
+  }
+
+  async listMyInvoices(organizationId: string): Promise<Invoice[]> {
+    const ids = await this.myPropertyIds(organizationId)
+    const pages = await Promise.all(ids.map((propertyId) => this.portalDeps().invoice.list({ organizationId, propertyId, page: 1, pageSize: 200 })))
+    return pages.flatMap((p) => p.rows).filter((i) => i.status !== 'draft')
+  }
+
+  async getMyInvoice(invoiceId: string, organizationId: string): Promise<Invoice | null> {
+    const ids = await this.myPropertyIds(organizationId)
+    const invoice = await this.portalDeps().invoice.get(invoiceId, organizationId).catch(() => null)
+    return invoice && invoice.status !== 'draft' && ids.includes(invoice.propertyId) ? invoice : null
+  }
 
   async listForProperty(propertyId: string, organizationId: string): Promise<HomeownerUser[]> {
     assertSameTenant(this.tenantResolver, organizationId)

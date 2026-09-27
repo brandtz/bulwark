@@ -37,7 +37,7 @@ import { users, memberships } from '../db/schema/users'
 import { organizations } from '../db/schema/organizations'
 import { pendingInvites } from '../db/schema/pending_invites'
 import { getDb } from '../db/client'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { emit } from '../../shared/events/bus'
 import { userInvited, type UserInvitedPayload } from '../../shared/events/catalog'
@@ -167,7 +167,7 @@ export class RealUserService implements IUserService {
           organizationId: input.organizationId,
           email,
           role: input.role,
-          invitedByUserId: input.invitedByUserId,
+          invitedByUserId: resolveActorUserId(this.tenantResolver) ?? input.invitedByUserId,
           tokenHash,
           expiresAt,
         })
@@ -177,7 +177,7 @@ export class RealUserService implements IUserService {
         entityType: 'pending_invite',
         entityId: row!.id,
         action: 'create',
-        actorUserId: input.invitedByUserId,
+        actorUserId: resolveActorUserId(this.tenantResolver) ?? input.invitedByUserId,
         after: { email, role: input.role },
       })
       return row!
@@ -186,7 +186,7 @@ export class RealUserService implements IUserService {
     const payload: UserInvitedPayload = {
       organizationId: input.organizationId,
       entityId: result.id,
-      actorUserId: input.invitedByUserId,
+      actorUserId: resolveActorUserId(this.tenantResolver) ?? input.invitedByUserId,
       timestamp: new Date().toISOString(),
       email,
       role: input.role,

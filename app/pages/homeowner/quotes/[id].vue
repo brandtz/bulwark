@@ -31,13 +31,13 @@ const { session, ensureLoaded } = useSession()
 await ensureLoaded()
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
-const quoteService = useService('quote')
+const homeowner = useService('homeowner')
 
 const { data: quote } = await useAsyncData(
   () => `ho-quote-${quoteId.value}-${orgId.value}`,
   async () => {
     if (!orgId.value || !quoteId.value) return null
-    return await quoteService.get(quoteId.value, orgId.value)
+    return await homeowner.getMyQuote(quoteId.value, orgId.value)
   },
   { server: false, watch: [quoteId, orgId] },
 )

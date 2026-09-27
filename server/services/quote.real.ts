@@ -32,7 +32,8 @@ import { RealOrgSettingsService } from './org-settings.real'
 import { getDb } from '../db/client'
 import { quotes } from '../db/schema/quotes'
 import type { Quote as DbQuote } from '../db/schema/quotes'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, ForbiddenError, type TenantResolver } from './_tenant'
+import { assertOwnSubcontractor, subcontractorPropertyIds } from './_caller'
 import { withAudit } from './_tx'
 import { emit } from '../../shared/events/bus'
 import {
@@ -385,6 +386,8 @@ export class RealQuoteService implements IQuoteService {
     notes?: string
   }): Promise<{ quoteId: string; response: 'accepted' | 'declined' }> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    // WP-L07 S7: a sub answers only as itself, only on quotes it can see (ED-054).
+    await assertOwnSubcontractor(this.tenantResolver, input.subcontractorId, input.organizationId)
     const db = getDb()
     const [row] = await db
       .select()
@@ -398,6 +401,9 @@ export class RealQuoteService implements IQuoteService {
       )
       .limit(1)
     if (!row) throw new Error('Quote not found')
+    if (this.tenantResolver?.() && !(await subcontractorPropertyIds(input.subcontractorId, input.organizationId)).includes(row.propertyId)) {
+      throw new ForbiddenError('Forbidden: this quote was not requested from your company')
+    }
     await withAudit(async ({ audit }) => {
       await audit.record({
         organizationId: input.organizationId,

@@ -65,8 +65,8 @@ These decisions are final. If you find yourself wanting to suggest an alternativ
 
 ### Multi-Tenancy
 - Shared database, `organizationId` column on every tenant-scoped table
-- Tenant firewall lives at the **service** layer: `requireOrgMembership(userId, organizationId)` is the first line of every service method touching tenant data
-- `organizationId` always comes from the auth context, never the request body
+- Tenant firewall lives at the **service** layer: `assertSameTenant(resolver, organizationId)` (server/services/_tenant.ts) is the first line of every service method touching tenant data
+- A client-supplied `organizationId` is only accepted when it equals the session's active organization; role access is enforced by `server/utils/rpc-policy.ts`
 
 ### Roles
 - System: `super_admin` (Matthew/BWE only)

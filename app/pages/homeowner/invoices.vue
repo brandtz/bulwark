@@ -20,16 +20,13 @@ const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 const userId = computed(() => session.value?.userId ?? '')
 
 const homeowner = useService('homeowner')
-const invoice = useService('invoice')
 
 const { data: rows } = await useAsyncData(
   () => `ho-invoices-${orgId.value}-${userId.value}`,
   async () => {
     if (!orgId.value || !userId.value) return []
-    const memberships = await homeowner.listForUser(userId.value, orgId.value)
-    const propertyIds = new Set(memberships.map((m) => m.propertyId))
-    const out = await invoice.list({ organizationId: orgId.value, page: 1, pageSize: 100 })
-    return out.rows.filter((i) => propertyIds.has(i.propertyId))
+    // WP-L07: the server returns only this homeowner's non-draft invoices.
+    return await homeowner.listMyInvoices(orgId.value)
   },
   { server: false, watch: [orgId, userId] },
 )

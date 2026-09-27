@@ -14,6 +14,9 @@
  */
 import { z } from 'zod'
 import { AuditFieldsSchema, UuidSchema } from './_shared'
+import type { Property } from './property'
+import type { Quote } from './quote'
+import type { Invoice } from './invoice'
 
 export const HomeownerKindSchema = z.enum(['owner', 'tenant', 'spouse', 'other'])
 export type HomeownerKind = z.infer<typeof HomeownerKindSchema>
@@ -60,4 +63,19 @@ export interface IHomeownerService {
   invite(input: HomeownerInviteInput): Promise<HomeownerInviteOutput>
   /** Soft-remove a membership. Audit-logged. */
   remove(membershipId: string, organizationId: string): Promise<void>
+
+  // --- Self-scoped portal reads (WP-L07 S7) --------------------------------
+  // The caller is always the session user; there is no userId argument, so a
+  // homeowner can never ask for someone else's records. Drafts are internal
+  // and never returned.
+  /** Properties the calling homeowner belongs to. */
+  listMyProperties(organizationId: string): Promise<Property[]>
+  /** Non-draft quotes on the caller's properties. */
+  listMyQuotes(organizationId: string): Promise<Quote[]>
+  /** One of the caller's non-draft quotes, or null (also for other people's quotes). */
+  getMyQuote(quoteId: string, organizationId: string): Promise<Quote | null>
+  /** Non-draft invoices on the caller's properties. */
+  listMyInvoices(organizationId: string): Promise<Invoice[]>
+  /** One of the caller's non-draft invoices, or null. */
+  getMyInvoice(invoiceId: string, organizationId: string): Promise<Invoice | null>
 }

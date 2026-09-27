@@ -25,7 +25,7 @@ import type {
 import { getDb } from '../db/client'
 import { apiKeys } from '../db/schema/api_keys'
 import type { ApiKey as DbKey } from '../db/schema/api_keys'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 
 const SECRET_PREFIX = 'bw_sk_'
@@ -76,7 +76,7 @@ export class RealApiKeyService implements IApiKeyService {
           label: input.label,
           prefix,
           secretHash,
-          createdById: input.createdById,
+          createdById: resolveActorUserId(this.tenantResolver) ?? input.createdById,
         })
         .returning()
       await audit.record({
@@ -84,7 +84,7 @@ export class RealApiKeyService implements IApiKeyService {
         entityType: 'api_key',
         entityId: r!.id,
         action: 'create',
-        actorUserId: input.createdById,
+        actorUserId: resolveActorUserId(this.tenantResolver) ?? input.createdById,
         after: { label: input.label, prefix },
       })
       return r!

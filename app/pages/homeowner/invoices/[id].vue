@@ -19,14 +19,14 @@ const invoiceId = computed(() => String(route.params.id ?? ''))
 const { session, ensureLoaded } = useSession()
 await ensureLoaded()
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
-const invoiceService = useService('invoice')
+const homeowner = useService('homeowner')
 const { t } = useLabel()
 
 const { data: invoice } = await useAsyncData(
   () => `ho-invoice-${invoiceId.value}-${orgId.value}`,
   async () => {
     if (!orgId.value || !invoiceId.value) return null
-    return await invoiceService.get(invoiceId.value, orgId.value)
+    return await homeowner.getMyInvoice(invoiceId.value, orgId.value)
   },
   { server: false, watch: [invoiceId, orgId] },
 )

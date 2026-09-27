@@ -118,7 +118,7 @@ bulwark/
 │   │   │   ├── jwt.ts
 │   │   │   ├── apiKeys.ts
 │   │   │   └── requireAuth.ts
-│   │   ├── tenancy.ts          # requireOrgMembership firewall
+│   │   ├── rpc-policy.ts       # RPC role policy (tenant firewall: services/_tenant.ts)
 │   │   ├── validation.ts       # validateBody, validateQuery
 │   │   ├── pagination.ts       # paginate() utility
 │   │   ├── rateLimit.ts        # Rate limit configs and checker
@@ -214,69 +214,48 @@ PostgreSQL
 ### Service Class Template
 
 ```typescript
-// server/services/ExampleService.ts
+// server/services/example.real.ts — implements IExampleService from shared/contracts/example.ts
 
-import { db } from '~/server/db'
-import { exampleTable } from '~/server/db/schema/example'
-import { AuditService } from './AuditService'
-import { requireOrgMembership } from '~/server/utils/tenancy'
-import {
-  NotFoundError,
-  ConflictError,
-  AuthorizationError
-} from '~/server/errors'
+import { and, eq, isNull } from 'drizzle-orm'
+import type { IExampleService, Example, ExampleCreateInput } from '../../shared/contracts/example'
+import { ExampleCreateInputSchema } from '../../shared/contracts/example'
+import { getDb } from '../db/client'
+import { exampleTable } from '../db/schema/example'
+import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
+import { withAudit } from './_tx'
 
-export class ExampleService {
+export class RealExampleService implements IExampleService {
+  // The resolver is a per-request snapshot of { userId, organizationId }
+  // built by server/utils/services-factory.ts.
+  constructor(private readonly tenantResolver?: TenantResolver) {}
 
-  static async list(
-    organizationId: string,
-    userId: string,
-    params: ListParams
-  ): Promise<PaginatedResponse<Example>> {
-    await requireOrgMembership(userId, organizationId)
-    // implementation
+  async get(id: string, organizationId: string): Promise<Example | null> {
+    assertSameTenant(this.tenantResolver, organizationId) // first line, every org-scoped method
+    const [row] = await getDb().select().from(exampleTable).where(and(
+      eq(exampleTable.id, id),
+      eq(exampleTable.organizationId, organizationId),
+      isNull(exampleTable.deletedAt),
+    )).limit(1)
+    return row ? rowToContract(row) : null
   }
 
-  static async getById(
-    id: string,
-    organizationId: string,
-    userId: string
-  ): Promise<Example> {
-    await requireOrgMembership(userId, organizationId)
-    const record = await db.query.exampleTable.findFirst({
-      where: and(
-        eq(exampleTable.id, id),
-        eq(exampleTable.organizationId, organizationId),
-        isNull(exampleTable.deletedAt)
-      )
-    })
-    if (!record) throw new NotFoundError('Example not found', { id })
-    return record
-  }
-
-  static async create(
-    data: CreateExampleInput,
-    organizationId: string,
-    userId: string
-  ): Promise<Example> {
-    await requireOrgMembership(userId, organizationId, 'org_manager')
-
-    return await db.transaction(async (tx) => {
-      const [record] = await tx.insert(exampleTable)
-        .values({ ...data, organizationId, createdBy: userId })
-        .returning()
-
-      await AuditService.log(tx, {
-        organizationId,
-        userId,
-        action:        'example.created',
-        resourceType:  'example',
-        resourceId:    record.id,
-        resourceLabel: record.name,
-        nextState:     { ...record },
+  async create(input: ExampleCreateInput): Promise<Example> {
+    const parsed = ExampleCreateInputSchema.parse(input) // Zod at the boundary
+    assertSameTenant(this.tenantResolver, parsed.organizationId)
+    // Role checks: the RPC dispatcher already enforces server/utils/rpc-policy.ts.
+    // Methods that act "as the caller" (self-scoped portal reads, sub responses)
+    // must also bind to the session identity and throw ForbiddenError (-> 403).
+    return withAudit(async ({ tx, audit }) => {
+      const [row] = await tx.insert(exampleTable).values(parsed).returning()
+      await audit.record({
+        organizationId: parsed.organizationId,
+        entityType: 'example',
+        entityId: row!.id,
+        action: 'create',
+        actorUserId: resolveActorUserId(this.tenantResolver), // never a client-supplied actor
+        after: parsed,
       })
-
-      return record
+      return rowToContract(row!)
     })
   }
 }
@@ -481,10 +460,19 @@ It is always resolved from the authenticated request context by
 
 ### The Tenant Firewall
 
-`requireOrgMembership(userId, organizationId, requiredRole?)` is called at the
-top of every service method that touches tenant data.
-It is the firewall between tenants. It runs in the service layer —
-not just the route layer. Belt and suspenders.
+Two layers, both mandatory:
+
+1. **Tenant firewall** — `assertSameTenant(resolver, organizationId)` (from
+   `server/services/_tenant.ts`) is the first line of every org-scoped service
+   method. A cross-tenant call throws `TenantViolationError` (HTTP 403).
+2. **Role policy** — every `service.method` reachable through
+   `/api/services/:service/:method` is classified in `server/utils/rpc-policy.ts`
+   (deny by default; `tests/unit/rpc-policy.test.ts` fails on an unclassified
+   method). Self-scoped methods additionally bind to the session identity and
+   throw `ForbiddenError` (HTTP 403).
+
+There is no `requireOrgMembership` / `server/utils/tenancy.ts`; older docs that
+mention them are stale.
 
 ### JWT Rules
 

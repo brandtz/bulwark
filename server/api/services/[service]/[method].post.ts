@@ -14,10 +14,11 @@
  *     service/method is 404, everything else is 500. The client
  *     proxy unwraps the message back into a plain `Error` so page
  *     code can keep matching on text.
- *   - We DO NOT enforce auth here — individual services apply the
- *     tenant firewall via their resolver. Public methods (login,
- *     requestPasswordReset, previewInvite, acceptInvite) work for
- *     unauthenticated callers by design.
+ *   - Role authorization happens here (WP-L07 S7): every service.method
+ *     must be classified in server/utils/rpc-policy.ts or it is refused.
+ *     `public` methods (login, requestPasswordReset, previewInvite,
+ *     acceptInvite, ...) work unauthenticated; `system` methods are never
+ *     callable. Services still apply the tenant firewall on top.
  *
  * # Decision cast down
  *   - Encoding the input as querystring. Rejected — POST body keeps
@@ -27,6 +28,8 @@
 import { createRealServices } from '~~/server/utils/services-factory'
 import type { BulwarkServices } from '~~/shared/contracts/services'
 import { ForbiddenError, TenantViolationError } from '~~/shared/mocks/tenant'
+import type { SessionUser } from '~~/shared/contracts/auth'
+import { authorizeRpc } from '~~/server/utils/rpc-policy'
 
 type ServiceMap = { [K in keyof BulwarkServices]: BulwarkServices[K] }
 
@@ -40,6 +43,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const services = await createRealServices(event)
+  // WP-L07 S7: deny-by-default role policy before any service code runs. The
+  // tenant firewall inside each service still applies on top of this.
+  const session = event.context.bulwarkSession as SessionUser | null | undefined
+  const decision = authorizeRpc(serviceName, methodName, session?.activeRole ?? null)
+  if (!decision.allowed) {
+    throw createError({ statusCode: decision.status, statusMessage: decision.reason })
+  }
   const target = services[serviceName] as unknown as Record<string, unknown> | undefined
   if (!target || typeof target !== 'object') {
     throw createError({ statusCode: 404, statusMessage: `Unknown service: ${serviceName}` })

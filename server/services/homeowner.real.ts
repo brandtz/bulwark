@@ -29,7 +29,13 @@ import { getDb } from '../db/client'
 import { homeownerUsers } from '../db/schema/homeowner_users'
 import { users, memberships } from '../db/schema/users'
 import { pendingInvites } from '../db/schema/pending_invites'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, resolveActorUserId, SYSTEM_USER_ID, type TenantResolver } from './_tenant'
+import type { Property } from '../../shared/contracts/property'
+import type { Quote } from '../../shared/contracts/quote'
+import type { Invoice } from '../../shared/contracts/invoice'
+import { RealPropertyService } from './property.real'
+import { RealQuoteService } from './quote.real'
+import { RealInvoiceService } from './invoice.real'
 import { withAudit } from './_tx'
 import { emit } from '../../shared/events/bus'
 import { homeownerInvited } from '../../shared/events/catalog'
@@ -173,7 +179,7 @@ export class RealHomeownerService implements IHomeownerService {
           organizationId: input.organizationId,
           email,
           role: 'homeowner',
-          invitedByUserId: input.invitedByUserId ?? null,
+          invitedByUserId: resolveActorUserId(this.tenantResolver) ?? input.invitedByUserId ?? null,
           tokenHash,
           expiresAt,
         })
@@ -184,7 +190,7 @@ export class RealHomeownerService implements IHomeownerService {
         entityType: 'homeowner_user',
         entityId: memberRow!.id,
         action: 'create',
-        actorUserId: input.invitedByUserId ?? null,
+        actorUserId: resolveActorUserId(this.tenantResolver) ?? input.invitedByUserId ?? null,
         after: { propertyId: input.propertyId, email, kind: input.kind },
       })
       return { membershipId: memberRow!.id, inviteId: inviteRow!.id }
@@ -193,7 +199,7 @@ export class RealHomeownerService implements IHomeownerService {
     await emit(homeownerInvited, {
       organizationId: input.organizationId,
       entityId: result.membershipId,
-      actorUserId: input.invitedByUserId ?? null,
+      actorUserId: resolveActorUserId(this.tenantResolver) ?? input.invitedByUserId ?? null,
       timestamp: new Date().toISOString(),
       email,
       propertyId: input.propertyId,
@@ -234,5 +240,64 @@ export class RealHomeownerService implements IHomeownerService {
         actorUserId: this.tenantResolver?.()?.userId ?? null,
       })
     })
+  }
+
+  // --- Self-scoped portal reads (WP-L07 S7) ----------------------------------
+  // Identity comes from the session resolver only. Records on properties the
+  // caller is not attached to, and drafts, are indistinguishable from missing.
+
+  private callerUserId(): string {
+    const userId = this.tenantResolver?.()?.userId
+    if (!userId || userId === SYSTEM_USER_ID) throw new Error('Authentication required')
+    return userId
+  }
+
+  private async myPropertyIds(organizationId: string): Promise<string[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const userId = this.callerUserId()
+    const rows = await getDb()
+      .select({ propertyId: homeownerUsers.propertyId })
+      .from(homeownerUsers)
+      .where(and(
+        eq(homeownerUsers.userId, userId),
+        eq(homeownerUsers.organizationId, organizationId),
+        isNull(homeownerUsers.deletedAt),
+      ))
+    return [...new Set(rows.map((r) => r.propertyId))]
+  }
+
+  async listMyProperties(organizationId: string): Promise<Property[]> {
+    const ids = await this.myPropertyIds(organizationId)
+    const service = new RealPropertyService(this.tenantResolver)
+    const rows = await Promise.all(ids.map((id) => service.get(id, organizationId)))
+    return rows.filter((p): p is Property => p !== null)
+  }
+
+  async listMyQuotes(organizationId: string): Promise<Quote[]> {
+    const ids = await this.myPropertyIds(organizationId)
+    const service = new RealQuoteService(this.tenantResolver)
+    const pages = await Promise.all(ids.map((propertyId) => service.list({ organizationId, propertyId, page: 1, pageSize: 200 })))
+    return pages.flatMap((p) => p.rows).filter((q) => q.status !== 'draft')
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }
+
+  async getMyQuote(quoteId: string, organizationId: string): Promise<Quote | null> {
+    const ids = await this.myPropertyIds(organizationId)
+    const quote = await new RealQuoteService(this.tenantResolver).get(quoteId, organizationId).catch(() => null)
+    return quote && quote.status !== 'draft' && ids.includes(quote.propertyId) ? quote : null
+  }
+
+  async listMyInvoices(organizationId: string): Promise<Invoice[]> {
+    const ids = await this.myPropertyIds(organizationId)
+    const service = new RealInvoiceService(this.tenantResolver)
+    const pages = await Promise.all(ids.map((propertyId) => service.list({ organizationId, propertyId, page: 1, pageSize: 200 })))
+    return pages.flatMap((p) => p.rows).filter((i) => i.status !== 'draft')
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }
+
+  async getMyInvoice(invoiceId: string, organizationId: string): Promise<Invoice | null> {
+    const ids = await this.myPropertyIds(organizationId)
+    const invoice = await new RealInvoiceService(this.tenantResolver).get(invoiceId, organizationId).catch(() => null)
+    return invoice && invoice.status !== 'draft' && ids.includes(invoice.propertyId) ? invoice : null
   }
 }

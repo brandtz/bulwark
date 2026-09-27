@@ -22,16 +22,13 @@ const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 const userId = computed(() => session.value?.userId ?? '')
 
 const homeowner = useService('homeowner')
-const quote = useService('quote')
 
 const { data: rows } = await useAsyncData(
   () => `ho-quotes-${orgId.value}-${userId.value}`,
   async () => {
     if (!orgId.value || !userId.value) return []
-    const memberships = await homeowner.listForUser(userId.value, orgId.value)
-    const propertyIds = new Set(memberships.map((m) => m.propertyId))
-    const out = await quote.list({ organizationId: orgId.value, page: 1, pageSize: 100 })
-    return out.rows.filter((q) => propertyIds.has(q.propertyId))
+    // WP-L07: the server returns only this homeowner's non-draft quotes.
+    return await homeowner.listMyQuotes(orgId.value)
   },
   { server: false, watch: [orgId, userId] },
 )
