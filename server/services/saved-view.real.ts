@@ -21,6 +21,7 @@ import type {
 import { getDb } from '../db/client'
 import { savedViews, type SavedViewRow } from '../db/schema/saved_views'
 import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertActsAsSelf, assertSelfUser } from './_caller'
 import { withAudit } from './_tx'
 
 function rowToContract(r: SavedViewRow): SavedView {
@@ -83,6 +84,8 @@ export class RealSavedViewService implements ISavedViewService {
 
   async create(input: SavedViewCreateInput): Promise<SavedView> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    // WP-L07 S7: a personal view can only be created for yourself.
+    if (input.userId) assertSelfUser(this.tenantResolver, input.userId)
     return await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(savedViews)
@@ -133,6 +136,7 @@ export class RealSavedViewService implements ISavedViewService {
         )
         .limit(1)
       if (!before) throw new Error('Saved view not found')
+      if (before.userId) await assertActsAsSelf(this.tenantResolver, before.userId, input.organizationId)
 
       const patch: Partial<typeof savedViews.$inferInsert> = { updatedAt: new Date() }
       if (input.name !== undefined) patch.name = input.name
@@ -185,6 +189,7 @@ export class RealSavedViewService implements ISavedViewService {
         )
         .limit(1)
       if (!before) return
+      if (before.userId) await assertActsAsSelf(this.tenantResolver, before.userId, organizationId)
       await tx
         .update(savedViews)
         .set({ deletedAt: new Date(), updatedAt: new Date() })
@@ -202,6 +207,9 @@ export class RealSavedViewService implements ISavedViewService {
 
   async setDefault(id: string, organizationId: string): Promise<SavedView> {
     assertSameTenant(this.tenantResolver, organizationId)
+    const [target] = await getDb().select({ userId: savedViews.userId }).from(savedViews)
+      .where(and(eq(savedViews.id, id), eq(savedViews.organizationId, organizationId))).limit(1)
+    if (target?.userId) await assertActsAsSelf(this.tenantResolver, target.userId, organizationId)
     return await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .update(savedViews)

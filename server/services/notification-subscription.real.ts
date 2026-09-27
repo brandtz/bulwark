@@ -20,6 +20,7 @@ import { notificationSubscriptions } from '../db/schema/notification_subscriptio
 import type { NotificationSubscriptionRow } from '../db/schema/notification_subscriptions'
 import { getDb } from '../db/client'
 import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertActsAsSelf } from './_caller'
 import { withAudit } from './_tx'
 
 function rowToContract(r: NotificationSubscriptionRow): NotificationSubscription {
@@ -56,6 +57,7 @@ export class RealNotificationSubscriptionService
     userId: string,
   ): Promise<{ rows: NotificationSubscription[] }> {
     assertSameTenant(this.tenantResolver, organizationId)
+    await assertActsAsSelf(this.tenantResolver, userId, organizationId)
     const db = getDb()
     const rows = await db
       .select()
@@ -73,6 +75,7 @@ export class RealNotificationSubscriptionService
     input: NotificationSubscriptionUpsertInput,
   ): Promise<NotificationSubscription> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    await assertActsAsSelf(this.tenantResolver, input.userId, input.organizationId)
     const db = getDb()
     const [existing] = await db
       .select()
@@ -110,6 +113,7 @@ export class RealNotificationSubscriptionService
     input: NotificationSubscriptionBulkInput,
   ): Promise<{ rows: NotificationSubscription[] }> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    await assertActsAsSelf(this.tenantResolver, input.userId, input.organizationId)
     const rows: NotificationSubscription[] = []
     for (const entry of input.entries) {
       const r = await this.upsert({
@@ -128,6 +132,7 @@ export class RealNotificationSubscriptionService
     userId: string,
   ): Promise<{ rows: NotificationSubscription[] }> {
     assertSameTenant(this.tenantResolver, organizationId)
+    await assertActsAsSelf(this.tenantResolver, userId, organizationId)
     return await withAudit(async ({ tx, audit }) => {
       await tx
         .delete(notificationSubscriptions)

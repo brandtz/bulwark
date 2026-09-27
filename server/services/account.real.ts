@@ -79,6 +79,7 @@ import { notificationSubscriptions } from '../db/schema/notification_subscriptio
 import { auditLog } from '../db/schema/audit_log'
 import { withAudit } from './_tx'
 import type { TenantResolver } from './_tenant'
+import { assertSelfUser } from './_caller'
 
 function sha256Hex(input: string): string {
   return createHash('sha256').update(input).digest('hex')
@@ -88,10 +89,11 @@ export class RealAccountService implements IAccountService {
   // Accept tenantResolver for factory-parity with sibling services, but discard it:
   // account export/delete are intentionally user-scoped (cross-tenant for users with
   // multi-org membership). Underscore-prefix satisfies noUnusedParameters.
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor -- preserves factory signature parity (see services-factory.ts)
-  constructor(_tenantResolver?: TenantResolver) {}
+  // WP-L07 S7: personal-data methods act only on the signed-in user over RPC.
+  constructor(private readonly tenantResolver?: TenantResolver) {}
 
   async exportPersonalData(userId: string): Promise<AccountExport> {
+    assertSelfUser(this.tenantResolver, userId)
     const db = getDb()
 
     const [userRow] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
@@ -246,6 +248,7 @@ export class RealAccountService implements IAccountService {
   }
 
   async requestDeletion(input: AccountDeletionRequest): Promise<AccountDeletionResult> {
+    assertSelfUser(this.tenantResolver, input.userId)
     const db = getDb()
     const [userRow] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1)
     if (!userRow) throw new Error(`User ${input.userId} not found`)

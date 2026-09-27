@@ -28,6 +28,7 @@ import type {
 import { notifications, type NotificationRow } from '../db/schema/notifications'
 import { getDb } from '../db/client'
 import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSelfUser } from './_caller'
 import { withAudit } from './_tx'
 
 function rowToContract(r: NotificationRow): Notification {
@@ -61,6 +62,7 @@ export class RealNotificationService implements INotificationService {
     userId: string,
     opts?: { unreadOnly?: boolean; page?: number; pageSize?: number },
   ): Promise<NotificationListOutput> {
+    assertSelfUser(this.tenantResolver, userId)
     const orgId = this.requireOrg()
     const page = Math.max(1, opts?.page ?? 1)
     const pageSize = Math.min(200, Math.max(1, opts?.pageSize ?? 50))
@@ -99,6 +101,7 @@ export class RealNotificationService implements INotificationService {
   }
 
   async unreadCountForUser(userId: string): Promise<number> {
+    assertSelfUser(this.tenantResolver, userId)
     const orgId = this.requireOrg()
     const db = getDb()
     const [r] = await db
@@ -120,10 +123,16 @@ export class RealNotificationService implements INotificationService {
     await db
       .update(notifications)
       .set({ readAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(notifications.id, id), eq(notifications.organizationId, orgId)))
+      .where(and(
+        eq(notifications.id, id),
+        eq(notifications.organizationId, orgId),
+        // Only the recipient may mark it read (WP-L07 S7).
+        ...(this.tenantResolver?.()?.userId ? [eq(notifications.userId, this.tenantResolver()!.userId)] : []),
+      ))
   }
 
   async markAllRead(userId: string): Promise<void> {
+    assertSelfUser(this.tenantResolver, userId)
     const orgId = this.requireOrg()
     const db = getDb()
     await db

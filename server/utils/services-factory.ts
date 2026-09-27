@@ -216,7 +216,7 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
     webhook: new RealWebhookService(tenantResolver),
     notificationSubscription: new RealNotificationSubscriptionService(tenantResolver),
     // W2-5 / EH-I (ADR-0024/25): MFA + permission overrides.
-    mfa: new RealMfaService(),
+    mfa: new RealMfaService(tenantResolver),
     permission: new RealPermissionService(tenantResolver),
     // W2-1 / EH-E (ADR-0018): property depth.
     building: new RealBuildingService(tenantResolver),

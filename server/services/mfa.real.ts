@@ -36,6 +36,7 @@ import { userMfa } from '../db/schema/user_mfa'
 import { mfaBackupCodes } from '../db/schema/mfa_backup_codes'
 import { users } from '../db/schema/users'
 import { encryptSecret, decryptSecret } from '../utils/crypto'
+import { ForbiddenError, type TenantResolver } from './_tenant'
 
 function sha256hex(s: string): string {
   return createHash('sha256').update(s).digest('hex')
@@ -66,7 +67,23 @@ function buildTotp(secret: string, label: string): TOTP {
 }
 
 export class RealMfaService implements IMfaService {
+  /**
+   * WP-L07 S7: over RPC the resolver is the session; every method acts only on
+   * the signed-in user (otherwise one member could mint backup codes for, or
+   * enrol an authenticator on, someone else's account). Without a resolver the
+   * caller is trusted server code (the login MFA step in auth.real.ts).
+   */
+  constructor(private readonly tenantResolver?: TenantResolver) {}
+
+  private assertSelf(userId: string): void {
+    if (!this.tenantResolver) return
+    if (this.tenantResolver()?.userId !== userId) {
+      throw new ForbiddenError('Forbidden: MFA settings belong to the signed-in user')
+    }
+  }
+
   async getStatus(userId: string): Promise<MfaStatus> {
+    this.assertSelf(userId)
     const db = getDb()
     const [row] = await db
       .select()
@@ -91,6 +108,7 @@ export class RealMfaService implements IMfaService {
   }
 
   async setupTotp(userId: string): Promise<MfaSetupResult> {
+    this.assertSelf(userId)
     const db = getDb()
     const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1)
     const label = user?.email ?? 'user@bulwark'
@@ -107,6 +125,7 @@ export class RealMfaService implements IMfaService {
   }
 
   async confirmTotp(userId: string, code: string): Promise<{ confirmed: boolean }> {
+    this.assertSelf(userId)
     const db = getDb()
     const [row] = await db
       .select()
@@ -125,6 +144,7 @@ export class RealMfaService implements IMfaService {
   }
 
   async verifyTotp(userId: string, code: string): Promise<{ ok: boolean }> {
+    this.assertSelf(userId)
     const db = getDb()
     const [row] = await db
       .select()
@@ -139,6 +159,7 @@ export class RealMfaService implements IMfaService {
   }
 
   async disable(userId: string, currentCode: string): Promise<{ disabled: boolean }> {
+    this.assertSelf(userId)
     const totp = await this.verifyTotp(userId, currentCode)
     if (!totp.ok) {
       const consumed = await this.consumeBackupCode(userId, currentCode)
@@ -152,6 +173,7 @@ export class RealMfaService implements IMfaService {
   }
 
   async generateBackupCodes(userId: string): Promise<MfaBackupCodesResult> {
+    this.assertSelf(userId)
     const db = getDb()
     // Drop the previous unused set (hard delete — they're worthless once replaced).
     await db.delete(mfaBackupCodes).where(and(eq(mfaBackupCodes.userId, userId), isNull(mfaBackupCodes.usedAt)))
@@ -167,6 +189,7 @@ export class RealMfaService implements IMfaService {
   }
 
   async consumeBackupCode(userId: string, code: string) {
+    this.assertSelf(userId)
     const db = getDb()
     const hash = sha256hex(code.trim())
     const [match] = await db

@@ -74,3 +74,13 @@ export async function subcontractorPropertyIds(subcontractorId: string, organiza
     ))
   return rows.map((r) => r.propertyId)
 }
+
+/**
+ * The caller must be exactly `userId` — no admin override. For personal data
+ * (account export/deletion, notifications). Trusted server code (no resolver)
+ * is not restricted; a resolver without a session is refused.
+ */
+export function assertSelfUser(resolver: TenantResolver | undefined, userId: string): void {
+  if (!resolver) return
+  if (sessionCaller(resolver) !== userId) throw new ForbiddenError('Forbidden: this belongs to another user')
+}

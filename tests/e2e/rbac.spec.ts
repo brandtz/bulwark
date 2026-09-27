@@ -78,3 +78,42 @@ test.describe('RPC role policy', () => {
     })
   }
 })
+
+test.describe('personal data is bound to the signed-in user', () => {
+  test.beforeEach(async ({ context }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'API-level checks run once')
+    test.skip(process.env.BULWARK_BACKEND !== 'real', 'enforced by the real services')
+    await context.clearCookies()
+  })
+
+  test('own MFA, notifications and exports work; another user\'s are refused', async ({ page, browser }) => {
+    const other = await browser.newContext()
+    await signIn(other, 'matthew@bulwark.demo')
+    const otherId = (await (await rpc(other.request, 'auth', 'currentUser')).json()).userId as string
+    await other.close()
+
+    await signIn(page.context(), 'drew@bulwark.demo')
+    const me = await (await rpc(page.request, 'auth', 'currentUser')).json()
+    const refused: string[] = []
+    page.on('response', (r) => { if (r.status() === 403 && r.url().includes('/api/')) refused.push(r.url()) })
+    for (const route of ['/profile/security', '/notifications', '/profile/data']) {
+      await page.goto(route)
+      await page.waitForLoadState('networkidle')
+    }
+    expect(refused).toEqual([])
+
+    expect((await rpc(page.request, 'mfa', 'getStatus', [me.userId])).status()).toBe(200)
+    expect((await rpc(page.request, 'notification', 'unreadCountForUser', [me.userId])).status()).toBe(200)
+    for (const [service, method, args] of [
+      ['mfa', 'getStatus', [otherId]],
+      ['mfa', 'generateBackupCodes', [otherId]],
+      ['mfa', 'setupTotp', [otherId]],
+      ['account', 'exportPersonalData', [otherId]],
+      ['account', 'requestDeletion', [{ userId: otherId }]],
+      ['notification', 'listForUser', [otherId]],
+      ['notification', 'markAllRead', [otherId]],
+    ] as Array<[string, string, unknown[]]>) {
+      expect((await rpc(page.request, service, method, args)).status(), `${service}.${method}(other)`).toBe(403)
+    }
+  })
+})
