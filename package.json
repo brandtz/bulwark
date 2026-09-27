@@ -47,9 +47,9 @@
     "@aws-sdk/s3-request-presigner": "^3.1043.0",
     "@vee-validate/zod": "^4.13.0",
     "bcryptjs": "^2.4.3",
-    "drizzle-orm": "^0.36.0",
+    "drizzle-orm": "^0.45.3",
     "jose": "^5.9.0",
-    "nuxt": "^3.14.0",
+    "nuxt": "^3.21.11",
     "nuxt-auth-utils": "^0.5.0",
     "otpauth": "^9.5.1",
     "pg-boss": "^12.18.2",
@@ -58,7 +58,7 @@
     "qrcode": "^1.5.4",
     "tsx": "^4.21.0",
     "vee-validate": "^4.13.0",
-    "vue": "^3.5.0",
+    "vue": "^3.5.43",
     "vue-router": "^4.4.0",
     "zod": "^3.23.0"
   },
@@ -74,7 +74,7 @@
     "@types/node": "^22.0.0",
     "@types/qrcode": "^1.5.6",
     "@vitejs/plugin-vue": "^5.1.0",
-    "drizzle-kit": "^0.28.0",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9.0.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.6.0",
@@ -84,5 +84,21 @@
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20.0.0"
-  }
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion@<2": "^1.1.18",
+      "brace-expansion@>=2 <3": "^2.1.4",
+      "brace-expansion@>=3 <6": "^5.0.9",
+      "browserslist@>=4 <5": "^4.28.7",
+      "ip-address@>=10 <11": "^10.3.1",
+      "js-yaml@>=4 <5": "^4.3.2",
+      "nanoid@<4": "^3.3.18",
+      "postcss@>=8 <9": "^8.5.18",
+      "svgo@>=4 <5": "^4.1.0",
+      "tar@>=7 <8": "^7.5.21",
+      "ws@>=8 <9": "^8.21.0"
+    }
+  },
+  "//9": "pnpm.overrides pin patched same-major versions of vulnerable transitive deps (WP-L07 S5; see scripts/security/audit-gate.mjs). Remove an entry once the direct dependency ships the fix."
 }

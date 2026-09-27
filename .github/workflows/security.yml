@@ -1,0 +1,44 @@
+# WP-L07 S5 — security gates (ADR-0006).
+#
+# - Dependency audit: fails on any high/critical production advisory that is
+#   not accepted in scripts/security/audit-allowlist.json (entries need a reason
+#   and expire, so accepted risk is re-reviewed).
+# - Static tenant/role gates: the RPC role policy must classify every contract
+#   method and every org-scoped real-service method must call the tenant
+#   firewall. These run in the unit job too; they are repeated here so the
+#   security check is self-contained and visible on its own.
+# - Weekly schedule catches advisories published against an unchanged tree.
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'
+
+jobs:
+  audit:
+    name: dependency audit + static security gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Dependency audit gate
+        run: node scripts/security/audit-gate.mjs
+
+      - name: RPC role policy + tenant firewall coverage
+        run: pnpm exec vitest run tests/unit/rpc-policy.test.ts tests/integration/tenant-firewall-coverage.test.ts tests/unit/audit-gate.test.ts

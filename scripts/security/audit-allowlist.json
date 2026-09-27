@@ -1,0 +1,14 @@
+[
+  {
+    "id": "GHSA-jmr9-qjv8-65gv",
+    "module": "extract-zip",
+    "reason": "No patched release exists. Pulled in only by puppeteer's @puppeteer/browsers to unpack its own Chrome download at install time on the worker host; it never processes user-supplied archives.",
+    "expires": "2026-12-31"
+  },
+  {
+    "id": "GHSA-7pqw-9j4j-h8q3",
+    "module": "extract-zip",
+    "reason": "Same dependency and exposure as GHSA-jmr9-qjv8-65gv (install-time browser download only).",
+    "expires": "2026-12-31"
+  }
+]
