@@ -159,7 +159,7 @@ d('RealAuthService (E11-S3)', () => {
     process.env.BULWARK_APP_URL = 'https://bulwark.example'
     const svc = new RealAuthService(new InMemoryAuthSessionAdapter(), async (message) => {
       delivered.push(message)
-      return { id: 'test-email', stub: false, provider: 'test' }
+      return { id: 'test-email', stub: false, provider: 'test', status: 'sent' as const }
     })
     try {
       const result = await svc.requestPasswordReset({ email })
@@ -186,7 +186,7 @@ d('RealAuthService (E11-S3)', () => {
       () => ({ userId, organizationId: orgIdA }),
       async (message) => {
         delivered.push(message)
-        return { id: 'test-invite', stub: false, provider: 'test' }
+        return { id: 'test-invite', stub: false, provider: 'test', status: 'sent' as const }
       },
     )
     let inviteId: string | undefined
@@ -230,6 +230,21 @@ d('RealAuthService (E11-S3)', () => {
     const ok = await svc2.login({ email, password: newPassword })
     if (ok.kind !== 'session') throw new Error('expected session')
     expect(ok.user.userId).toBe(userId)
+
+    // SH-01 review: the same link cannot be replayed once it has been used.
+    await expect(svc.resetPassword({ token: devToken!, newPassword: 'Replayed!33' })).rejects.toThrow(/invalid or expired/i)
+    await expect(svc2.login({ email, password: 'Replayed!33' })).rejects.toThrow(/invalid/i)
+  })
+
+  it('resetPassword() rejects a link issued before a later password change', { timeout: 20_000 }, async () => {
+    const svc = new RealAuthService(new InMemoryAuthSessionAdapter())
+    const first = await svc.requestPasswordReset({ email })
+    const second = await svc.requestPasswordReset({ email })
+    const rotated = 'Rotated!44'
+    await svc.resetPassword({ token: second.devToken!, newPassword: rotated })
+    await expect(svc.resetPassword({ token: first.devToken!, newPassword: 'Stale!55' })).rejects.toThrow(/invalid or expired/i)
+    const ok = await new RealAuthService(new InMemoryAuthSessionAdapter()).login({ email, password: rotated })
+    expect(ok.kind).toBe('session')
   })
 
   it('mintInviteToken + acceptInvite create a user + membership', async () => {

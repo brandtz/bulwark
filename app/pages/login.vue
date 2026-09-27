@@ -281,7 +281,7 @@ async function goToPostLoginDestination() {
           </div>
 
           <div class="auth-link-row auth-link-row--after-password">
-            <label class="remember-control">
+            <label class="remember-control" data-touch-row>
               <input v-model="rememberMe" type="checkbox" data-testid="remember-me-checkbox">
               <span>Keep me signed in on this device</span>
             </label>
@@ -404,7 +404,7 @@ async function goToPostLoginDestination() {
 }
 
 .auth-title { margin-bottom: 24px; }
-.auth-title h1 { margin: 0; font-size: 22px; line-height: 1.3; font-weight: 600; }
+.auth-title h1 { margin: 0; font-family: var(--font-display); font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
 .auth-title p { margin: 6px 0 0; color: var(--text-secondary); font-size: 14px; line-height: 1.5; }
 .auth-title--compact { margin-bottom: 0; }
 .auth-form { display: grid; gap: 16px; }
@@ -462,11 +462,16 @@ async function goToPostLoginDestination() {
   .auth-content { place-items: start center; padding-block: 48px 24px; }
   .auth-card { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .auth-title { margin-bottom: 24px; }
-  .auth-title h1 { font-size: 20px; }
   .auth-form { gap: 18px; }
   .auth-form :deep(input) { min-height: 48px; }
   .auth-submit { min-height: 48px; }
-  .password-toggle { bottom: 8px; }
+  /* SH-01 touch audit at 390: every interactive target is at least 48px. */
+  .password-toggle { bottom: 0; min-width: 48px; min-height: 48px; }
+  .auth-link, .auth-link--muted, .brand-lockup, .skip-link { min-height: 48px; }
+  .brand-lockup { display: inline-flex; align-items: center; }
+  .remember-control { min-height: 48px; }
+  .remember-control input { width: 24px; height: 24px; }
+  .auth-link-row--after-password { margin-top: 0; }
   .invite-prompt { margin-top: 20px; }
   .auth-footer { align-items: flex-start; flex-direction: column; gap: 4px; }
 }

@@ -33,7 +33,7 @@
  */
 import bcrypt from 'bcryptjs'
 import { SignJWT, jwtVerify } from 'jose'
-import { and, desc, eq, gte } from 'drizzle-orm'
+import { and, desc, eq, gte, isNull } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 import type {
   IAuthService,
@@ -119,7 +119,13 @@ async function signToken(payload: Record<string, unknown>, ttlMs: number): Promi
     .sign(getJwtSecret())
 }
 
-interface ResetPayload { kind: 'reset'; userId: string }
+// `pwd` fingerprints the password hash at issue time, so a reset link stops working once any
+// password change lands (single use, and revoked by a later reset or change).
+interface ResetPayload { kind: 'reset'; userId: string; pwd?: string }
+
+function passwordFingerprint(passwordHash: string | null): string {
+  return createHash('sha256').update(`reset:${passwordHash ?? ''}`).digest('hex').slice(0, 32)
+}
 interface MfaTokenPayload { kind: 'mfa'; userId: string; rememberMe?: boolean }
 interface InvitePayload {
   kind: 'invite'
@@ -275,7 +281,7 @@ export class RealAuthService implements IAuthService {
     input = RequestPasswordResetInputSchema.parse(input)
     const db = getDb()
     const [row] = await db
-      .select({ id: users.id, isActive: users.isActive })
+      .select({ id: users.id, isActive: users.isActive, passwordHash: users.passwordHash })
       .from(users)
       .where(eq(users.email, input.email.toLowerCase()))
       .limit(1)
@@ -283,7 +289,7 @@ export class RealAuthService implements IAuthService {
       // Same-shape success so we don't leak account existence.
       return { devToken: null }
     }
-    const token = await signToken({ kind: 'reset', userId: row.id } satisfies ResetPayload, RESET_TTL_MS)
+    const token = await signToken({ kind: 'reset', userId: row.id, pwd: passwordFingerprint(row.passwordHash) } satisfies ResetPayload, RESET_TTL_MS)
     const isProd = process.env.NODE_ENV === 'production'
     const [membership] = await db
       .select({ organizationId: memberships.organizationId })
@@ -313,14 +319,28 @@ export class RealAuthService implements IAuthService {
     // W5-3 / ADR-0037: Zod-parse at the boundary (unauthenticated entry).
     input = ResetPasswordInputSchema.parse(input)
     const payload = await verifyTokenOfKind<ResetPayload>(input.token, 'reset')
-    const newHash = await RealAuthService.hashPassword(input.newPassword)
     const db = getDb()
+    const [current] = await db
+      .select({ passwordHash: users.passwordHash })
+      .from(users)
+      .where(and(eq(users.id, payload.userId), eq(users.isActive, true)))
+      .limit(1)
+    if (!current) throw new Error('Account not found or inactive')
+    if (payload.pwd !== passwordFingerprint(current.passwordHash)) {
+      throw new Error('Reset link is invalid or expired')
+    }
+    const newHash = await RealAuthService.hashPassword(input.newPassword)
+    // Compare-and-set on the old hash: two concurrent redemptions of one link cannot both win.
     const [updated] = await db
       .update(users)
       .set({ passwordHash: newHash })
-      .where(and(eq(users.id, payload.userId), eq(users.isActive, true)))
+      .where(and(
+        eq(users.id, payload.userId),
+        eq(users.isActive, true),
+        current.passwordHash === null ? isNull(users.passwordHash) : eq(users.passwordHash, current.passwordHash),
+      ))
       .returning({ id: users.id })
-    if (!updated) throw new Error('Account not found or inactive')
+    if (!updated) throw new Error('Reset link is invalid or expired')
     await this.adapter.setActiveUserId(updated.id)
     await this.adapter.setActiveOrgOverride(null)
     const session = await this.buildSessionUser(updated.id)

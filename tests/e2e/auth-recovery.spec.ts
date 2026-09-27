@@ -16,8 +16,8 @@
  * When RealAuthService lands (E11-S2), this token-mint helper goes away
  * and the test reaches /accept-invite via the admin invite flow instead.
  */
-import { test, expect } from '@playwright/test'
-import { signOut } from './_helpers'
+import { test, expect, type Browser } from '@playwright/test'
+import { isBuiltServer, signIn, signOut } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -47,8 +47,30 @@ function mintInviteToken(opts: {
     .replace(/=+$/, '')
 }
 
+/**
+ * Real backend: issue a genuine invite through the admin API (user.invite) and return the raw
+ * token from its inviteUrl, so the invite pages are exercised end to end. Mock backend: the
+ * mock accepts the base64url(JSON) shape minted above.
+ */
+async function issueInviteToken(browser: Browser, opts: { email: string, role?: 'org_admin' | 'field' }): Promise<string> {
+  if (process.env.BULWARK_BACKEND !== 'real') return mintInviteToken({ email: opts.email, role: opts.role, organizationName: 'Bulwark Demo Co.' })
+  const admin = await browser.newContext()
+  try {
+    await signIn(admin, 'drew@bulwark.demo')
+    const me = await (await admin.request.post('http://localhost:3000/api/services/auth/currentUser', { data: { args: [] } })).json()
+    const res = await admin.request.post('http://localhost:3000/api/services/user/invite', {
+      data: { args: [{ organizationId: me.activeOrganizationId, email: opts.email, role: opts.role ?? 'field', invitedByUserId: me.userId }] },
+    })
+    expect(res.ok(), await res.text()).toBe(true)
+    const { inviteUrl } = await res.json() as { inviteUrl: string }
+    return new URL(inviteUrl, 'http://localhost:3000').searchParams.get('token')!
+  } finally {
+    await admin.close()
+  }
+}
+
 test.describe('Auth recovery — forgot / reset / invite', () => {
-  test('login exposes password recovery and opens a pasted invitation link', async ({ page }) => {
+  test('login exposes password recovery and opens a pasted invitation link', async ({ page, browser }) => {
     await page.goto('/login')
     await page.getByTestId('forgot-password-link').click()
     await expect(page).toHaveURL('/forgot-password')
@@ -58,16 +80,18 @@ test.describe('Auth recovery — forgot / reset / invite', () => {
     await page.getByTestId('open-invite-link').click()
     await expect(page).toHaveURL('/accept-invite')
     await expect(page.getByTestId('invite-link-entry')).toBeVisible()
-    await page.getByTestId('invite-link-input').fill('https://attacker.example/accept-invite?token=forged')
+    await page.getByLabel('Invitation link').fill('https://attacker.example/accept-invite?token=forged')
     await page.getByTestId('invite-link-submit').click()
     await expect(page.getByRole('alert')).toContainText('does not look like a Bulwark invitation')
-    const token = mintInviteToken({ email: 'pasted-invite@bulwark.demo' })
-    await page.getByTestId('invite-link-input').fill(`http://localhost:3000/accept-invite?token=${token}`)
+    const invitee = `pasted-invite-${Date.now()}@bulwark.demo`
+    const token = await issueInviteToken(browser, { email: invitee })
+    await page.getByLabel('Invitation link').fill(`http://localhost:3000/accept-invite?token=${token}`)
     await page.getByTestId('invite-link-submit').click()
-    await expect(page.getByTestId('invite-summary')).toContainText('pasted-invite@bulwark.demo')
+    await expect(page.getByTestId('invite-summary')).toContainText('Bulwark Demo Co.')
   })
 
   test('forgot-password shows success state and a dev reset link for known email', async ({ page }) => {
+    test.skip(isBuiltServer(), 'production builds never return reset tokens; the link is dev-only')
     await page.goto('/forgot-password')
     await page.waitForLoadState('networkidle')
     await page.getByLabel('Email').fill('drew@bulwark.demo')
@@ -87,6 +111,7 @@ test.describe('Auth recovery — forgot / reset / invite', () => {
   })
 
   test('reset-password full round trip lands on /login with reset=ok', async ({ page }) => {
+    test.skip(isBuiltServer(), 'needs the dev-only reset link; tests/integration/auth.real.test.ts covers resetPassword')
     await page.goto('/forgot-password')
     await page.waitForLoadState('networkidle')
     // Use a throwaway user so the password rotation doesn't break sibling
@@ -117,19 +142,9 @@ test.describe('Auth recovery — forgot / reset / invite', () => {
     await expect(page.getByTestId('reset-no-token')).toBeVisible()
   })
 
-  test('accept-invite happy path creates an account and signs the user in', async ({ page }) => {
-    test.skip(
-      process.env.BULWARK_BACKEND === 'real',
-      'mintInviteToken emits the mock base64url(JSON) shape; RealAuthService uses JOSE/HS256. Real-backend invite path is covered by tests/integration/auth.real.test.ts.',
-    )
-    const token = mintInviteToken({
-      email: 'newhire@bulwark.demo',
-      // Use org_admin so the post-accept role-aware redirect lands on a
-      // page that exists today (admin/dashboard). When E5 ships field/sub
-      // dashboards, this can flip to 'field'.
-      role: 'org_admin',
-      organizationName: 'Bulwark Demo Co.',
-    })
+  test('accept-invite happy path creates an account and signs the user in', async ({ page, browser }) => {
+    // org_admin so the post-accept role-aware redirect lands on admin/dashboard.
+    const token = await issueInviteToken(browser, { email: `newhire-${Date.now()}@bulwark.demo`, role: 'org_admin' })
     await page.goto(`/accept-invite?token=${token}`)
     await page.waitForLoadState('networkidle')
     await expect(page.getByTestId('invite-summary')).toContainText('Bulwark Demo Co.')
