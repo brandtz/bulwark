@@ -86,3 +86,65 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  # WP-Q1: screen-contract harness self-tests (scaffold/audit rejection, design
+  # baseline self-vs-blank, axe contrast fixture, eight-role authorization) against
+  # a real Postgres and the built server. Per-screen specs join this project as
+  # their SCR work packages land.
+  screens:
+    name: screen-contract harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bulwark
+          POSTGRES_PASSWORD: bulwark
+          POSTGRES_DB: bulwark_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U bulwark"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BULWARK_BACKEND: real
+      DATABASE_URL: postgres://bulwark:bulwark@localhost:5432/bulwark_ci
+      JWT_SECRET: ci-only-jwt-secret-32char-min-aaaaaaaaaa
+      BULWARK_PDF_STUB: '1'
+      BULWARK_E2E_SERVER_COMMAND: node .output/server/index.mjs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migrate database
+        run: pnpm exec drizzle-kit migrate
+
+      - name: Build app
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run screen-contract harness
+        run: pnpm exec playwright test tests/e2e/screens/_harness.spec.ts --project=screens --reporter=list,html
+
+      - name: Upload screen-contract report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screens-report
+          path: playwright-report/
+          retention-days: 14

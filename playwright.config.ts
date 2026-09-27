@@ -24,6 +24,9 @@ import { defineConfig, devices } from '@playwright/test'
 
 // Screen-contract suite is opt-in; see `projects` below.
 const wantScreens = process.env.BULWARK_SCREENS === '1' || process.argv.some((a) => a === 'screens' || a === '--project=screens' || /tests[\\/]e2e[\\/]screens/.test(a))
+// Workers re-evaluate this config without the runner's argv; export the decision so the
+// `screens` project exists in every worker (otherwise: "Project screens not found").
+if (wantScreens) process.env.BULWARK_SCREENS = '1'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -46,7 +49,9 @@ export default defineConfig({
   },
 
   webServer: {
-    command: 'pnpm dev',
+    // BULWARK_E2E_SERVER_COMMAND lets CI (and memory-constrained machines) run against the
+    // built server instead, e.g. `node .output/server/index.mjs` after `pnpm build`.
+    command: process.env.BULWARK_E2E_SERVER_COMMAND || 'pnpm dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     // Cold-start of Nuxt 3.21 dev with 60+ routes + Vite scan regularly
@@ -57,6 +62,10 @@ export default defineConfig({
       // ADR-0015 / EH-C: real backend is the runtime default. Mock survives
       // as an explicit opt-in (BULWARK_BACKEND=mock) for offline dev runs.
       BULWARK_BACKEND: process.env.BULWARK_BACKEND || 'real',
+      // A built server bakes runtimeConfig at build time with NODE_ENV=production; these
+      // runtime overrides keep the backend flag and a non-Secure cookie on http://localhost.
+      NUXT_PUBLIC_BACKEND: process.env.BULWARK_BACKEND || 'real',
+      NUXT_SESSION_COOKIE_SECURE: 'false',
       // W5-1 / EH-R: the login rate-limiter (5/min per IP) hammers the e2e
       // suite, which authenticates as ~12 personas back-to-back. Default
       // the bypass ON in playwright so specs don't have to sleep; explicit

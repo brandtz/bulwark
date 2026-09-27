@@ -13,7 +13,11 @@ test('scaffold output keeps unfinished states as fixmes', () => {
   const outputDir = mkdtempSync(path.join(os.tmpdir(), 'bulwark-screen-scaffold-'))
   try {
     const script = path.join(root, 'scripts', 'codegraph', 'scaffold-screen-test.mjs')
-    const result = spawnSync(process.execPath, [script, 'SH-01', `--out-dir=${outputDir}`], { encoding: 'utf8' })
+    // Tracked copy of the approved SH-01 SPEC so this runs without the ignored design exports (CI).
+    const specFixture = path.join(root, 'tests', 'e2e', 'screens', '__fixtures__', 'SH-01.SPEC.md')
+    const result = spawnSync(process.execPath, [
+      script, 'SH-01', `--spec-file=${specFixture}`, '--route=/login', `--out-dir=${outputDir}`,
+    ], { encoding: 'utf8' })
     expect(result.status, result.stderr).toBe(0)
     const generated = readFileSync(path.join(outputDir, 'SH-01.spec.ts'), 'utf8')
     expect(generated).toContain('test.fixme(')

@@ -16,8 +16,14 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const GRAPH = JSON.parse(await fs.readFile(path.join(ROOT, 'agents', 'codegraph', 'graph.json'), 'utf8'))
 const args = process.argv.slice(2)
+const argValue = (name) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3)
+// --spec-file=<SPEC.md> [--route=/x] [--title=...] scaffolds one design from a tracked fixture
+// without the generated graph or the ignored design exports (used by CI self-tests).
+const specFileArg = argValue('spec-file')
+const GRAPH = specFileArg
+  ? { nodes: [] }
+  : JSON.parse(await fs.readFile(path.join(ROOT, 'agents', 'codegraph', 'graph.json'), 'utf8'))
 const force = args.includes('--force')
 const outDirArg = args.find((a) => a.startsWith('--out-dir='))
 const OUT = outDirArg ? path.resolve(outDirArg.slice('--out-dir='.length)) : path.join(ROOT, 'tests', 'e2e', 'screens')
@@ -46,7 +52,9 @@ function parseSpec(md) {
 const ident = (s) => s.replace(/[^a-zA-Z0-9]+/g, ' ').trim().replace(/\s+/g, ' ')
 
 for (const id of ids) {
-  const node = GRAPH.nodes.find((n) => n.id === `design:${id}`)
+  const node = specFileArg
+    ? { spec: path.relative(ROOT, path.resolve(specFileArg)).replace(/\\/g, '/'), routes: [argValue('route') ?? '/'], title: argValue('title') ?? id }
+    : GRAPH.nodes.find((n) => n.id === `design:${id}`)
   if (!node?.spec) { console.error(`✖ ${id}: no received SPEC`); continue }
   const out = path.join(OUT, `${id}.spec.ts`)
   if (existsSync(out) && !force) { console.log(`· ${id}: exists (use --force to overwrite)`); continue }

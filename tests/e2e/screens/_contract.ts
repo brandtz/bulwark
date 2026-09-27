@@ -61,6 +61,9 @@ export interface ScreenContract {
 }
 
 export async function setTheme(page: Page, theme: 'light' | 'dark') {
+  // The cookie is what SSR reads; without it the page renders light and flips on hydration,
+  // and the colour transitions would still be animating when assertions sample them.
+  await page.context().addCookies([{ name: 'bulwark.theme', value: theme, url: 'http://localhost:3000', sameSite: 'Lax' }])
   await page.addInitScript((t) => {
     try { localStorage.setItem('bulwark.theme', t) } catch { /* ignore */ }
     document.documentElement.setAttribute('data-theme', t)
@@ -71,7 +74,8 @@ async function collectRuntimeErrors(page: Page) {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`) })
-  page.on('requestfailed', (r) => { if (!/favicon|hot|__nuxt_devtools/.test(r.url())) errors.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`) })
+  // net::ERR_ABORTED is a client-side cancellation (navigation superseding a fetch), not a failure.
+  page.on('requestfailed', (r) => { if (!/favicon|hot|__nuxt_devtools/.test(r.url()) && r.failure()?.errorText !== 'net::ERR_ABORTED') errors.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`) })
   return errors
 }
 
@@ -83,6 +87,8 @@ export async function assertAxeClean(page: Page, allow: Record<string, string> =
   try { ({ default: AxeBuilder } = await import('@axe-core/playwright') as unknown as { default: new (opts: { page: Page }) => AxeBuilderLike }) } catch {
     throw new Error('@axe-core/playwright is required for screen-contract tests')
   }
+  // Let CSS transitions/animations settle so contrast is measured on final colours.
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'), undefined, { timeout: 5_000 }).catch(() => {})
   const results = await new AxeBuilder!({ page }).disableRules(Object.keys(allow)).analyze()
   const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
   expect(serious, serious.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)\n  ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n  ')}`).join('\n')).toEqual([])

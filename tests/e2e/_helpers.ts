@@ -72,3 +72,12 @@ export async function signOut(context: BrowserContext): Promise<void> {
   }
   await context.clearCookies({ name: PERSONA_COOKIE })
 }
+
+/**
+ * True when the suite targets a production build (`nuxt build` output) rather than `nuxt dev`.
+ * Dev-only affordances (persona quick-pick, dev reset links) are compiled out of such builds.
+ * Set BULWARK_E2E_BUILT=1 when reusing an already-running built server.
+ */
+export function isBuiltServer(): boolean {
+  return !!process.env.BULWARK_E2E_SERVER_COMMAND || process.env.BULWARK_E2E_BUILT === '1'
+}
