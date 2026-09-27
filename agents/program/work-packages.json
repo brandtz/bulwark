@@ -858,7 +858,7 @@
     {
       "id": "WP-L08",
       "title": "L08 Observability (Sentry, metrics, health) + L09 a11y gates + L10 perf budgets in CI",
-      "lane": "HRD", "phase": "2-admin-core", "status": "ready", "size": "M",
+      "lane": "HRD", "phase": "2-admin-core", "status": "todo", "size": "M",
       "goal": "Per epics L08/L09/L10; axe + Lighthouse budgets become CI gates used by every SCR WP.",
       "scope": ["As epics"], "outOfScope": [], "designs": [],
       "files": ["server/plugins/**", "server/utils/logger*.ts", ".github/workflows/**", "lighthouserc.*"],
@@ -868,7 +868,7 @@
     {
       "id": "WP-L14",
       "title": "L14 Stripe payments (checkout, webhooks, reconciliation, refunds)",
-      "lane": "HRD", "phase": "3-admin-rest", "status": "ready", "size": "L",
+      "lane": "HRD", "phase": "3-admin-rest", "status": "todo", "size": "L",
       "goal": "Per agents/epics/L14-stripe-payments.md + ADR-0003; consumed by WP-B8 and WP-F2.",
       "scope": ["As epic; providerConfig kind 'payments' card for ST-16"], "outOfScope": [], "designs": [],
       "files": ["server/services/_providers/stripe*.ts", "server/api/webhooks/stripe*.ts", "server/services/invoice-payment.real.ts", "shared/contracts/invoice-payment.ts", "server/db/schema/invoice_payments.ts"],
