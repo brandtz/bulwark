@@ -44,6 +44,11 @@ const backupCodes = ref<string[]>([])
 const submitting = ref(false)
 const errorMsg = ref<string | null>(null)
 
+// WP-L07 S2: sent here by mfa-required.global.ts when the organization requires MFA.
+const route = useRoute()
+const requiredByOrg = computed(() => route.query.required === '1' && !status.value?.enabled)
+const mfaRequiredCache = useState<{ userId: string, required: boolean } | null>('bulwark.mfaRequired', () => null)
+
 async function refreshStatus() {
   if (!userId.value) return
   try {
@@ -100,6 +105,10 @@ function ackBackupCodes() {
   backupCodes.value = []
   setupData.value = null
   step.value = 'enrolled'
+  // Enrolment satisfies the organization policy; let the member continue.
+  mfaRequiredCache.value = null
+  const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : null
+  if (route.query.required === '1' && next) void navigateTo(next)
 }
 
 async function copyBackupCodes() {
@@ -186,6 +195,13 @@ async function doDisable() {
         Manage your two-factor authentication settings.
       </p>
     </header>
+
+    <p
+      v-if="requiredByOrg"
+      role="status"
+      class="mt-4 rounded-input border border-status-warning px-3 py-2 text-small"
+      data-testid="mfa-required-banner"
+    >Your organization requires two-factor authentication. Set it up to continue.</p>
 
     <p
       v-if="errorMsg"

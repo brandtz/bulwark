@@ -82,6 +82,10 @@ test.describe('Auth — login form + middleware', () => {
 
       expect((await login(transient, false)).ok()).toBe(true)
       expect((await sessionCookie(transient))!.expires).toBe(-1)
+
+      // A new sign-in without the box must not inherit the previous session's lifetime.
+      expect((await login(persistent, false)).ok()).toBe(true)
+      expect((await sessionCookie(persistent))!.expires).toBe(-1)
     } finally {
       await persistent.close()
       await transient.close()

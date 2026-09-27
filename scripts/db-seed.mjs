@@ -405,6 +405,8 @@ try {
   await sql`DELETE FROM deliverables WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM jobs WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM invoices WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  // WP-L07 S2: demo orgs start on the default security policy.
+  await sql`DELETE FROM security_policies WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM work_orders WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM quotes WHERE organization_id = ANY(${DEMO_ORG_IDS})`
   await sql`DELETE FROM assessments WHERE organization_id = ANY(${DEMO_ORG_IDS})`

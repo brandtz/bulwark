@@ -54,6 +54,8 @@ import type { IAccountService } from './account'
 import type { IThemePreferencesService } from './theme-preferences'
 // WP-L03 — message delivery ledger health.
 import type { ICommsService } from './delivery'
+// WP-L07 S2 — per-organization security policy.
+import type { ISecurityPolicyService } from './security-policy'
 
 export interface BulwarkServices {
   auth: IAuthService
@@ -115,6 +117,8 @@ export interface BulwarkServices {
   themePreferences: IThemePreferencesService
   // WP-L03: delivery health read model over message_deliveries.
   comms: ICommsService
+  // WP-L07 S2: MFA mode, idle timeout, lockout thresholds.
+  securityPolicy: ISecurityPolicyService
 }
 
 export type ServiceName = keyof BulwarkServices

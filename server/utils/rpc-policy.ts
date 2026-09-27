@@ -146,6 +146,11 @@ export const RPC_POLICY: Record<string, Record<string, RpcRule>> = {
   webhook: { list: admin, get: admin, create: admin, update: admin, softDelete: admin, test: admin, deliveries: admin },
   apiKey: { list: admin, create: admin, revoke: admin },
   comms: { deliveryHealth: admin },
+  securityPolicy: { get: admin, update: admin, mfaRoster: admin, getMine: member },
+}
+
+export function isPublicRpc(service: string, method: string): boolean {
+  return Object.hasOwn(RPC_POLICY, service) && RPC_POLICY[service]![method] === 'public'
 }
 
 export type RpcDecision =

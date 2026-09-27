@@ -29,7 +29,8 @@ import { createRealServices } from '~~/server/utils/services-factory'
 import type { BulwarkServices } from '~~/shared/contracts/services'
 import { ForbiddenError, TenantViolationError } from '~~/shared/mocks/tenant'
 import type { SessionUser } from '~~/shared/contracts/auth'
-import { authorizeRpc } from '~~/server/utils/rpc-policy'
+import { authorizeRpc, isPublicRpc } from '~~/server/utils/rpc-policy'
+import { enforceSecurityPolicy } from '~~/server/utils/security-enforcement'
 
 type ServiceMap = { [K in keyof BulwarkServices]: BulwarkServices[K] }
 
@@ -49,6 +50,10 @@ export default defineEventHandler(async (event) => {
   const decision = authorizeRpc(serviceName, methodName, session?.activeRole ?? null)
   if (!decision.allowed) {
     throw createError({ statusCode: decision.status, statusMessage: decision.reason })
+  }
+  // WP-L07 S2: organization policy (idle timeout, required MFA) for signed-in callers.
+  if (session?.userId) {
+    await enforceSecurityPolicy(event, `${serviceName}.${methodName}`, session, { publicMethod: isPublicRpc(serviceName, methodName) })
   }
   const target = services[serviceName] as unknown as Record<string, unknown> | undefined
   if (!target || typeof target !== 'object') {

@@ -65,6 +65,8 @@ import { pendingInvites } from '../db/schema/pending_invites'
 import { authAttempts } from '../db/schema/auth_attempts'
 import { seedDefaultNotifications } from './notification-subscription.real'
 import { RealMfaService } from './mfa.real'
+import { loadPolicyForUser } from './security-policy.real'
+import type { SecurityPolicy } from '../../shared/contracts/security-policy'
 import { sendEmail } from './_providers/email'
 import { buildAuthLink, escapeEmailHtml } from './_providers/auth-links'
 
@@ -101,6 +103,15 @@ const LOCKOUT_WINDOW_MS = 15 * 60 * 1000
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000
 const MFA_TOKEN_TTL_MS = 5 * 60 * 1000
 const REMEMBER_ME_SESSION_SECONDS = 30 * 24 * 60 * 60
+
+/**
+ * WP-L07 S2: "Keep me signed in" lasts the organization's trusted-device
+ * lifetime, and is ignored when the organization sets an idle timeout (ED-001).
+ */
+function persistentSessionFor(rememberMe: boolean | undefined, policy: SecurityPolicy | null): { maxAgeSeconds: number } | undefined {
+  if (!rememberMe || policy?.idleMinutes) return undefined
+  return { maxAgeSeconds: policy ? policy.trustedDays * 24 * 60 * 60 : REMEMBER_ME_SESSION_SECONDS }
+}
 
 function getJwtSecret(): Uint8Array {
   const raw = process.env.JWT_SECRET ?? process.env.NUXT_SESSION_PASSWORD
@@ -169,9 +180,12 @@ export class RealAuthService implements IAuthService {
     const email = input.email.toLowerCase()
     const ipAddress = opts?.ipAddress ?? null
 
-    // Pre-flight lockout check (uses globals; can't pull org overrides
-    // before we know the user).
-    const lock = await this.getLockoutState({ email })
+    // Pre-flight lockout check with the user's organization thresholds
+    // (WP-L07 S2); unknown emails use the defaults, so the response shape
+    // does not reveal whether the account exists.
+    const [known] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)
+    const policy = known ? await loadPolicyForUser(known.id) : null
+    const lock = await this.getLockoutState({ email }, policy ?? undefined)
     if (lock.locked) {
       await db.insert(authAttempts).values({ email, ipAddress, success: false, reason: 'locked' })
       const retryAfterSeconds = Math.max(1, Math.ceil(((lock.until ?? Date.now()) - Date.now()) / 1000))
@@ -203,7 +217,7 @@ export class RealAuthService implements IAuthService {
     }
 
     await db.insert(authAttempts).values({ email, ipAddress, success: true, reason: null })
-    await this.adapter.setActiveUserId(row.id, input.rememberMe ? { maxAgeSeconds: REMEMBER_ME_SESSION_SECONDS } : undefined)
+    await this.adapter.setActiveUserId(row.id, persistentSessionFor(input.rememberMe, policy))
     await this.adapter.setActiveOrgOverride(null)
     const session = await this.buildSessionUser(row.id)
     if (!session) throw new Error('Account has no active memberships')
@@ -241,7 +255,7 @@ export class RealAuthService implements IAuthService {
       success: true,
       reason: usedBackup ? 'mfa_backup' : 'mfa_totp',
     })
-    await this.adapter.setActiveUserId(user.id, payload.rememberMe ? { maxAgeSeconds: REMEMBER_ME_SESSION_SECONDS } : undefined)
+    await this.adapter.setActiveUserId(user.id, persistentSessionFor(payload.rememberMe, await loadPolicyForUser(user.id)))
     await this.adapter.setActiveOrgOverride(null)
     const session = await this.buildSessionUser(user.id)
     if (!session) throw new Error('Account has no active memberships')
@@ -525,7 +539,12 @@ export class RealAuthService implements IAuthService {
     }
   }
 
-  async getLockoutState(input: { email: string }): Promise<LockoutState> {
+  async getLockoutState(
+    input: { email: string },
+    limits: Pick<SecurityPolicy, 'lockoutAttempts' | 'lockoutMinutes'> = { lockoutAttempts: LOCKOUT_THRESHOLD, lockoutMinutes: LOCKOUT_DURATION_MS / 60_000 },
+  ): Promise<LockoutState> {
+    const threshold = limits.lockoutAttempts
+    const durationMs = limits.lockoutMinutes * 60_000
     const db = getDb()
     const email = input.email.toLowerCase()
     const windowStart = new Date(Date.now() - LOCKOUT_WINDOW_MS)
@@ -544,8 +563,8 @@ export class RealAuthService implements IAuthService {
       failures++
       lastFailureAt = lastFailureAt ?? r.occurredAt
     }
-    if (failures >= LOCKOUT_THRESHOLD && lastFailureAt) {
-      const until = lastFailureAt.getTime() + LOCKOUT_DURATION_MS
+    if (failures >= threshold && lastFailureAt) {
+      const until = lastFailureAt.getTime() + durationMs
       if (until > Date.now()) {
         return { locked: true, until, attemptsRemaining: 0 }
       }
@@ -553,7 +572,7 @@ export class RealAuthService implements IAuthService {
     return {
       locked: false,
       until: null,
-      attemptsRemaining: Math.max(0, LOCKOUT_THRESHOLD - failures),
+      attemptsRemaining: Math.max(0, threshold - failures),
     }
   }
 }

@@ -52,6 +52,12 @@ function csrfHeaders(ssrToken: string | undefined): Record<string, string> {
   return token ? { 'x-csrf-token': token } : {}
 }
 
+/** WP-L07 S2: the organization's idle timeout ended the session. */
+function isIdleExpiry(err: unknown): boolean {
+  const e = err as { statusCode?: number, statusMessage?: string, data?: { statusMessage?: string } }
+  return e?.statusCode === 401 && /inactivity/u.test(e.statusMessage ?? e.data?.statusMessage ?? '')
+}
+
 function isCsrfRejection(err: unknown): boolean {
   const e = err as { statusCode?: number, statusMessage?: string, data?: { statusMessage?: string } }
   return e?.statusCode === 403 && /CSRF token/u.test(e.statusMessage ?? e.data?.statusMessage ?? '')
@@ -80,6 +86,10 @@ function makeRpcProxy(): BulwarkServices {
             try {
               return await call()
             } catch (err) {
+              if (import.meta.client && isIdleExpiry(err)) {
+                const next = window.location.pathname + window.location.search
+                window.location.assign(`/login?reason=idle&next=${encodeURIComponent(next)}`)
+              }
               // A session that predates the CSRF cookie gets it on this 403; retry once.
               if (import.meta.client && isCsrfRejection(err)) {
                 try { return await call() } catch (retryErr) { unwrapFetchError(retryErr) }

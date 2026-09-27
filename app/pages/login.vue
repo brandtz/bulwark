@@ -76,6 +76,8 @@ const nextDestination = computed(() => {
   return next.startsWith('/') && !next.startsWith('//') ? next : ''
 })
 const passwordResetComplete = computed(() => route.query.reset === 'ok')
+// WP-L07 S2: the RPC proxy lands here after an idle-timeout sign-out.
+const signedOutIdle = computed(() => route.query.reason === 'idle')
 
 watch(error, async (message) => {
   if (!message) return
@@ -196,6 +198,12 @@ async function goToPostLoginDestination() {
           role="status"
           data-testid="login-reset-success"
         >Your password has been updated. Sign in with your new password.</div>
+        <div
+          v-if="signedOutIdle"
+          class="auth-banner auth-banner--warning"
+          role="status"
+          data-testid="login-idle-notice"
+        >You were signed out after a period of inactivity. Sign in again to continue.</div>
         <div
           v-if="nextDestination && step.kind !== 'mfa'"
           class="auth-banner auth-banner--info"

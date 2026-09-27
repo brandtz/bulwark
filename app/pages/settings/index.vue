@@ -58,6 +58,7 @@ const CARDS: SettingsCard[] = [
   { to: '/settings/webhooks', title: 'Webhooks', body: 'Outbound HTTP subscriptions for org events.', icon: 'external-link' },
   { to: '/settings/audit-log', title: 'Audit log', body: 'Read-only history of writes across the org.', icon: 'eye' },
   { to: '/settings/saved-views', title: 'Saved views', body: 'Manage your private and shared list views.', icon: 'list' },
+  { to: '/settings/security', title: 'Security', body: 'Two-factor policy, session timeout and sign-in lockout.', icon: 'shield' },
   { to: '/settings/permissions', title: 'Permissions', body: 'Per-role overrides for fine-grained capabilities.', icon: 'shield' },
   { to: '/settings/feature-flags', title: 'Feature flags', body: 'Per-tenant toggles (super_admin only).', icon: 'alert-triangle', superAdminOnly: true },
   { to: '/settings/jobs', title: 'Scheduled jobs', body: 'Platform sweeps: GDPR purge + COI expiry (super_admin only).', icon: 'settings', superAdminOnly: true },

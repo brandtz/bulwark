@@ -80,18 +80,22 @@ import { RealAccountService } from '../services/account.real'
 import { RealThemePreferencesService } from '../services/theme-preferences.real'
 // WP-L03 — delivery health over the message_deliveries ledger.
 import { RealCommsService } from '../services/comms/comms.real'
+// WP-L07 S2 — per-organization security policy.
+import { RealSecurityPolicyService } from '../services/security-policy.real'
 import type { TenantContext, TenantResolver } from '../services/_tenant'
 
-interface SessionUserShape {
+export interface SessionUserShape {
   userId?: string
   activeOrgOverride?: string | null
   /** SH-01 "Keep me signed in": cookie lifetime in seconds, re-applied on every session write. */
   persistentSeconds?: number
+  /** WP-L07 S2: epoch ms of the last non-passive API call (idle timeout). */
+  lastSeenAt?: number
 }
 
 // Every write re-seals the cookie; without the original maxAge a later write in the same or a
 // later request would silently downgrade a 30-day session to a browser-session cookie.
-function sessionWriteConfig(user: SessionUserShape) {
+export function sessionWriteConfig(user: SessionUserShape) {
   return user.persistentSeconds ? { maxAge: user.persistentSeconds } : undefined
 }
 
@@ -117,11 +121,16 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
       deleteCookie(this.event, 'nuxt-session', { path: '/' })
       return
     }
-    // A fresh authentication starts a fresh session (new createdAt, no carried-over org
-    // override or persistence from whoever used this browser before).
-    await clearUserSession(this.event)
-    const user: SessionUserShape = { userId: id, ...(options?.maxAgeSeconds ? { persistentSeconds: options.maxAgeSeconds } : {}) }
-    await setUserSession(this.event, { user }, sessionWriteConfig(user))
+    // A fresh authentication starts a fresh session (no carried-over org override,
+    // persistence or idle clock from whoever used this browser before). replace, not set:
+    // setUserSession merges with the old cookie's data via defu, which kept the previous
+    // session's persistentSeconds/lastSeenAt alive across a new sign-in.
+    const user: SessionUserShape = {
+      userId: id,
+      lastSeenAt: Date.now(),
+      ...(options?.maxAgeSeconds ? { persistentSeconds: options.maxAgeSeconds } : {}),
+    }
+    await replaceUserSession(this.event, { user }, sessionWriteConfig(user))
   }
 
   async getActiveOrgOverride(): Promise<string | null> {
@@ -236,5 +245,6 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
     account: new RealAccountService(tenantResolver),
     themePreferences: new RealThemePreferencesService(tenantResolver),
     comms: new RealCommsService(tenantResolver),
+    securityPolicy: new RealSecurityPolicyService(tenantResolver),
   } as BulwarkServices
 }
