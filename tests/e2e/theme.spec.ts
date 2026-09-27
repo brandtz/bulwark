@@ -4,8 +4,13 @@
  * or replacement token stylesheet is injected. Legacy styling is checked first.
  * Attachments document token consumption and runtime theme preference behavior.
  */
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { signInAsAdmin } from './_helpers'
+
+// The page background paints from <html> (the canvas); body repeats the same token. Assert on
+// the root: Playwright's WebKit with isMobile emulation (mobile-safari project) reports a stale
+// getComputedStyle(body) until the next root mutation, although the rendered page is correct.
+const pageCanvas = (page: Page) => page.locator('html')
 
 test('SSR applies cookie-backed preferences and an accessible accent to the document root', async ({ page }) => {
   const remoteFontRequests: string[] = []
@@ -37,9 +42,9 @@ test('system mode uses the OS color scheme before hydration and reacts to change
   const response = await page.goto('/dev/ui', { waitUntil: 'domcontentloaded' })
   expect(response?.ok()).toBe(true)
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'system')
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(22, 27, 34)')
+  await expect(pageCanvas(page)).toHaveCSS('background-color', 'rgb(22, 27, 34)')
   await page.emulateMedia({ colorScheme: 'light' })
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 247, 248)')
+  await expect(pageCanvas(page)).toHaveCSS('background-color', 'rgb(245, 247, 248)')
 })
 
 test('signed-in theme and density preferences persist across SSR reload', async ({ page }) => {
@@ -78,13 +83,13 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       const accent = await root.getAttribute('data-accent')
       await expect(primary).toHaveCSS('background-color', 'rgb(29, 78, 216)')
       await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)')
-      await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 247, 248)')
+      await expect(pageCanvas(page)).toHaveCSS('background-color', 'rgb(245, 247, 248)')
       const lightScreenshot = await page.screenshot({ animations: 'disabled' })
 
       await page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
       await expect(primary).toHaveCSS('background-color', 'rgb(15, 118, 110)')
       await expect(card).toHaveCSS('background-color', 'rgb(31, 36, 43)')
-      await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(22, 27, 34)')
+      await expect(pageCanvas(page)).toHaveCSS('background-color', 'rgb(22, 27, 34)')
       expect(await root.getAttribute('data-accent')).toBe(accent)
       const darkScreenshot = await page.screenshot({ animations: 'disabled' })
       expect(Buffer.compare(lightScreenshot, darkScreenshot)).not.toBe(0)
@@ -93,7 +98,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
         await page.evaluate((value) => { document.documentElement.dataset.theme = value }, theme)
         const expectedCard = theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(31, 36, 43)'
         await expect(card).toHaveCSS('background-color', expectedCard)
-        await expect(page.locator('body')).toHaveCSS('background-color', theme === 'light' ? 'rgb(245, 247, 248)' : 'rgb(22, 27, 34)')
+        await expect(pageCanvas(page)).toHaveCSS('background-color', theme === 'light' ? 'rgb(245, 247, 248)' : 'rgb(22, 27, 34)')
 
         const densityTarget = page.locator('body')
         for (const [density, height, padding] of [

@@ -43,18 +43,20 @@
   /* -----------------------------------------------------------------------
    * Semantic / status (STYLE_GUIDE §2.3)
    * --------------------------------------------------------------------- */
-  --color-success: 22 163 74;          /* #16a34a */
-  --color-success-light: 220 252 231;  /* #dcfce7 */
-  --color-success-dark: 21 128 61;     /* #15803d */
+  /* WP-A1: mapped onto Packet A semantic tokens (--success-fg/-bg/-strong etc.) so
+   * legacy status utilities meet WCAG AA 4.5:1 on white and on their tint. */
+  --color-success: 45 122 79;          /* --success-fg #2D7A4F */
+  --color-success-light: 234 244 238;  /* --success-bg #EAF4EE */
+  --color-success-dark: 35 96 64;      /* --success-strong #236040 */
 
-  --color-warning: 217 119 6;          /* #d97706 */
-  --color-warning-light: 254 243 199;  /* #fef3c7 */
+  --color-warning: 184 79 8;           /* --warning-fg #B84F08 */
+  --color-warning-light: 253 240 230;  /* --warning-bg #FDF0E6 */
 
-  --color-error: 220 38 38;            /* #dc2626 */
-  --color-error-light: 254 226 226;    /* #fee2e2 */
+  --color-error: 192 57 43;            /* --danger-fg #C0392B */
+  --color-error-light: 253 240 238;    /* --danger-bg #FDF0EE */
 
-  --color-info: 37 99 235;             /* #2563eb */
-  --color-info-light: 219 234 254;     /* #dbeafe */
+  --color-info: 46 109 164;            /* --info-fg #2E6DA4 */
+  --color-info-light: 234 241 248;     /* --info-bg #EAF1F8 */
 
   --color-purple: 124 58 237;          /* #7c3aed */
   --color-purple-light: 237 233 254;   /* #ede9fe */

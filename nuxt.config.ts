@@ -118,6 +118,8 @@ export default defineNuxtConfig({
   // -------------------------------------------------------------------------
   app: {
     head: {
+      // WCAG 3.1.1: screen readers need the document language (Lighthouse html-has-lang).
+      htmlAttrs: { lang: 'en' },
       title: 'Bulwark',
       titleTemplate: '%s · Bulwark',
       link: [

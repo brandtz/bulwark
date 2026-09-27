@@ -4,11 +4,10 @@
  * colors. Explicit boundary cases prevent a simple luminance cutoff regression.
  * Persistence and branding service integration belong to a later A1 increment.
  */
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { computeOnAccent } from '../../shared/utils/theme'
 import { MockLabelService, __resetMockLabelsForTests } from '../../shared/mocks/label.mock'
 import { FIXTURE_ORG_ID, FIXTURE_USER_ADMIN } from '../../shared/mocks/fixtures'
-import { beforeEach } from 'vitest'
 
 function contrast(first: string, second: string): number {
   const brightness = (hex: string) => {
