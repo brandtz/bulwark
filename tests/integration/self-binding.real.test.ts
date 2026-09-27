@@ -90,7 +90,7 @@ d('self-bound personal data (WP-L07 S7)', () => {
   })
 
   it('subscriptions: members manage only their own; admins may manage others', async () => {
-    const input = { organizationId: id.org, userId: id.bob, eventType: 'quote.sent', channels: ['in_app'] } as Parameters<RealNotificationSubscriptionService['upsert']>[0]
+    const input = { organizationId: id.org, userId: id.bob, eventType: 'quote.sent', channels: { email: false, sms: false, inApp: true } } as Parameters<RealNotificationSubscriptionService['upsert']>[0]
     await expect(new RealNotificationSubscriptionService(as(id.alice)).upsert(input)).rejects.toBeInstanceOf(ForbiddenError)
     await expect(new RealNotificationSubscriptionService(as(id.alice)).listForUser(id.org, id.bob)).rejects.toBeInstanceOf(ForbiddenError)
     await expect(new RealNotificationSubscriptionService(as(id.admin)).listForUser(id.org, id.bob)).resolves.toBeDefined()
