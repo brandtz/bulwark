@@ -44,6 +44,9 @@ function activeFor(kind: ProviderKind): ProviderConfig | undefined {
   return rows.value.find((r) => r.kind === kind && r.isActive)
 }
 
+// WP-L03: messaging channels without an active provider get a warning banner.
+const unconfiguredChannels = computed(() => (['email', 'sms'] as const).filter((kind) => !activeFor(kind)))
+
 // Edit modal state.
 const editing = ref<{ kind: ProviderKind; provider: Provider; config: Record<string, string> } | null>(null)
 
@@ -121,6 +124,14 @@ async function saveEdit() {
           </BulwarkButton>
         </div>
       </BulwarkCard>
+    </section>
+
+    <!-- WP-L03: delivery ledger health (gap register 3.2.3). -->
+    <section class="mt-6">
+      <DeliveryHealthPanel
+        :organization-id="orgId"
+        :unconfigured-channels="unconfiguredChannels"
+      />
     </section>
 
     <div

@@ -26,7 +26,7 @@
  */
 import { createRealServices } from '~~/server/utils/services-factory'
 import type { BulwarkServices } from '~~/shared/contracts/services'
-import { TenantViolationError } from '~~/shared/mocks/tenant'
+import { ForbiddenError, TenantViolationError } from '~~/shared/mocks/tenant'
 
 type ServiceMap = { [K in keyof BulwarkServices]: BulwarkServices[K] }
 
@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
   try {
     return await (fn as (...a: unknown[]) => unknown).apply(target, args)
   } catch (err) {
-    if (err instanceof TenantViolationError) {
+    if (err instanceof TenantViolationError || err instanceof ForbiddenError) {
       throw createError({ statusCode: 403, statusMessage: err.message })
     }
     const msg = err instanceof Error ? err.message : 'Internal error'

@@ -30,6 +30,7 @@ import { and, eq } from 'drizzle-orm'
 // W5-2 / ADR-0036 — provider rows store credentials sealed at rest.
 import { unsealProviderConfig } from '../provider-config.real'
 import { recordDeliveryAttempt } from './delivery-ledger'
+import { sendViaResend } from '../comms/resend-client'
 
 type DeliveryMode = 'transactional' | 'fanout'
 
@@ -51,6 +52,10 @@ export interface SendEmailResult {
   provider: string
   status: 'sent' | 'stubbed' | 'failed'
   error?: string
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/gu, (c) => `&#${c.charCodeAt(0)};`)
 }
 
 function isDisabled(): boolean {
@@ -87,17 +92,15 @@ async function resolveActiveProvider(organizationId: string): Promise<{
 }
 
 /**
- * Send an email. Always resolves: on provider failure we log + return
- * a stub result so the caller's loop is never broken by a transient
- * outage. Promotion path: swap the inline `fetch` calls for the
- * provider's official SDK in Phase 2.
+ * Send an email and ledger the attempt. Fan-out failures resolve with
+ * status `failed`; production transactional failures throw.
  */
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const production = process.env.NODE_ENV === 'production'
   const finish = async (
     provider: string,
     status: 'sent' | 'stubbed' | 'failed',
-    opts: { id?: string | null; error?: string } = {},
+    opts: { id?: string | null; error?: string; attempt?: number } = {},
   ): Promise<SendEmailResult> => {
     await recordDeliveryAttempt({
       organizationId: input.organizationId,
@@ -110,6 +113,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       eventType: input.eventType,
       relatedEntityType: input.relatedEntityType,
       relatedEntityId: input.relatedEntityId,
+      attempt: opts.attempt,
     })
     if (status === 'failed' && input.mode !== 'fanout') {
       throw new Error(`Email delivery failed (${provider}): ${opts.error ?? 'unknown error'}`)
@@ -122,7 +126,8 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       ...(opts.error ? { error: opts.error } : {}),
     }
   }
-  const failure = (provider: string, error: string) => finish(provider, production ? 'failed' : 'stubbed', { error })
+  const failure = (provider: string, error: string, attempt?: number) =>
+    finish(provider, production ? 'failed' : 'stubbed', { error, attempt })
 
   if (isDisabled()) {
     if (production) return failure('disabled', 'Outbound notifications are disabled')
@@ -140,25 +145,15 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       : ''
   if (!apiKey || !from) return failure('resend', 'Resend sender configuration is incomplete')
 
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        from,
-        to: input.to,
-        subject: input.subject,
-        html: input.html ?? `<p>${input.text ?? ''}</p>`,
-        text: input.text ?? '',
-      }),
-    })
-    if (!res.ok) return failure('resend', `Resend returned HTTP ${res.status}`)
-    const body = (await res.json().catch(() => ({}))) as { id?: string }
-    return finish('resend', 'sent', { id: body.id ?? `resend-${randomUUID()}` })
-  } catch {
-    return failure('resend', 'Resend request failed')
-  }
+  const result = await sendViaResend({
+    apiKey,
+    from,
+    to: input.to,
+    subject: input.subject,
+    html: input.html ?? `<p>${escapeHtml(input.text ?? '')}</p>`,
+    text: input.text ?? '',
+    idempotencyKey: randomUUID(),
+  })
+  if (!result.ok) return failure('resend', `Resend request failed: ${result.error}`, result.attempts)
+  return finish('resend', 'sent', { id: result.id ?? `resend-${randomUUID()}`, attempt: result.attempts })
 }

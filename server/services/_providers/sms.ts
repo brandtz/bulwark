@@ -20,6 +20,7 @@ import { and, eq } from 'drizzle-orm'
 // W5-2 / ADR-0036 — provider rows store credentials sealed at rest.
 import { unsealProviderConfig } from '../provider-config.real'
 import { recordDeliveryAttempt } from './delivery-ledger'
+import { sendViaTwilio } from '../comms/twilio-client'
 
 type DeliveryMode = 'transactional' | 'fanout'
 
@@ -79,7 +80,7 @@ export async function sendSms(input: SendSmsInput): Promise<SendSmsResult> {
   const finish = async (
     provider: string,
     status: 'sent' | 'stubbed' | 'failed',
-    opts: { id?: string | null; error?: string } = {},
+    opts: { id?: string | null; error?: string; attempt?: number } = {},
   ): Promise<SendSmsResult> => {
     await recordDeliveryAttempt({
       organizationId: input.organizationId,
@@ -92,6 +93,7 @@ export async function sendSms(input: SendSmsInput): Promise<SendSmsResult> {
       eventType: input.eventType,
       relatedEntityType: input.relatedEntityType,
       relatedEntityId: input.relatedEntityId,
+      attempt: opts.attempt,
     })
     if (status === 'failed' && input.mode !== 'fanout') {
       throw new Error(`SMS delivery failed (${provider}): ${opts.error ?? 'unknown error'}`)
@@ -104,7 +106,8 @@ export async function sendSms(input: SendSmsInput): Promise<SendSmsResult> {
       ...(opts.error ? { error: opts.error } : {}),
     }
   }
-  const failure = (provider: string, error: string) => finish(provider, production ? 'failed' : 'stubbed', { error })
+  const failure = (provider: string, error: string, attempt?: number) =>
+    finish(provider, production ? 'failed' : 'stubbed', { error, attempt })
 
   if (input.failureReason) return failure('none', input.failureReason)
 
@@ -121,22 +124,7 @@ export async function sendSms(input: SendSmsInput): Promise<SendSmsResult> {
   const from = typeof cfg.config.from === 'string' ? cfg.config.from : ''
   if (!accountSid || !authToken || !from) return failure('twilio', 'Twilio configuration is incomplete')
 
-  try {
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
-    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-    const params = new URLSearchParams({ To: input.to, From: from, Body: input.body })
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${auth}`,
-      },
-      body: params.toString(),
-    })
-    if (!res.ok) return failure('twilio', `Twilio returned HTTP ${res.status}`)
-    const body = (await res.json().catch(() => ({}))) as { sid?: string }
-    return finish('twilio', 'sent', { id: body.sid ?? `twilio-${randomUUID()}` })
-  } catch {
-    return failure('twilio', 'Twilio request failed')
-  }
+  const result = await sendViaTwilio({ accountSid, authToken, from, to: input.to, body: input.body })
+  if (!result.ok) return failure('twilio', `Twilio request failed: ${result.error}`, result.attempts)
+  return finish('twilio', 'sent', { id: result.id ?? `twilio-${randomUUID()}`, attempt: result.attempts })
 }

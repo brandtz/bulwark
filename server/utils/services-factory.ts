@@ -78,11 +78,21 @@ import { RealSavedViewService } from '../services/saved-view.real'
 // W5-4 (ADR-0038) — per-user DSR: export + delete + purge.
 import { RealAccountService } from '../services/account.real'
 import { RealThemePreferencesService } from '../services/theme-preferences.real'
+// WP-L03 — delivery health over the message_deliveries ledger.
+import { RealCommsService } from '../services/comms/comms.real'
 import type { TenantContext, TenantResolver } from '../services/_tenant'
 
 interface SessionUserShape {
   userId?: string
   activeOrgOverride?: string | null
+  /** SH-01 "Keep me signed in": cookie lifetime in seconds, re-applied on every session write. */
+  persistentSeconds?: number
+}
+
+// Every write re-seals the cookie; without the original maxAge a later write in the same or a
+// later request would silently downgrade a 30-day session to a browser-session cookie.
+function sessionWriteConfig(user: SessionUserShape) {
+  return user.persistentSeconds ? { maxAge: user.persistentSeconds } : undefined
 }
 
 type Event = InstanceType<typeof H3Event>
@@ -107,13 +117,11 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
       deleteCookie(this.event, 'nuxt-session', { path: '/' })
       return
     }
-    const s = await getUserSession(this.event)
-    const prev = (s.user ?? {}) as SessionUserShape
-    await setUserSession(
-      this.event,
-      { user: { ...prev, userId: id } },
-      options?.maxAgeSeconds ? { maxAge: options.maxAgeSeconds } : undefined,
-    )
+    // A fresh authentication starts a fresh session (new createdAt, no carried-over org
+    // override or persistence from whoever used this browser before).
+    await clearUserSession(this.event)
+    const user: SessionUserShape = { userId: id, ...(options?.maxAgeSeconds ? { persistentSeconds: options.maxAgeSeconds } : {}) }
+    await setUserSession(this.event, { user }, sessionWriteConfig(user))
   }
 
   async getActiveOrgOverride(): Promise<string | null> {
@@ -125,7 +133,7 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
     const s = await getUserSession(this.event)
     if (!s.user) return
     const prev = s.user as SessionUserShape
-    await setUserSession(this.event, { user: { ...prev, activeOrgOverride: id } })
+    await setUserSession(this.event, { user: { ...prev, activeOrgOverride: id } }, sessionWriteConfig(prev))
   }
 }
 
@@ -225,5 +233,6 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
     // W5-4 (ADR-0038): per-user DSR — export + delete + purge.
     account: new RealAccountService(tenantResolver),
     themePreferences: new RealThemePreferencesService(tenantResolver),
+    comms: new RealCommsService(tenantResolver),
   } as BulwarkServices
 }

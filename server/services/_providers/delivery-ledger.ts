@@ -15,6 +15,8 @@ export interface DeliveryAttemptInput {
   eventType?: string | null
   relatedEntityType?: string | null
   relatedEntityId?: string | null
+  /** Provider HTTP attempts made for this delivery (bounded retries). */
+  attempt?: number
 }
 
 function recipientHash(recipient: string): string {
@@ -37,7 +39,7 @@ export async function recordDeliveryAttempt(input: DeliveryAttemptInput): Promis
       eventType: input.eventType ?? null,
       relatedEntityType: input.relatedEntityType ?? null,
       relatedEntityId: input.relatedEntityId ?? null,
-      attempt: 1,
+      attempt: Math.max(1, input.attempt ?? 1),
     })
   } catch (error) {
     log('error', 'comms.delivery_ledger_write_failed', {

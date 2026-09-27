@@ -29,10 +29,15 @@ export const DeliveryHealthInputSchema = z.object({
 })
 export type DeliveryHealthInput = z.infer<typeof DeliveryHealthInputSchema>
 
-export const DeliveryHealthOutputSchema = z.object({
+export const DeliveryCountsSchema = z.object({
   sent: z.number().int().nonnegative(),
   stubbed: z.number().int().nonnegative(),
   failed: z.number().int().nonnegative(),
+})
+export type DeliveryCounts = z.infer<typeof DeliveryCountsSchema>
+
+export const DeliveryHealthOutputSchema = DeliveryCountsSchema.extend({
+  byChannel: z.record(DeliveryChannelSchema, DeliveryCountsSchema),
   recentFailures: z.array(DeliveryRowSchema),
 })
 export type DeliveryHealthOutput = z.infer<typeof DeliveryHealthOutputSchema>

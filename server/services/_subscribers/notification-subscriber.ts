@@ -203,8 +203,8 @@ async function dispatchEvent(eventName: string, payload: unknown): Promise<void>
             text: rd.body,
             html: `<p>${rd.body}</p>`,
             mode: 'fanout',
-            eventType,
-            relatedEntityType: rd.relatedEntityType,
+            eventType: eventName,
+            relatedEntityType: rd.relatedEntityType ?? undefined,
             relatedEntityId: rd.relatedEntityId ?? userId,
           })
           return { stub: res.stub, provider: res.provider, status: res.status, error: res.error }
@@ -215,8 +215,8 @@ async function dispatchEvent(eventName: string, payload: unknown): Promise<void>
             to: '',
             body: `${rd.title}: ${rd.body}`,
             mode: 'fanout',
-            eventType,
-            relatedEntityType: rd.relatedEntityType,
+            eventType: eventName,
+            relatedEntityType: rd.relatedEntityType ?? undefined,
             relatedEntityId: rd.relatedEntityId ?? userId,
             failureReason: 'User phone number is not configured',
           })

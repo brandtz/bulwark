@@ -62,6 +62,17 @@ export class TenantViolationError extends Error {
 }
 
 /**
+ * Same-tenant caller whose role does not permit the operation. The RPC
+ * dispatcher maps this to HTTP 403, like a tenant violation.
+ */
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ForbiddenError'
+  }
+}
+
+/**
  * Throws `TenantViolationError` if the caller is asking for data from a
  * different organization than the one bound to the active session. A null
  * resolver (or one that returns null) is treated as "no context" and the

@@ -13,6 +13,7 @@
  */
 export {
   assertSameTenant,
+  ForbiddenError,
   resolveActorUserId,
   SYSTEM_USER_ID,
   TenantViolationError,

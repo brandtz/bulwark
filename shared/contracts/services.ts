@@ -52,6 +52,8 @@ import type { IReportingService } from './reporting'
 // W5-4 — Data Subject Rights: export + delete (ADR-0038).
 import type { IAccountService } from './account'
 import type { IThemePreferencesService } from './theme-preferences'
+// WP-L03 — message delivery ledger health.
+import type { ICommsService } from './delivery'
 
 export interface BulwarkServices {
   auth: IAuthService
@@ -111,6 +113,8 @@ export interface BulwarkServices {
   // W5-4 (ADR-0038): per-user DSR — export + delete + purge.
   account: IAccountService
   themePreferences: IThemePreferencesService
+  // WP-L03: delivery health read model over message_deliveries.
+  comms: ICommsService
 }
 
 export type ServiceName = keyof BulwarkServices
