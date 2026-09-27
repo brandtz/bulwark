@@ -127,6 +127,13 @@
       "when": 1790456339819,
       "tag": "0017_l03_message_deliveries",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790537353857,
+      "tag": "0018_l07_security_policies",
+      "breakpoints": true
     }
   ]
 }

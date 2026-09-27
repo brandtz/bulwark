@@ -70,3 +70,5 @@ export * from './homeowner_users'
 export * from './subcontractor_coi_docs'
 // W3-5 / EH-P — saved list views (ADR-0033).
 export * from './saved_views'
+// WP-L07 S2 — per-organization security policy (MFA mode, idle timeout, lockout).
+export * from './security_policies'
