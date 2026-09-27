@@ -10,7 +10,7 @@
  *   - No `softDelete` in IWorkOrderService; deletion is left to admin
  *     scripts in v1.
  */
-import { and, count, desc, eq, like, sql, type SQL } from 'drizzle-orm'
+import { and, count, desc, eq, gte, like, lt, sql, type SQL } from 'drizzle-orm'
 import type {
   IWorkOrderService,
   TradeSlotStatus,
@@ -449,8 +449,9 @@ export class RealWorkOrderService implements IWorkOrderService {
           eq(workOrders.organizationId, input.organizationId),
           sql`${workOrders.deletedAt} IS NULL`,
           sql`${workOrders.status} <> 'cancelled'`,
-          sql`${workOrders.scheduledStart} >= ${from}`,
-          sql`${workOrders.scheduledStart} < ${to}`,
+          // Drizzle column helpers serialize Date params; a raw sql`` Date crashed postgres-js.
+          gte(workOrders.scheduledStart, from),
+          lt(workOrders.scheduledStart, to),
         ),
       )
       .orderBy(workOrders.scheduledStart)

@@ -35,6 +35,8 @@ test.describe('Sub portal COI upload (W4-2 / EH-N)', () => {
   test('sub uploads a COI and sees it in the list with a status pill', async ({ page }) => {
     await page.goto('/sub/cois')
     await expect(page.getByTestId('sub-cois')).toBeVisible()
+    // Fill only after hydration; an earlier fill is reset by v-model when the app mounts.
+    await page.waitForLoadState('networkidle')
 
     const stamp = Date.now()
     const fileName = `coi-w4-2-${stamp}.pdf`
@@ -43,6 +45,7 @@ test.describe('Sub portal COI upload (W4-2 / EH-N)', () => {
     await page.getByTestId('sub-coi-file-url').fill(`https://example.invalid/${fileName}`)
     await page.getByTestId('sub-coi-file-name').fill(fileName)
     await page.getByTestId('sub-coi-expires').fill(expiryIso)
+    await expect(page.getByTestId('sub-coi-file-url')).toHaveValue(`https://example.invalid/${fileName}`)
     await page.getByTestId('sub-coi-submit').click()
 
     const list = page.getByTestId('sub-coi-list')

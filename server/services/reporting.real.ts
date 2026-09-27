@@ -33,7 +33,7 @@
  *     don't need it — Postgres MVCC snapshots are per-statement
  *     consistent and the dashboard tolerates a tiny window of drift.
  */
-import { and, count, desc, eq, gte, lt, sql, sum } from 'drizzle-orm'
+import { and, count, desc, eq, gte, lt, sql, sum, type SQL } from 'drizzle-orm'
 import type {
   ArAgingInput,
   ArAgingRow,
@@ -74,8 +74,18 @@ const AR_BUCKET_CASE = sql`
   END
 `
 
-function truncFor(granularity: TrendGranularity): 'day' | 'week' | 'month' {
-  return granularity
+const TRUNC_UNITS = { day: 'day', week: 'week', month: 'month' } as const
+
+/**
+ * date_trunc unit as an inlined SQL literal. It must be literal, not a bound
+ * parameter: SELECT, GROUP BY and ORDER BY each bind a parameter separately,
+ * and Postgres then refuses the grouping ("must appear in the GROUP BY").
+ * Whitelisted, so sql.raw cannot inject.
+ */
+function truncFor(granularity: TrendGranularity): SQL {
+  const unit = TRUNC_UNITS[granularity]
+  if (!unit) throw new Error(`Invalid granularity: ${String(granularity)}`)
+  return sql.raw(`'${unit}'`)
 }
 
 export class RealReportingService implements IReportingService {
