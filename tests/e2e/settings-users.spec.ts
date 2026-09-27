@@ -7,9 +7,10 @@ import { test, expect } from '@playwright/test'
 import { signIn } from './_helpers'
 
 test.describe('Settings — users invite', () => {
-  test.beforeEach(async ({}, testInfo) => {
+  test.beforeEach(async ({ context }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'desktop-only admin surface')
     test.skip(process.env.BULWARK_BACKEND !== 'real', 'invites and delivery status come from the real backend')
+    await context.clearCookies()
   })
 
   test('admin invite without an email provider shows the copyable-link fallback, and the link opens the invite', async ({ page, browser }) => {
