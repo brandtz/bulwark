@@ -120,6 +120,7 @@ export class RealPermissionService implements IPermissionService {
   }
 
   async getEffectivePermissions(role: Role, organizationId: string): Promise<Record<string, boolean>> {
+    assertSameTenant(this.tenantResolver, organizationId)
     const db = getDb()
     const merged = getDefaultPermissionsForRole(role)
     const rows = await db

@@ -353,6 +353,8 @@ export class RealWorkOrderService implements IWorkOrderService {
     auditAction: string,
     auditMeta: Record<string, unknown>,
   ): Promise<WorkOrder> {
+    // WP-L07 S3: startSlot/completeSlot reach here without their own check.
+    assertSameTenant(this.tenantResolver, organizationId)
     const { result, prevStatus } = await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()

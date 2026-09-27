@@ -7,6 +7,7 @@
  * uptime monitors and Kubernetes-style readiness checks work without
  * a service token. The endpoint reveals nothing beyond a boolean.
  */
+import { evaluateProductionEnv, runtimeGuardEnv } from '../utils/env-guard'
 import { sql } from 'drizzle-orm'
 import { getDb } from '../db/client'
 import { log } from '../utils/logger'
@@ -15,7 +16,8 @@ export default defineEventHandler(async (event) => {
   try {
     const db = getDb()
     await db.execute(sql`SELECT 1`)
-    return { ready: true }
+    // WP-L07 S4: flag unsafe production config without disclosing which setting.
+    return { ready: true, configOk: evaluateProductionEnv(runtimeGuardEnv()).critical.length === 0 }
   } catch (err) {
     log('error', 'readiness.check_failed', {
       requestId: event.context.requestId,
