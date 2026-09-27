@@ -13,7 +13,7 @@
  * `max-w-sm` centred) and would only duplicate runtime.
  */
 import { test, expect } from '@playwright/test'
-import { isBuiltServer, signIn, signOut } from './_helpers'
+import { applyCsrfHeader, isBuiltServer, signIn, signOut } from './_helpers'
 
 test.describe('Auth — login form + middleware', () => {
   test.describe.configure({ mode: 'serial' })
@@ -67,6 +67,7 @@ test.describe('Auth — login form + middleware', () => {
     const transient = await browser.newContext()
     try {
       expect((await login(persistent, true)).ok()).toBe(true)
+      await applyCsrfHeader(persistent)
       const days = ((await sessionCookie(persistent))!.expires - Date.now() / 1000) / 86_400
       expect(days).toBeGreaterThan(29.9)
       expect(days).toBeLessThanOrEqual(30)

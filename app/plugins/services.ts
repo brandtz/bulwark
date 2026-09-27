@@ -40,6 +40,23 @@ function unwrapFetchError(err: unknown): never {
   throw new Error(msg)
 }
 
+/**
+ * WP-L07 S1: double-submit CSRF header for the browser; SSR identifies itself
+ * with the server-only internal token instead. `ssrToken` must be captured
+ * while the Nuxt context is active (plugin setup) — useRequestEvent() returns
+ * nothing inside an async call after an await.
+ */
+function csrfHeaders(ssrToken: string | undefined): Record<string, string> {
+  if (import.meta.server) return ssrToken ? { 'x-bulwark-internal': ssrToken } : {}
+  const token = readCsrfCookie()
+  return token ? { 'x-csrf-token': token } : {}
+}
+
+function isCsrfRejection(err: unknown): boolean {
+  const e = err as { statusCode?: number, statusMessage?: string, data?: { statusMessage?: string } }
+  return e?.statusCode === 403 && /CSRF token/u.test(e.statusMessage ?? e.data?.statusMessage ?? '')
+}
+
 function makeRpcProxy(): BulwarkServices {
   const cache = new Map<string, unknown>()
   // On SSR, plain $fetch does NOT forward the incoming request's cookies
@@ -47,6 +64,7 @@ function makeRpcProxy(): BulwarkServices {
   // does, so the nuxt-session cookie reaches /api/services/auth/currentUser
   // during SSR navigation. On the client this is a no-op (just returns $fetch).
   const requestFetch = import.meta.server ? useRequestFetch() : $fetch
+  const ssrToken = import.meta.server ? useRequestEvent()?.context.bulwarkInternalToken as string | undefined : undefined
   return new Proxy({} as BulwarkServices, {
     get(_target, prop: string) {
       if (cache.has(prop)) return cache.get(prop)
@@ -54,12 +72,18 @@ function makeRpcProxy(): BulwarkServices {
       const serviceProxy = new Proxy({} as Record<string, unknown>, {
         get(_t2, methodName: string) {
           return async (...args: unknown[]) => {
+            const call = () => requestFetch(`/api/services/${String(serviceName)}/${methodName}`, {
+              method: 'POST',
+              body: { args },
+              headers: csrfHeaders(ssrToken),
+            })
             try {
-              return await requestFetch(`/api/services/${String(serviceName)}/${methodName}`, {
-                method: 'POST',
-                body: { args },
-              })
+              return await call()
             } catch (err) {
+              // A session that predates the CSRF cookie gets it on this 403; retry once.
+              if (import.meta.client && isCsrfRejection(err)) {
+                try { return await call() } catch (retryErr) { unwrapFetchError(retryErr) }
+              }
               unwrapFetchError(err)
             }
           }

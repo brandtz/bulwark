@@ -27,8 +27,25 @@ function isRealBackend(): boolean {
   return process.env.BULWARK_BACKEND === 'real'
 }
 
+/**
+ * WP-L07 S1: cookie-authenticated unsafe API calls need the double-submit header.
+ * Copy the server-issued `bulwark.csrf` cookie into the context's extra headers
+ * (minting it with a GET first if the context has none yet).
+ */
+export async function applyCsrfHeader(context: BrowserContext): Promise<void> {
+  const find = async () => (await context.cookies('http://localhost:3000')).find((c) => c.name === 'bulwark.csrf')?.value
+  let token = await find()
+  if (!token) {
+    await context.request.get('http://localhost:3000/api/health')
+    token = await find()
+  }
+  if (token) await context.setExtraHTTPHeaders({ 'x-csrf-token': token })
+}
+
 export async function signIn(context: BrowserContext, personaEmail: string): Promise<void> {
   if (isRealBackend()) {
+    // Re-login over an existing session is an authenticated unsafe call too.
+    await applyCsrfHeader(context)
     const res = await context.request.post('http://localhost:3000/api/services/auth/login', {
       data: { email: personaEmail, password: REAL_DEMO_PASSWORD },
       headers: { 'Content-Type': 'application/json' },
@@ -36,6 +53,7 @@ export async function signIn(context: BrowserContext, personaEmail: string): Pro
     if (!res.ok()) {
       throw new Error(`Real-backend login failed for ${personaEmail}: ${res.status()} ${await res.text()}`)
     }
+    await applyCsrfHeader(context)
     return
   }
   await context.addCookies([
@@ -66,8 +84,11 @@ export async function signInAsSub(page: Page): Promise<void> {
 
 export async function signOut(context: BrowserContext): Promise<void> {
   if (isRealBackend()) {
+    await applyCsrfHeader(context)
     await context.request.post('http://localhost:3000/api/services/auth/logout')
     await context.clearCookies()
+    // A stale token header would override the one the app sends for its next session.
+    await context.setExtraHTTPHeaders({})
     return
   }
   await context.clearCookies({ name: PERSONA_COOKIE })

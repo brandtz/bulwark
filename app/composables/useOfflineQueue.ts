@@ -42,6 +42,7 @@
  *     ordering is undefined — don't queue dependent writes across
  *     namespaces.
  */
+import { readCsrfCookie } from '../utils/csrf'
 
 export interface QueuedWrite {
   url: string
@@ -164,7 +165,8 @@ export function useOfflineQueue(options: UseOfflineQueueOptions) {
     try {
       const res = await fetch(item.url, {
         method: item.method,
-        headers: { 'Content-Type': 'application/json' },
+        // WP-L07 S1: replayed writes carry the double-submit CSRF header.
+        headers: { 'Content-Type': 'application/json', ...(readCsrfCookie() ? { 'X-CSRF-Token': readCsrfCookie()! } : {}) },
         body: item.body === undefined ? undefined : JSON.stringify(item.body),
         credentials: 'same-origin',
       })
