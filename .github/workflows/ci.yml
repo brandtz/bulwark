@@ -57,7 +57,7 @@ jobs:
   e2e:
     name: playwright e2e
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     needs: quality
     steps:
       - uses: actions/checkout@v4
@@ -73,11 +73,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Mock lane: chromium only. Running every project in mock mode exceeded the
+      # job timeout on every push (cancelled at 30 min since at least 8c48aa1);
+      # e2e-real covers the suite against the real backend.
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium webkit
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Playwright
-        run: pnpm test:e2e
+        run: pnpm exec playwright test --project=chromium
 
       - name: Upload Playwright report
         if: always()
@@ -231,4 +234,75 @@ jobs:
         with:
           name: playwright-report-real
           path: playwright-report/
+          retention-days: 14
+
+  # WP-L08 (epic L10-S1): Lighthouse budgets on the ten busiest signed-in routes
+  # (lighthouserc.cjs). Same built server + seeded Postgres as e2e-real.
+  lighthouse:
+    name: lighthouse budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bulwark
+          POSTGRES_PASSWORD: bulwark
+          POSTGRES_DB: bulwark_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U bulwark"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BULWARK_BACKEND: real
+      NUXT_PUBLIC_BACKEND: real
+      DATABASE_URL: postgres://bulwark:bulwark@localhost:5432/bulwark_ci
+      JWT_SECRET: ci-only-jwt-secret-32char-min-aaaaaaaaaa
+      NUXT_SESSION_COOKIE_SECURE: 'false'
+      BULWARK_RATE_LIMIT_DISABLED: '1'
+      BULWARK_PDF_STUB: '1'
+      PORT: '3000'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migrate + seed database
+        run: |
+          pnpm exec drizzle-kit migrate
+          pnpm db:seed
+
+      - name: Build app
+        run: pnpm build
+
+      - name: Start built server
+        run: |
+          nohup node .output/server/index.mjs > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/api/health && break; sleep 1; done
+          curl -sf -o /dev/null http://localhost:3000/api/health || { cat server.log; exit 1; }
+
+      - name: Run Lighthouse CI
+        run: |
+          export LHCI_COOKIE="$(node scripts/perf/lhci-session.mjs)"
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium)"
+          npx --yes @lhci/cli@0.15.1 autorun
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
           retention-days: 14

@@ -107,3 +107,19 @@
   --color-blocked: 242 160 106;
   --color-blocked-light: 60 31 14;
 }
+
+/* WP-L08 (L09-S2 axe gate): in dark theme the legacy `--color-primary` teal
+ * (#0F766E) is kept for fills behind white text (5.5:1), but as a FOREGROUND on
+ * dark surfaces it measures ~2.6:1. Legacy `text-primary` foregrounds use
+ * Packet A's dark teal foreground instead (#7FD1C7, ≥ 7:1 on every dark
+ * surface). Remove when WP-A2 migrates these utilities to Packet A tokens. */
+[data-theme="dark"] .text-primary,
+[data-theme="dark"] .hover\:text-primary:hover {
+  color: rgb(127 209 199 / var(--tw-text-opacity, 1));
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .text-primary,
+  :root[data-theme="system"] .hover\:text-primary:hover {
+    color: rgb(127 209 199 / var(--tw-text-opacity, 1));
+  }
+}

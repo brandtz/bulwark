@@ -3,6 +3,7 @@ import type { DeliveryChannel, DeliveryStatus } from '../../../shared/contracts/
 import { getDb } from '../../db/client'
 import { messageDeliveries } from '../../db/schema/message_deliveries'
 import { log } from '../../utils/logger'
+import { COUNTERS, incCounter } from '../../utils/metrics'
 
 export interface DeliveryAttemptInput {
   organizationId: string
@@ -27,6 +28,7 @@ function recipientHash(recipient: string): string {
 }
 
 export async function recordDeliveryAttempt(input: DeliveryAttemptInput): Promise<void> {
+  incCounter(COUNTERS.commsDeliveriesTotal) // WP-L08 S3
   try {
     await getDb().insert(messageDeliveries).values({
       organizationId: input.organizationId,

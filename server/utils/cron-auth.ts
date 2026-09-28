@@ -32,7 +32,8 @@ export type CronAuthResult =
   | { ok: true; via: 'cron_secret' | 'super_admin'; actorUserId: string | null }
   | { ok: false; status: 401 | 403; message: string }
 
-function secretsMatch(presented: string, expected: string): boolean {
+/** Constant-time secret compare (sha256 first, so lengths never leak). */
+export function secretsMatch(presented: string, expected: string): boolean {
   const a = createHash('sha256').update(presented).digest()
   const b = createHash('sha256').update(expected).digest()
   return timingSafeEqual(a, b)

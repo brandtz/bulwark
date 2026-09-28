@@ -70,6 +70,7 @@ import type { SecurityPolicy } from '../../shared/contracts/security-policy'
 import { sendEmail } from './_providers/email'
 import { buildAuthLink, escapeEmailHtml } from './_providers/auth-links'
 import { signAssetUrl } from './storage/asset-urls'
+import { COUNTERS, incCounter } from '../utils/metrics'
 
 export interface RealAuthSessionAdapter {
   getActiveUserId(): Promise<string | null> | string | null
@@ -189,6 +190,7 @@ export class RealAuthService implements IAuthService {
     const lock = await this.getLockoutState({ email }, policy ?? undefined)
     if (lock.locked) {
       await db.insert(authAttempts).values({ email, ipAddress, success: false, reason: 'locked' })
+      incCounter(COUNTERS.authFailuresTotal)
       const retryAfterSeconds = Math.max(1, Math.ceil(((lock.until ?? Date.now()) - Date.now()) / 1000))
       const err = new Error('account_locked') as Error & { retryAfterSeconds?: number }
       err.retryAfterSeconds = retryAfterSeconds
@@ -204,6 +206,7 @@ export class RealAuthService implements IAuthService {
     if (!row || !row.isActive || !row.passwordHash || !ok) {
       const reason = !row ? 'unknown_user' : !row.isActive ? 'inactive' : 'bad_password'
       await db.insert(authAttempts).values({ email, ipAddress, success: false, reason })
+      incCounter(COUNTERS.authFailuresTotal)
       throw new Error('Invalid email or password')
     }
 

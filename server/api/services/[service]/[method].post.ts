@@ -32,6 +32,7 @@ import type { SessionUser } from '~~/shared/contracts/auth'
 import { authorizeRpc, isPublicRpc } from '~~/server/utils/rpc-policy'
 import { enforceSecurityPolicy } from '~~/server/utils/security-enforcement'
 import { log } from '~~/server/utils/logger'
+import { captureException, markCaptured } from '~~/server/utils/error-tracking'
 
 type ServiceMap = { [K in keyof BulwarkServices]: BulwarkServices[K] }
 
@@ -103,10 +104,18 @@ export default defineEventHandler(async (event) => {
         message: msg.slice(0, 500),
         cause: err instanceof Error && err.cause instanceof Error ? err.cause.message.slice(0, 500) : undefined,
       })
+      // WP-L08 S1: report with service/method context (no-op without SENTRY_DSN).
+      event.waitUntil(captureException(err, {
+        requestId: event.context.requestId as string | undefined,
+        route: `rpc ${String(serviceName)}.${methodName}`,
+        tags: { service: String(serviceName), method: methodName },
+      }))
     }
-    throw createError({
+    const httpError = createError({
       statusCode: isUserError ? 400 : 500,
       statusMessage: msg,
     })
+    if (!isUserError) markCaptured(httpError) // the Nitro error hook must not report it again
+    throw httpError
   }
 })

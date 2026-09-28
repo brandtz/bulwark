@@ -37,6 +37,7 @@ import { ALL_JOB_KINDS } from './policy'
 import { assertProdWorkerEnv } from './env-guard'
 import { ConsecutiveFailureTracker } from './failure-alert'
 import { COUNTERS, incCounter } from '../utils/metrics'
+import { captureException } from '../utils/error-tracking'
 
 const failureTracker = new ConsecutiveFailureTracker(3)
 
@@ -152,6 +153,8 @@ async function start(): Promise<void> {
           await markFailed(env.jobId, env.organizationId, msg)
           incCounter(COUNTERS.jobsFailedTotal)
           await recordFailureAlert(env.kind, msg)
+          // WP-L08 S1: worker failures reach error tracking too (no-op without SENTRY_DSN).
+          await captureException(err, { route: `job ${env.kind}`, tags: { jobKind: env.kind }, extra: { jobId: env.jobId } })
           // Re-throw so pg-boss applies the L04-S1 retry policy and
           // records its own failure metric.
           throw err

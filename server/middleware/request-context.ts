@@ -19,7 +19,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { log } from '../utils/logger'
-import { incCounter, COUNTERS } from '../utils/metrics'
+import { incCounter, COUNTERS, observeLatency, routeLabel } from '../utils/metrics'
 
 export default defineEventHandler((event) => {
   const requestId = randomUUID()
@@ -36,13 +36,18 @@ export default defineEventHandler((event) => {
 
   event.node.res.on('finish', () => {
     const status = event.node.res.statusCode
+    const durationMs = Date.now() - startedAt
+    const route = routeLabel(path)
     if (status >= 500) incCounter(COUNTERS.requestsErroredTotal)
+    // WP-L08 S4: per-route latency histogram (p50/p95 for the L10 budget).
+    observeLatency(route, method, durationMs)
     log(status >= 500 ? 'error' : 'info', 'request.complete', {
       requestId,
       method,
       path,
+      route,
       status,
-      durationMs: Date.now() - startedAt,
+      durationMs,
     })
   })
 })
