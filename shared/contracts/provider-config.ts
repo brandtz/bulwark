@@ -26,10 +26,10 @@ import { AuditFieldsSchema, UuidSchema } from './_shared'
 // ----------------------------------------------------------------------------
 // Provider enums.
 // ----------------------------------------------------------------------------
-export const ProviderKindSchema = z.enum(['email', 'sms', 'storage', 'pdf'])
+export const ProviderKindSchema = z.enum(['email', 'sms', 'storage', 'pdf', 'geo'])
 export type ProviderKind = z.infer<typeof ProviderKindSchema>
 
-export const ProviderSchema = z.enum(['resend', 'twilio', 'r2', 'puppeteer'])
+export const ProviderSchema = z.enum(['resend', 'twilio', 'r2', 'puppeteer', 'mapbox'])
 export type Provider = z.infer<typeof ProviderSchema>
 
 /** Catalog of (kind → providers). */
@@ -38,6 +38,8 @@ export const PROVIDERS_BY_KIND: Record<ProviderKind, Provider[]> = {
   sms: ['twilio'],
   storage: ['r2'],
   pdf: ['puppeteer'],
+  // WP-X3 / ED-00C: address autocomplete, geocoding, static maps, route order.
+  geo: ['mapbox'],
 }
 
 // ----------------------------------------------------------------------------
@@ -59,12 +61,17 @@ export const R2ConfigSchema = z.object({
   secretKey: z.string().min(1),
 })
 export const PuppeteerConfigSchema = z.object({}).strict()
+/** A Mapbox public (pk.*) token restricted to the app URL — it appears in static map URLs. */
+export const MapboxConfigSchema = z.object({
+  accessToken: z.string().min(1),
+})
 
 export const PROVIDER_CONFIG_ZOD: Record<Provider, z.ZodTypeAny> = {
   resend: ResendConfigSchema,
   twilio: TwilioConfigSchema,
   r2: R2ConfigSchema,
   puppeteer: PuppeteerConfigSchema,
+  mapbox: MapboxConfigSchema,
 }
 
 // ----------------------------------------------------------------------------

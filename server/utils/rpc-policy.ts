@@ -146,6 +146,8 @@ export const RPC_POLICY: Record<string, Record<string, RpcRule>> = {
   webhook: { list: admin, get: admin, create: admin, update: admin, softDelete: admin, test: admin, deliveries: admin },
   apiKey: { list: admin, create: admin, revoke: admin },
   comms: { deliveryHealth: admin },
+  // WP-X3 / ED-00C: maps may render on any surface; address lookup is for staff who write.
+  geo: { status: member, staticMap: member, autocomplete: staffWrite, geocode: staffWrite, route: staff },
   securityPolicy: { get: admin, update: admin, mfaRoster: admin, getMine: member },
 }
 

@@ -38,7 +38,7 @@ async function load() {
 }
 await load()
 
-const KINDS: ProviderKind[] = ['email', 'sms', 'storage', 'pdf']
+const KINDS: ProviderKind[] = ['email', 'sms', 'storage', 'pdf', 'geo']
 
 function activeFor(kind: ProviderKind): ProviderConfig | undefined {
   return rows.value.find((r) => r.kind === kind && r.isActive)
@@ -65,6 +65,7 @@ const PROVIDER_FIELDS: Record<Provider, string[]> = {
   twilio: ['accountSid', 'authToken', 'from'],
   r2: ['bucket', 'endpoint', 'accessKey', 'secretKey'],
   puppeteer: [],
+  mapbox: ['accessToken'],
 }
 
 const saving = ref(false)
@@ -97,7 +98,7 @@ async function saveEdit() {
     <header class="mt-2">
       <h1 class="text-display">Providers</h1>
       <p class="text-body text-text-secondary mt-1">
-        Configure how Bulwark sends email, SMS, stores files, and renders PDFs.
+        Configure how Bulwark sends email, SMS, stores files, renders PDFs, and looks up addresses and maps.
       </p>
     </header>
 

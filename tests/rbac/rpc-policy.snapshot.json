@@ -417,6 +417,47 @@
         "org_manager"
       ]
     },
+    "geo": {
+      "autocomplete": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "geocode": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "route": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "staticMap": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "status": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ]
+    },
     "homeowner": {
       "getMyInvoice": [
         "homeowner"

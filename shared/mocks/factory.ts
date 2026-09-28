@@ -71,6 +71,7 @@ import { MockAccountService } from './account.mock'
 import { MockThemePreferencesService } from './theme-preferences.mock'
 import { MockCommsService } from './comms.mock'
 import { MockSecurityPolicyService } from './security-policy.mock'
+import { MockGeoService } from './geo.mock'
 import type { TenantResolver } from './tenant'
 
 let cachedServices: BulwarkServices | null = null
@@ -222,6 +223,7 @@ export function createMockServices(
       themePreferences: new MockThemePreferencesService(resolver),
       comms: new MockCommsService(resolver),
       securityPolicy: new MockSecurityPolicyService(resolver),
+      geo: new MockGeoService(resolver),
     }
     // W3-5 / EH-P (ADR-0033): wire search adapters now that all
     // mocks exist. Each adapter calls the corresponding mock's

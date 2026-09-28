@@ -93,7 +93,7 @@ describe('buildSecurityHeaders — CSP gating', () => {
     const h = buildSecurityHeaders({ isHtml: true, env: { r2AccountId: 'acct', r2Bucket: 'bucket' } })
     const csp = h['Content-Security-Policy']!
     expect(csp).toContain("connect-src 'self' https://acct.r2.cloudflarestorage.com https://bucket.acct.r2.cloudflarestorage.com;")
-    expect(csp).toContain("img-src 'self' data: blob: https://acct.r2.cloudflarestorage.com https://bucket.acct.r2.cloudflarestorage.com;")
+    expect(csp).toContain("img-src 'self' data: blob: https://api.mapbox.com https://acct.r2.cloudflarestorage.com https://bucket.acct.r2.cloudflarestorage.com;")
     expect(csp).toContain("default-src 'self';")
   })
 

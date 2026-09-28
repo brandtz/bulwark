@@ -56,6 +56,7 @@ import type { IThemePreferencesService } from './theme-preferences'
 import type { ICommsService } from './delivery'
 // WP-L07 S2 — per-organization security policy.
 import type { ISecurityPolicyService } from './security-policy'
+import type { IGeoService } from './geo'
 
 export interface BulwarkServices {
   auth: IAuthService
@@ -119,6 +120,7 @@ export interface BulwarkServices {
   comms: ICommsService
   // WP-L07 S2: MFA mode, idle timeout, lockout thresholds.
   securityPolicy: ISecurityPolicyService
+  geo: IGeoService
 }
 
 export type ServiceName = keyof BulwarkServices
