@@ -52,10 +52,13 @@ const runs = ref<RunRow[]>([])
 const loading = ref(false)
 const triggering = ref<string | null>(null)
 
+// SSR needs the session cookie forwarded (plain $fetch drops it and 401s) — WP-Q3.
+const requestFetch = useRequestFetch()
+
 async function load() {
   loading.value = true
   try {
-    const res = await $fetch<{ runs: RunRow[] }>('/api/admin/jobs')
+    const res = await requestFetch<{ runs: RunRow[] }>('/api/admin/jobs')
     runs.value = res.runs
   } catch (err) {
     toastError('Could not load job runs', (err as Error).message)

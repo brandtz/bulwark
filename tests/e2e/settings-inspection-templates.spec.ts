@@ -6,7 +6,7 @@
  * inside the dynamic inspection form on the next /inspection/new run.
  */
 import { test, expect } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration } from './_helpers'
 
 test.describe('settings — inspection templates editor', () => {
   test('admin opens wildfire template editor, adds a field, and sees it render in the inspection form', async ({
@@ -15,6 +15,8 @@ test.describe('settings — inspection templates editor', () => {
     await signInAsAdmin(page)
 
     await page.goto('/settings/inspection-templates')
+
+    await waitForHydration(page)
     await expect(page.getByTestId('settings-inspection-templates')).toBeVisible()
 
     // Open the wildfire-retrofit template row.
@@ -28,8 +30,8 @@ test.describe('settings — inspection templates editor', () => {
 
     // The editor modal exposes inputs labelled slug + label.
     const slug = `qa_field_${Math.floor(Math.random() * 1e6).toString(36)}`
-    await page.getByTestId('field-slug-input').fill(slug)
-    await page.getByTestId('field-label-input').fill('QA bolt-on field')
+    await page.getByRole('dialog').getByLabel(/^Slug/u).fill(slug)
+    await page.getByRole('dialog').getByLabel(/^Label/u).fill('QA bolt-on field')
     await page.getByTestId('save-field').click()
 
     // The new field row should now be listed inside the section.
@@ -37,11 +39,17 @@ test.describe('settings — inspection templates editor', () => {
 
     // Verify it renders in a fresh inspection.
     await page.goto('/admin/properties')
-    await page.getByTestId('property-row').first().click()
+    await waitForHydration(page)
+    await page.getByTestId('property-card').first().click()
+    // Read the id only after navigation lands (otherwise it is the list URL).
+    await page.waitForURL(/\/admin\/properties\/[^/]+$/u)
     const url = new URL(page.url())
     const propertyId = url.pathname.split('/').filter(Boolean).pop()
     await page.goto(`/admin/properties/${propertyId}/inspection/new`)
+    await waitForHydration(page)
+    await expect(page.getByTestId('inspection-new')).toBeVisible()
     await page.getByTestId('start-wildfire-retrofit').click()
+    await expect(page.getByTestId('inspection-form')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByTestId(`field-${slug}`)).toBeVisible({ timeout: 10_000 })
   })
 })

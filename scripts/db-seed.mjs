@@ -74,8 +74,13 @@ const mk = (slug) => {
   return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-${variant}${h.slice(17,20)}-${h.slice(20,32)}`
 }
 
-const PAST_ISO = '2026-04-15T17:00:00.000Z'
-const NEAR_FUTURE_ISO = '2026-05-30T17:00:00.000Z'
+// Dates that drive status buckets (overdue invoices, quote expiry) are relative
+// to the seed run so fixtures never age into another bucket (WP-Q3: the "sent"
+// invoice became overdue once 2026-05-30 passed). Historical dates stay fixed.
+const DAY_MS = 24 * 60 * 60 * 1000
+const daysFromNow = (days) => new Date(Date.now() + days * DAY_MS).toISOString()
+const PAST_ISO = daysFromNow(-30)
+const NEAR_FUTURE_ISO = daysFromNow(30)
 
 // ----------------------------------------------------------------------------
 // Orgs + users
@@ -188,7 +193,7 @@ const SUBCONTRACTORS = [
     phone: '+1-555-0202',
     trades: ['siding', 'eaves_vents'],
     licenseNumber: 'CCB-118842',
-    licenseExpiresAt: '2026-12-15T00:00:00.000Z',
+    licenseExpiresAt: '2030-12-15T00:00:00.000Z',
     notes: null,
   },
   {
@@ -353,7 +358,7 @@ const INVOICES = [
     id: mk('invoice-seed-sent'),
     invoiceNumber: 'INV-2026-0002',
     status: 'sent',
-    issuedAt: '2026-05-01T17:00:00.000Z', sentAt: '2026-05-01T17:00:00.000Z', dueAt: NEAR_FUTURE_ISO, paidAt: null,
+    issuedAt: daysFromNow(-20), sentAt: daysFromNow(-20), dueAt: NEAR_FUTURE_ISO, paidAt: null,
     paidAmountCents: 0,
     quoteId: null,
     lineItems: [{ id: mk('inv-line-2'), kind: 'labor', description: 'Defensible-space clearing — zone 1', quantity: 8, unitCostCents: 12500 }],
@@ -364,7 +369,7 @@ const INVOICES = [
     id: mk('invoice-seed-overdue'),
     invoiceNumber: 'INV-2026-0003',
     status: 'sent',
-    issuedAt: '2026-04-01T17:00:00.000Z', sentAt: '2026-04-01T17:00:00.000Z', dueAt: PAST_ISO, paidAt: null,
+    issuedAt: daysFromNow(-60), sentAt: daysFromNow(-60), dueAt: PAST_ISO, paidAt: null,
     paidAmountCents: 0,
     quoteId: null,
     lineItems: [{ id: mk('inv-line-3'), kind: 'material', description: 'Class-A metal roofing — Standing seam', quantity: 24, unitCostCents: 18000 }],
@@ -375,7 +380,8 @@ const INVOICES = [
     id: mk('invoice-seed-paid'),
     invoiceNumber: 'INV-2026-0004',
     status: 'paid',
-    issuedAt: '2026-03-15T17:00:00.000Z', sentAt: '2026-03-15T17:00:00.000Z', dueAt: '2026-04-15T17:00:00.000Z', paidAt: '2026-04-10T17:00:00.000Z',
+    // Paid 50 days ago: inside "last 90 days", outside "last 30 days" (dashboard range spec).
+    issuedAt: daysFromNow(-75), sentAt: daysFromNow(-75), dueAt: daysFromNow(-45), paidAt: daysFromNow(-50),
     paidAmountCents: 75000,
     quoteId: null,
     lineItems: [{ id: mk('inv-line-4'), kind: 'labor', description: 'Initial site assessment', quantity: 1, unitCostCents: 75000 }],
@@ -519,10 +525,12 @@ try {
 
   // Quote --------------------------------------------------------------------
   await sql`
-    INSERT INTO quotes (id, organization_id, property_id, assessment_id, created_by_id, quote_number, status, issued_at, sent_at, accepted_at, expires_at, line_items, markup_percent, tax_percent, notes, totals, total_cents)
-    VALUES (${SEED_QUOTE.id}, ${ORG_BULWARK.id}, ${SEED_QUOTE.propertyId}, ${SEED_QUOTE.assessmentId}, ${SEED_QUOTE.createdById}, ${SEED_QUOTE.quoteNumber}, ${SEED_QUOTE.status}, ${SEED_QUOTE.issuedAt}, ${SEED_QUOTE.sentAt}, ${SEED_QUOTE.acceptedAt}, ${SEED_QUOTE.expiresAt}, ${sql.json(SEED_QUOTE.lineItems)}, ${SEED_QUOTE.markupPercent}, ${SEED_QUOTE.taxPercent}, ${SEED_QUOTE.notes}, ${sql.json(SEED_QUOTE.totals)}, ${SEED_QUOTE.totalCents})
+    INSERT INTO quotes (id, organization_id, property_id, assessment_id, created_by_id, quote_number, status, issued_at, sent_at, accepted_at, expires_at, line_items, markup_percent, tax_percent, notes, totals, total_cents, created_at)
+    VALUES (${SEED_QUOTE.id}, ${ORG_BULWARK.id}, ${SEED_QUOTE.propertyId}, ${SEED_QUOTE.assessmentId}, ${SEED_QUOTE.createdById}, ${SEED_QUOTE.quoteNumber}, ${SEED_QUOTE.status}, ${SEED_QUOTE.issuedAt}, ${SEED_QUOTE.sentAt}, ${SEED_QUOTE.acceptedAt}, ${SEED_QUOTE.expiresAt}, ${sql.json(SEED_QUOTE.lineItems)}, ${SEED_QUOTE.markupPercent}, ${SEED_QUOTE.taxPercent}, ${SEED_QUOTE.notes}, ${sql.json(SEED_QUOTE.totals)}, ${SEED_QUOTE.totalCents}, ${daysFromNow(-10)})
     ON CONFLICT (id) DO UPDATE
       SET status = EXCLUDED.status,
+          -- Dashboards filter on created_at; keep the demo quote inside "last 30 days" (WP-Q3).
+          created_at = EXCLUDED.created_at,
           issued_at = EXCLUDED.issued_at,
           sent_at = EXCLUDED.sent_at,
           accepted_at = EXCLUDED.accepted_at,
@@ -537,10 +545,11 @@ try {
 
   // Work order ---------------------------------------------------------------
   await sql`
-    INSERT INTO work_orders (id, organization_id, property_id, quote_id, work_order_number, status, scheduled_start, scheduled_end, trade_slots, materials, notes, created_by_id)
-    VALUES (${SEED_WO.id}, ${ORG_BULWARK.id}, ${SEED_WO.propertyId}, ${SEED_WO.quoteId}, ${SEED_WO.workOrderNumber}, ${SEED_WO.status}, ${SEED_WO.scheduledStart}, ${SEED_WO.scheduledEnd}, ${sql.json(SEED_WO.tradeSlots)}, ${sql.json(SEED_WO.materials)}, ${SEED_WO.notes}, ${SEED_WO.createdById})
+    INSERT INTO work_orders (id, organization_id, property_id, quote_id, work_order_number, status, scheduled_start, scheduled_end, trade_slots, materials, notes, created_by_id, created_at)
+    VALUES (${SEED_WO.id}, ${ORG_BULWARK.id}, ${SEED_WO.propertyId}, ${SEED_WO.quoteId}, ${SEED_WO.workOrderNumber}, ${SEED_WO.status}, ${SEED_WO.scheduledStart}, ${SEED_WO.scheduledEnd}, ${sql.json(SEED_WO.tradeSlots)}, ${sql.json(SEED_WO.materials)}, ${SEED_WO.notes}, ${SEED_WO.createdById}, ${daysFromNow(-7)})
     ON CONFLICT (id) DO UPDATE
       SET status = EXCLUDED.status,
+          created_at = EXCLUDED.created_at,
           scheduled_start = EXCLUDED.scheduled_start,
           scheduled_end = EXCLUDED.scheduled_end,
           trade_slots = EXCLUDED.trade_slots,
@@ -566,6 +575,16 @@ try {
             notes = EXCLUDED.notes,
             totals = EXCLUDED.totals,
             total_cents = EXCLUDED.total_cents
+    `
+  }
+
+  // The paid invoice's ledger row, so the revenue trend has a real point (WP-Q3).
+  const seededInvoiceIds = INVOICES.map((i) => i.id)
+  await sql`DELETE FROM invoice_payments WHERE invoice_id = ANY(${seededInvoiceIds})`
+  for (const inv of INVOICES.filter((i) => i.status === 'paid')) {
+    await sql`
+      INSERT INTO invoice_payments (id, organization_id, invoice_id, amount_cents, received_at, method, reference, recorded_by_user_id)
+      VALUES (${mk(`payment-${inv.invoiceNumber}`)}, ${ORG_BULWARK.id}, ${inv.id}, ${inv.paidAmountCents}, ${inv.paidAt}, 'check', 'SEED', ${USER_ADMIN_ID})
     `
   }
 
@@ -835,6 +854,9 @@ try {
     { slug: 'defensible_space', name: 'Defensible space', color: '#15803D', sortOrder: 50 },
     { slug: 'general_labor', name: 'General labor', color: '#1F2937', sortOrder: 60 },
   ]
+  // Specs create custom trades and soft-delete builtins; every run starts from the
+  // builtin catalog only (WP-Q3).
+  await sql`DELETE FROM trades WHERE organization_id = ANY(${DEMO_ORG_IDS}) AND is_builtin = false`
   for (const org of [ORG_BULWARK, ORG_ACME]) {
     for (const t of BUILTIN_TRADES_SEED) {
       const id = mk(`trade-${t.slug}-${org.slug}`)
@@ -850,7 +872,8 @@ try {
               color = EXCLUDED.color,
               sort_order = EXCLUDED.sort_order,
               is_builtin = EXCLUDED.is_builtin,
-              is_active = EXCLUDED.is_active
+              is_active = EXCLUDED.is_active,
+              deleted_at = NULL
       `
     }
   }
@@ -961,7 +984,18 @@ try {
         'Q-{year}-{seq:04}', 'WO-{year}-{seq:04}', 'INV-{year}-{seq:04}',
         1500, 0, 30, 30, 7, 3
       )
-      ON CONFLICT (organization_id) DO NOTHING
+      -- Reset on every run: specs edit these values (WP-Q3).
+      ON CONFLICT (organization_id) DO UPDATE
+        SET quote_number_format = EXCLUDED.quote_number_format,
+            wo_number_format = EXCLUDED.wo_number_format,
+            invoice_number_format = EXCLUDED.invoice_number_format,
+            default_markup_bps = EXCLUDED.default_markup_bps,
+            default_tax_bps = EXCLUDED.default_tax_bps,
+            default_quote_expiry_days = EXCLUDED.default_quote_expiry_days,
+            default_invoice_terms_days = EXCLUDED.default_invoice_terms_days,
+            default_sla_days_assessment = EXCLUDED.default_sla_days_assessment,
+            default_sla_days_quote = EXCLUDED.default_sla_days_quote,
+            deleted_at = NULL
     `
   }
 

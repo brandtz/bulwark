@@ -27,7 +27,7 @@ test.describe('Settings → Trades (Wave 1B / EH-H / W1-3)', () => {
       'general_labor',
     ]) {
       await expect(
-        page.getByTestId('trade-row').filter({ has: page.locator(`[data-trade-slug="${slug}"]`) }),
+        page.locator(`[data-testid="trade-row"][data-trade-slug="${slug}"]`),
       ).toHaveCount(1)
     }
     // Builtins reject delete: no delete button on roofing.

@@ -12,7 +12,7 @@
  * (field worker for /field/dashboard, sub for /sub/dashboard) — a single
  * global state file forces awkward overrides.
  */
-import type { BrowserContext, Page } from '@playwright/test'
+import { expect, type BrowserContext, type Page } from '@playwright/test'
 
 export const PERSONA_COOKIE = 'bulwark.mock.persona'
 
@@ -101,4 +101,66 @@ export async function signOut(context: BrowserContext): Promise<void> {
  */
 export function isBuiltServer(): boolean {
   return !!process.env.BULWARK_E2E_SERVER_COMMAND || process.env.BULWARK_E2E_BUILT === '1'
+}
+
+/**
+ * Wait until Vue has mounted/hydrated the Nuxt root. Inputs filled before
+ * hydration are reset by v-model when the app mounts (WP-Q3 flake source).
+ * Mount is not enough: a page with async setup hydrates inside Suspense, and its
+ * event handlers attach only once that resolves, so also wait for Nuxt's
+ * `isHydrating` flag to clear (a click before that is silently dropped).
+ */
+export async function waitForHydration(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    type NuxtRoot = Element & { __vue_app__?: { config?: { globalProperties?: { $nuxt?: { isHydrating?: boolean } } } } }
+    const app = (document.querySelector('#__nuxt') as NuxtRoot | null)?.__vue_app__
+    return !!app && app.config?.globalProperties?.$nuxt?.isHydrating === false
+  })
+}
+
+/** Draw a stroke on the SignaturePad canvas (pointer events the pad listens to). */
+export async function drawSignature(page: Page): Promise<void> {
+  const canvas = page.getByTestId('signature-pad-canvas')
+  await expect(canvas).toBeVisible()
+  const box = await canvas.boundingBox()
+  if (!box) throw new Error('Signature canvas has no bounding box')
+  // Use Playwright's dispatchEvent which produces real-looking pointer
+  // events that the SignaturePad handlers see.
+  const cx = box.x + box.width * 0.2
+  const cy = box.y + box.height * 0.5
+  await canvas.dispatchEvent('pointerdown', {
+    pointerId: 1,
+    pointerType: 'mouse',
+    isPrimary: true,
+    clientX: cx,
+    clientY: cy,
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    buttons: 1,
+  })
+  for (let i = 1; i <= 8; i += 1) {
+    await canvas.dispatchEvent('pointermove', {
+      pointerId: 1,
+      pointerType: 'mouse',
+      isPrimary: true,
+      clientX: cx + (box.width * 0.6 * i) / 8,
+      clientY: cy + Math.sin(i) * 12,
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      buttons: 1,
+    })
+  }
+  await canvas.dispatchEvent('pointerup', {
+    pointerId: 1,
+    pointerType: 'mouse',
+    isPrimary: true,
+    clientX: cx + box.width * 0.6,
+    clientY: cy,
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    buttons: 0,
+  })
 }

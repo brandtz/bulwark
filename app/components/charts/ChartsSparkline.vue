@@ -1,5 +1,5 @@
 <!--
-  components/charts/Sparkline.vue — hand-rolled SVG line chart for the
+  components/charts/ChartsSparkline.vue (registered as <ChartsSparkline>; components use pathPrefix: false) — hand-rolled SVG line chart for the
   W3-2 revenue trend (EH-K / ADR-0030).
 
   # Decisions (ADR-0008)

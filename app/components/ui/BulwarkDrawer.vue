@@ -14,6 +14,8 @@
     case appears.
 -->
 <script setup lang="ts">
+// Root is a <Teleport>: forward attributes to the panel (WP-Q3, see BulwarkModal).
+defineOptions({ inheritAttrs: false })
 interface Props {
   modelValue: boolean
   side: 'right' | 'bottom'
@@ -92,6 +94,7 @@ const enterFrom = computed(() => props.side === 'right' ? 'translate-x-full' : '
           <aside
             class="fixed bg-surface shadow-xl flex flex-col"
             :class="panelClass"
+            v-bind="$attrs"
             role="dialog"
             aria-modal="true"
           >

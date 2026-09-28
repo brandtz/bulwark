@@ -266,7 +266,7 @@ const compliance = computed(() => {
       </header>
 
       <!-- W2-1 / EH-E (ADR-0018): depth sub-navigation. -->
-      <PropertyPropertyDepthNav :property-id="propertyId" class="mt-4" />
+      <PropertyDepthNav :property-id="propertyId" class="mt-4" />
 
       <BulwarkTabs
         v-model="activeTab"

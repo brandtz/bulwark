@@ -1,5 +1,5 @@
 <!--
-  components/charts/Bar.vue — vertical SVG bar chart for the W3-2 dashboard
+  components/charts/ChartsBar.vue (registered as <ChartsBar>; components use pathPrefix: false) — vertical SVG bar chart for the W3-2 dashboard
   (EH-K / ADR-0030).
 
   # Decisions (ADR-0008)

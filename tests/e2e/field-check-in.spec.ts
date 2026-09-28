@@ -27,7 +27,7 @@
  *     (the persona doesn't read them); only the "in/out" label + time.
  */
 import { test, expect } from '@playwright/test'
-import { signInAsAdmin, signInAsField, signOut } from './_helpers'
+import { signInAsAdmin, signInAsField, signOut, waitForHydration } from './_helpers'
 
 test.describe('Field check-in (W3-3)', () => {
   test.use({
@@ -45,6 +45,7 @@ test.describe('Field check-in (W3-3)', () => {
     // 1. Harvest a WO id as admin.
     await signInAsAdmin(page)
     await page.goto('/admin/work-orders')
+    await waitForHydration(page)
     await page.waitForLoadState('networkidle')
     await page.getByTestId('work-order-row').first().click()
     await page.waitForURL(/\/admin\/work-orders\/[\w-]+$/)
@@ -55,6 +56,7 @@ test.describe('Field check-in (W3-3)', () => {
     // 2. Sign in as field + open the field job detail directly.
     await signInAsField(page)
     await page.goto(`/field/jobs/${woId}`)
+    await waitForHydration(page)
     await page.waitForLoadState('networkidle')
     await expect(page.getByTestId('field-job-detail')).toBeVisible()
 

@@ -20,7 +20,7 @@
  *     prove the picker wiring.
  */
 import { test, expect, type Page } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration } from './_helpers'
 
 const KPI_KEYS = [
   'open-quotes',
@@ -49,6 +49,7 @@ test.describe('Admin dashboard (W4-2 / EH-K)', () => {
 
   test('admin lands on the KPI dashboard with charts and a working range picker', async ({ page }) => {
     await page.goto('/admin')
+    await waitForHydration(page)
     await expect(page.getByTestId('admin-dashboard')).toBeVisible()
     await page.waitForLoadState('networkidle')
 
@@ -70,6 +71,9 @@ test.describe('Admin dashboard (W4-2 / EH-K)', () => {
     // Range picker wiring: default is 30d. Switch to 7d, then to 90d
     // (90d will include the seed quotes/invoices that 7d excludes).
     await expect(page.getByTestId('range-30d')).toHaveClass(/bg-primary/)
+    await page.getByTestId('range-7d').click()
+    await expect(page.getByTestId('range-7d')).toHaveClass(/bg-primary/)
+    await page.waitForLoadState('networkidle')
     const before = await snapshotKpis(page)
     await page.getByTestId('range-90d').click()
     await expect(page.getByTestId('range-90d')).toHaveClass(/bg-primary/)

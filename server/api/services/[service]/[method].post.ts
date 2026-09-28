@@ -31,6 +31,7 @@ import { ForbiddenError, TenantViolationError } from '~~/shared/mocks/tenant'
 import type { SessionUser } from '~~/shared/contracts/auth'
 import { authorizeRpc, isPublicRpc } from '~~/server/utils/rpc-policy'
 import { enforceSecurityPolicy } from '~~/server/utils/security-enforcement'
+import { log } from '~~/server/utils/logger'
 
 type ServiceMap = { [K in keyof BulwarkServices]: BulwarkServices[K] }
 
@@ -93,6 +94,16 @@ export default defineEventHandler(async (event) => {
     // Heuristic: contract / not-found errors are user-correctable (400);
     // everything else is a 500.
     const isUserError = /not found|invalid|unauthor|expired|already/iu.test(msg)
+    // Unexpected failures were invisible in logs (only the client saw the message).
+    if (!isUserError) {
+      log('error', 'rpc.unhandled', {
+        requestId: event.context.requestId,
+        service: String(serviceName),
+        method: methodName,
+        message: msg.slice(0, 500),
+        cause: err instanceof Error && err.cause instanceof Error ? err.cause.message.slice(0, 500) : undefined,
+      })
+    }
     throw createError({
       statusCode: isUserError ? 400 : 500,
       statusMessage: msg,

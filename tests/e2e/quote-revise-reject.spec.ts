@@ -59,7 +59,7 @@ test.describe('Quote revise + reject (W2-3b)', () => {
       new RegExp(`/admin/properties/${propertyId}/quotes/[\\w-]+$`),
       { timeout: 10_000 },
     )
-    await expect(page.getByTestId('quote-revision-badge')).toContainText(/v2/i)
+    await expect(page.getByTestId('quote-revision-badge')).toContainText(/Revision 2/i)
   })
 
   test('Reject captures reason and flips status', async ({ page }) => {

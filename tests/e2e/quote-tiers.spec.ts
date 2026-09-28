@@ -16,10 +16,11 @@
  *     the per-value math. One e2e walk is enough coverage.
  */
 import { test, expect, type Page } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration } from './_helpers'
 
 async function pickPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/properties?view=list')
+  await waitForHydration(page)
   await page.waitForLoadState('networkidle')
   const card = page.locator('[data-testid="property-card"]').first()
   await expect(card).toBeVisible()
@@ -38,10 +39,11 @@ test.describe('Quote tiers + optional + discount (W2-3b)', () => {
   }) => {
     const propertyId = await pickPropertyId(page)
     await page.goto(`/admin/properties/${propertyId}/quotes/new`)
+    await waitForHydration(page)
     await page.waitForLoadState('networkidle')
 
     // Pick the Better tier via the segmented control.
-    await page.getByTestId('quote-tier').getByRole('button', { name: /better/i }).click()
+    await page.getByTestId('quote-tier').getByRole('tab', { name: /better/i }).click()
 
     // Fill the single seed line item.
     await page
@@ -57,7 +59,7 @@ test.describe('Quote tiers + optional + discount (W2-3b)', () => {
       .locator('input')
       .fill('Gutter guard add-on')
     await page.getByTestId('line-item-1-unit-cost').locator('input').fill('800')
-    await page.getByTestId('line-item-1-optional').locator('input').check()
+    await page.getByTestId('line-item-1-optional').check()
     await page.getByTestId('line-item-1-discount').locator('input').fill('10')
 
     // Customer-visible notes + expiry.
@@ -85,6 +87,7 @@ test.describe('Quote tiers + optional + discount (W2-3b)', () => {
 
     // List grouping + tier pill.
     await page.goto('/admin/quotes')
+    await waitForHydration(page)
     await page.waitForLoadState('networkidle')
     await expect(page.locator('[data-testid="quote-row-tier"]').first()).toBeVisible()
   })

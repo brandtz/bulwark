@@ -182,7 +182,7 @@ useHead(() => ({ title: data.value?.building?.name ?? 'Building — Bulwark' }))
       ]"
     />
 
-    <PropertyPropertyDepthNav :property-id="propertyId" class="mt-4" />
+    <PropertyDepthNav :property-id="propertyId" class="mt-4" />
 
     <template v-if="!data?.building">
       <EmptyState

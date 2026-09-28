@@ -33,7 +33,7 @@
  *     gate. If real breaks, mock isn't a fallback.
  */
 import { test, expect, type Page } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -63,6 +63,7 @@ test.describe('Launch happy path (EH-C canary)', () => {
       // 1) Create a client.
       // -----------------------------------------------------------------
       await page.goto('/admin/clients/new')
+      await waitForHydration(page)
       await expect(page.getByTestId('client-intake-form')).toBeVisible()
       const clientName = `Launch Client ${STAMP}`
       await page
@@ -86,6 +87,7 @@ test.describe('Launch happy path (EH-C canary)', () => {
       // 2) Create a property linked to that client.
       // -----------------------------------------------------------------
       await page.goto('/admin/properties/new')
+      await waitForHydration(page)
       await expect(page.getByTestId('field-addressLine1')).toBeVisible()
       const street = `${1000 + Math.floor(Math.random() * 9000)} Launch Way ${STAMP}`
       await page
@@ -117,6 +119,7 @@ test.describe('Launch happy path (EH-C canary)', () => {
       // 3) Run an assessment (non-compliant — drives a usable quote).
       // -----------------------------------------------------------------
       await page.goto(`/admin/properties/${propertyId}/assessment`)
+      await waitForHydration(page)
       await page
         .getByTestId('field-roofMaterial')
         .locator('select')
@@ -151,10 +154,9 @@ test.describe('Launch happy path (EH-C canary)', () => {
         ),
         { timeout: 15000 },
       )
-      const lineCount = await page
-        .locator('[data-testid="line-item"]')
-        .count()
-      expect(lineCount).toBeGreaterThanOrEqual(1)
+      // count() does not wait; the pre-populated items render after the page's data loads.
+      await expect(page.locator('[data-testid="line-item"]').first()).toBeVisible()
+      const lineCount = await page.locator('[data-testid="line-item"]').count()
       for (let i = 0; i < lineCount; i += 1) {
         await page
           .getByTestId(`line-item-${i}-unit-cost`)
@@ -239,6 +241,7 @@ test.describe('Launch happy path (EH-C canary)', () => {
       //    detail page renders with a valid status.
       // -----------------------------------------------------------------
       await page.goto(`/admin/properties/${propertyId}/compliance/new`)
+      await waitForHydration(page)
       const slotToggles = page.locator(
         '[data-testid^="compliance-slot-toggle-"]',
       )
@@ -267,6 +270,7 @@ test.describe('Launch happy path (EH-C canary)', () => {
       // 7) Create an invoice from the work order, send, mark paid.
       // -----------------------------------------------------------------
       await page.goto('/admin/work-orders')
+      await waitForHydration(page)
       await page
         .locator('[data-testid="work-order-row"]')
         .filter({ hasText: 'completed' })
@@ -275,6 +279,7 @@ test.describe('Launch happy path (EH-C canary)', () => {
         .catch(async () => {
           // Filter by completed if the row text doesn't include the status pill text.
           await page.goto('/admin/work-orders?status=completed')
+          await waitForHydration(page)
           await page
             .getByTestId('work-order-row')
             .first()

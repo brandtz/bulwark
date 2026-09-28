@@ -107,7 +107,7 @@ useHead({ title: 'Buildings — Bulwark' })
       ]"
     />
 
-    <PropertyPropertyDepthNav :property-id="propertyId" class="mt-4" />
+    <PropertyDepthNav :property-id="propertyId" class="mt-4" />
 
     <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <h1 class="text-h1">{{ t('property.tabs', 'buildings', 'Buildings') }}</h1>

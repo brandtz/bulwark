@@ -15,12 +15,16 @@
  *     label-only field — the unit suite owns the enumeration.
  */
 import { test, expect, type Page } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration } from './_helpers'
 
 async function pickInvoice(page: Page): Promise<void> {
   await page.goto('/admin/invoices')
+  await waitForHydration(page)
   await page.waitForLoadState('networkidle')
-  const row = page.getByTestId('invoice-row').first()
+  // An open invoice with a balance; list order is not a contract (the first row can be paid).
+  const row = page.getByTestId('invoice-row')
+    .filter({ has: page.locator('[data-testid="invoice-row-status"][data-status="sent"]') })
+    .first()
   await expect(row).toBeVisible()
   await row.click()
   await page.waitForURL(/\/admin\/invoices\/[\w-]+$/, { timeout: 10_000 })

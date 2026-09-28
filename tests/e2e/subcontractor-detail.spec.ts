@@ -54,7 +54,7 @@ test.describe('Subcontractor detail + edit (E6-S5)', () => {
     const licenseExpires = page
       .getByTestId('field-license-expires')
       .locator('input')
-    await expect(licenseExpires).toHaveValue('2026-12-15')
+    await expect(licenseExpires).toHaveValue('2030-12-15')
 
     // Edit license number, expiry, and contact name.
     await licenseInput.fill('CCB-999000')

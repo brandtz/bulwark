@@ -1,6 +1,9 @@
-﻿import { test, expect } from '@playwright/test'
+import { test, expect } from '@playwright/test'
+import { isBuiltServer } from './_helpers'
 
 test('debug persona click', async ({ page, context }) => {
+  // Dev-only persona buttons: the production build hides them.
+  test.skip(isBuiltServer(), 'persona quick-login is dev-only')
   await context.request.post('http://localhost:3000/api/services/auth/logout')
   await context.clearCookies()
 

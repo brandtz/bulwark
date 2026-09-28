@@ -23,6 +23,9 @@
     in a follow-up if call-site demand emerges.
 -->
 <script setup lang="ts">
+// The root is a <Teleport>, which cannot inherit attributes: forward them (data-testid,
+// aria-*) to the dialog element instead of dropping them (WP-Q3).
+defineOptions({ inheritAttrs: false })
 interface Props {
   modelValue: boolean
   title: string
@@ -93,6 +96,7 @@ onBeforeUnmount(() => {
       <div
         v-if="modelValue"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        v-bind="$attrs"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="`mdl-${title}`"

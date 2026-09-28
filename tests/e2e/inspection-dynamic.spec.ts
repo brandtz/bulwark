@@ -14,7 +14,7 @@
  * happens inside the test.
  */
 import { test, expect } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration, drawSignature } from './_helpers'
 
 test.describe('inspection template engine — admin happy path', () => {
   test('admin starts inspection, fills fields, signs, sees issues banner', async ({ page }) => {
@@ -22,7 +22,8 @@ test.describe('inspection template engine — admin happy path', () => {
 
     // Jump to the admin property list and open the first property.
     await page.goto('/admin/properties')
-    await page.getByTestId('property-row').first().click()
+    await waitForHydration(page)
+    await page.getByTestId('property-card').first().click()
     await page.waitForURL(/\/admin\/properties\/[^/]+$/u)
 
     // Find the property id from the URL so we can navigate to /inspection/new.
@@ -31,6 +32,8 @@ test.describe('inspection template engine — admin happy path', () => {
     expect(propertyId, 'property id parses from URL').toBeTruthy()
 
     await page.goto(`/admin/properties/${propertyId}/inspection/new`)
+
+    await waitForHydration(page)
     await expect(page.getByTestId('inspection-new')).toBeVisible()
 
     // Start the Wildfire Retrofit template.
@@ -52,8 +55,9 @@ test.describe('inspection template engine — admin happy path', () => {
     // Submit & sign.
     await page.getByTestId('submit-and-sign').click()
     await expect(page.getByTestId('confirm-sign')).toBeVisible()
-    // Draw a token signature: any non-empty stroke is fine — the pad records
-    // pointer events, but for headless tests we just confirm the dialog.
+    // Sign stays disabled until a signer name and a signature stroke exist.
+    await page.getByRole('dialog').getByLabel(/^Signer name/u).fill('QA Inspector')
+    await drawSignature(page)
     await page.getByTestId('confirm-sign').click()
 
     // Either issues banner shows up OR the form re-renders signed —

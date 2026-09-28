@@ -1,5 +1,5 @@
 <!--
-  components/charts/Donut.vue — hand-rolled SVG donut for the W3-2 dashboard
+  components/charts/ChartsDonut.vue (registered as <ChartsDonut>; components use pathPrefix: false) — hand-rolled SVG donut for the W3-2 dashboard
   (EH-K / ADR-0030).
 
   # Decisions (ADR-0008, ADR-0030)

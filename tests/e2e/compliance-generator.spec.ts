@@ -24,7 +24,7 @@
  *     persists with status=generating".
  */
 import { test, expect, type Page } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, drawSignature } from './_helpers'
 
 async function getSeedPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/work-orders')
@@ -36,52 +36,6 @@ async function getSeedPropertyId(page: Page): Promise<string> {
   const pid = await detail.getAttribute('data-property-id')
   expect(pid).toBeTruthy()
   return pid as string
-}
-
-async function drawSignature(page: Page): Promise<void> {
-  const canvas = page.getByTestId('signature-pad-canvas')
-  await expect(canvas).toBeVisible()
-  const box = await canvas.boundingBox()
-  if (!box) throw new Error('Signature canvas has no bounding box')
-  // Use Playwright's dispatchEvent which produces real-looking pointer
-  // events that the SignaturePad handlers see.
-  const cx = box.x + box.width * 0.2
-  const cy = box.y + box.height * 0.5
-  await canvas.dispatchEvent('pointerdown', {
-    pointerId: 1,
-    pointerType: 'mouse',
-    isPrimary: true,
-    clientX: cx,
-    clientY: cy,
-    bubbles: true,
-    cancelable: true,
-    button: 0,
-    buttons: 1,
-  })
-  for (let i = 1; i <= 8; i += 1) {
-    await canvas.dispatchEvent('pointermove', {
-      pointerId: 1,
-      pointerType: 'mouse',
-      isPrimary: true,
-      clientX: cx + (box.width * 0.6 * i) / 8,
-      clientY: cy + Math.sin(i) * 12,
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-      buttons: 1,
-    })
-  }
-  await canvas.dispatchEvent('pointerup', {
-    pointerId: 1,
-    pointerType: 'mouse',
-    isPrimary: true,
-    clientX: cx + box.width * 0.6,
-    clientY: cy,
-    bubbles: true,
-    cancelable: true,
-    button: 0,
-    buttons: 0,
-  })
 }
 
 test.describe('Compliance generator (E7-S2)', () => {

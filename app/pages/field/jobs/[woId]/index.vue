@@ -58,6 +58,10 @@ const wo = ref<WorkOrder | null>(null)
 const property = ref<Property | null>(null)
 const checkIns = ref<AuditLogRow[]>([])
 const loading = ref(true)
+// SSR: plain $fetch does not forward the session cookie, so the check-in list 401'd and the
+// page rendered an error (WP-Q3). useRequestFetch forwards it on the server and is $fetch on
+// the client; it must be captured during setup.
+const requestFetch = useRequestFetch()
 const checkingIn = ref(false)
 
 async function loadAll(): Promise<void> {
@@ -67,7 +71,7 @@ async function loadAll(): Promise<void> {
     if (wo.value) {
       property.value = await propertyService.get(wo.value.propertyId, orgId)
     }
-    const res = await $fetch<{ rows: AuditLogRow[] }>('/api/field/check-ins', {
+    const res = await requestFetch<{ rows: AuditLogRow[] }>('/api/field/check-ins', {
       query: { workOrderId: woId.value },
     })
     checkIns.value = res.rows

@@ -81,6 +81,11 @@ export function useLabel(): {
   reload: () => Promise<void>
 } {
   const { session } = useSession()
+  // t() is often called lazily — from a useHead title getter or a computed evaluated
+  // outside setup — where useState has no active Nuxt instance ("[nuxt] instance
+  // unavailable", SSR 500 on /admin/reports/:slug). Re-enter the app context captured
+  // here instead (WP-Q3).
+  const nuxtApp = useNuxtApp()
 
   const orgId = computed(() => session.value?.activeOrganizationId ?? '__no_org__')
 
@@ -90,12 +95,17 @@ export function useLabel(): {
   function stateKey(id: string): string {
     return `bulwark.labels.${id}`
   }
+  let cached: { id: string, state: Ref<LabelCacheEntry> } | null = null
   function entry(): Ref<LabelCacheEntry> {
-    return useState<LabelCacheEntry>(stateKey(orgId.value), () => ({
-      overrides: {},
-      ready: false,
-    }))
+    const id = orgId.value
+    if (cached?.id === id) return cached.state
+    const make = () => useState<LabelCacheEntry>(stateKey(id), () => ({ overrides: {}, ready: false }))
+    const state = tryUseNuxtApp() ? make() : (nuxtApp.runWithContext(make) as Ref<LabelCacheEntry>)
+    cached = { id, state }
+    return state
   }
+  // Resolve once while the setup context is active so lazy t() calls hit the cache.
+  entry()
 
   const ready = computed(() => entry().value.ready)
 
