@@ -15,28 +15,36 @@
  *     upload event. Both nullable-friendly: takenAt can be backfilled
  *     after the fact.
  */
-import { pgTable, text, uuid, integer, timestamp } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { pgTable, text, uuid, integer, timestamp, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 
-export const propertyPhotos = pgTable('property_photos', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
+export const propertyPhotos = pgTable(
+  'property_photos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
 
-  propertyId: uuid('property_id').notNull(),
-  buildingId: uuid('building_id'),
-  sectionId: uuid('section_id'),
+    propertyId: uuid('property_id').notNull(),
+    buildingId: uuid('building_id'),
+    sectionId: uuid('section_id'),
 
-  url: text('url').notNull(),
-  thumbnailUrl: text('thumbnail_url'),
-  caption: text('caption'),
+    url: text('url').notNull(),
+    thumbnailUrl: text('thumbnail_url'),
+    caption: text('caption'),
 
-  takenAt: timestamp('taken_at', { withTimezone: true }),
-  uploadedByUserId: uuid('uploaded_by_user_id'),
+    takenAt: timestamp('taken_at', { withTimezone: true }),
+    uploadedByUserId: uuid('uploaded_by_user_id'),
 
-  sortOrder: integer('sort_order').notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
 
-  ...auditColumns,
-})
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgPropertySort: index('property_photos_org_property_idx').on(t.organizationId, t.propertyId, t.sortOrder).where(sql`${t.deletedAt} IS NULL`),
+  }),
+)
 
 export type PropertyPhoto = typeof propertyPhotos.$inferSelect
 export type NewPropertyPhoto = typeof propertyPhotos.$inferInsert

@@ -84,12 +84,10 @@ const { data: bundle } = await useAsyncData(
     const rows = activeFilter.value === 'all' ? all : all.filter((d) => d.status === activeFilter.value)
     const propertyIds = Array.from(new Set(rows.map((d) => d.propertyId)))
     const propMap = new Map<string, string>()
-    await Promise.all(
-      propertyIds.map(async (pid) => {
-        const p = await property.get(pid, orgId.value)
-        if (p) propMap.set(pid, `${p.addressLine1}, ${p.city}, ${p.state}`)
-      }),
-    )
+    // One batched read instead of a request per property (WP-L06 S4).
+    for (const p of await property.getMany(propertyIds, orgId.value)) {
+      propMap.set(p.id, `${p.addressLine1}, ${p.city}, ${p.state}`)
+    }
     return { rows, total: rows.length, propMap }
   },
   { server: false, watch: [orgId, activeFilter] },

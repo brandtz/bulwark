@@ -90,8 +90,11 @@ export const AuditFilterInputSchema = z.object({
   action: AuditActionSchema.optional(),
   entityId: UuidSchema.optional(),
   search: z.string().min(1).max(200).optional(),
-  page: z.number().int().positive().default(1),
+  // WP-L06 S3: offset capped at 1000; keyset cursor for deeper pages + exports.
+  page: z.number().int().positive().max(1000).default(1),
   pageSize: z.number().int().positive().max(200).default(50),
+  afterCreatedAt: z.string().datetime({ offset: true }).optional(),
+  afterId: UuidSchema.optional(),
 })
 export type AuditFilterInput = z.infer<typeof AuditFilterInputSchema>
 
@@ -100,6 +103,7 @@ export const AuditFilterOutputSchema = z.object({
   total: z.number().int().nonnegative(),
   page: z.number().int().positive(),
   pageSize: z.number().int().positive(),
+  nextCursor: z.object({ afterCreatedAt: z.string(), afterId: z.string() }).nullable().optional(),
 })
 export type AuditFilterOutput = z.infer<typeof AuditFilterOutputSchema>
 

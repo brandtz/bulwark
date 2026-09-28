@@ -4,7 +4,7 @@
  * Mirrors `shared/contracts/assessment.ts`. Material enums are postgres
  * enums so they round-trip through Drizzle without string-ification.
  */
-import { pgTable, text, uuid, pgEnum, boolean, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, pgEnum, boolean, timestamp, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { properties } from './properties'
 import { users } from './users'
@@ -38,20 +38,27 @@ export const ventTypeEnum = pgEnum('vent_type', [
   'other',
 ])
 
-export const assessments = pgTable('assessments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
-  propertyId: uuid('property_id').notNull().references(() => properties.id),
-  assessedById: uuid('assessed_by_id').notNull().references(() => users.id),
-  assessedAt: timestamp('assessed_at', { withTimezone: true }).notNull(),
-  roofMaterial: roofMaterialEnum('roof_material').notNull(),
-  sidingMaterial: sidingMaterialEnum('siding_material').notNull(),
-  eaveType: eaveTypeEnum('eave_type').notNull(),
-  ventType: ventTypeEnum('vent_type').notNull(),
-  defensibleSpaceCleared: boolean('defensible_space_cleared').notNull(),
-  notes: text('notes'),
-  ...auditColumns,
-})
+export const assessments = pgTable(
+  'assessments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
+    propertyId: uuid('property_id').notNull().references(() => properties.id),
+    assessedById: uuid('assessed_by_id').notNull().references(() => users.id),
+    assessedAt: timestamp('assessed_at', { withTimezone: true }).notNull(),
+    roofMaterial: roofMaterialEnum('roof_material').notNull(),
+    sidingMaterial: sidingMaterialEnum('siding_material').notNull(),
+    eaveType: eaveTypeEnum('eave_type').notNull(),
+    ventType: ventTypeEnum('vent_type').notNull(),
+    defensibleSpaceCleared: boolean('defensible_space_cleared').notNull(),
+    notes: text('notes'),
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgProperty: index('assessments_org_property_idx').on(t.organizationId, t.propertyId),
+  }),
+)
 
 export type Assessment = typeof assessments.$inferSelect
 export type NewAssessment = typeof assessments.$inferInsert

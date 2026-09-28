@@ -44,6 +44,8 @@ export const notifications = pgTable(
   (t) => ({
     userUnreadIdx: index('notifications_user_unread_idx').on(t.userId, t.readAt),
     orgUserIdx: index('notifications_org_user_idx').on(t.organizationId, t.userId),
+    // WP-L06 S5: the bell/list query orders newest-first per user.
+    orgUserCreated: index('notifications_org_user_created_idx').on(t.organizationId, t.userId, t.createdAt.desc()),
   }),
 )
 

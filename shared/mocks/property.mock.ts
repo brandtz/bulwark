@@ -25,6 +25,7 @@ import type { MockBuildingService } from './building.mock'
 import type { MockContactService } from './contact.mock'
 import type { MockPropertyPhotoService } from './property-photo.mock'
 import { MockStatusPipelineService } from './status-pipeline.mock'
+import { compareNewestFirst, pageRows } from '../utils/pagination'
 
 const rows: Property[] = [...FIXTURE_PROPERTIES]
 const newId = () => crypto.randomUUID()
@@ -68,12 +69,14 @@ export class MockPropertyService implements IPropertyService {
       )
     }
     const total = scoped.length
-    const start = (input.page - 1) * input.pageSize
+    // WP-L06 S3: same newest-first order, offset cap and keyset cursor as the real service.
+    const paged = pageRows(scoped.slice().sort(compareNewestFirst), input)
     return {
-      rows: scoped.slice(start, start + input.pageSize),
+      rows: paged.rows,
       total,
       page: input.page,
       pageSize: input.pageSize,
+      nextCursor: paged.nextCursor,
     }
   }
 
@@ -81,6 +84,13 @@ export class MockPropertyService implements IPropertyService {
     assertSameTenant(this.tenantResolver, organizationId)
     const r = rows.find(x => x.id === id && x.organizationId === organizationId)
     return r && !r.deletedAt ? r : null
+  }
+
+  async getMany(ids: string[], organizationId: string): Promise<Property[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const wanted = new Set(ids)
+    if (wanted.size > 500) throw new Error('Invalid getMany: at most 500 ids')
+    return rows.filter((x) => wanted.has(x.id) && x.organizationId === organizationId && !x.deletedAt)
   }
 
   async create(input: PropertyCreateInput): Promise<Property> {

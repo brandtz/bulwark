@@ -16,33 +16,40 @@
  *     uniqueness as a service invariant lets us extend "primary"
  *     semantics later (per kind, per client) without DB changes.
  */
-import { pgTable, text, uuid, integer, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, integer, boolean, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 
-export const contacts = pgTable('contacts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
+export const contacts = pgTable(
+  'contacts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
 
-  // Either propertyId OR clientId required — enforced at service layer
-  // (see contact.real.ts / contact.mock.ts).
-  propertyId: uuid('property_id'),
-  clientId: uuid('client_id'),
+    // Either propertyId OR clientId required — enforced at service layer
+    // (see contact.real.ts / contact.mock.ts).
+    propertyId: uuid('property_id'),
+    clientId: uuid('client_id'),
 
-  // 'owner' | 'tenant' | 'property_manager' | 'hoa' | 'emergency' | 'insurance' | 'vendor' | 'other'
-  kind: text('kind').notNull().default('other'),
+    // 'owner' | 'tenant' | 'property_manager' | 'hoa' | 'emergency' | 'insurance' | 'vendor' | 'other'
+    kind: text('kind').notNull().default('other'),
 
-  firstName: text('first_name').notNull(),
-  lastName: text('last_name').notNull(),
-  email: text('email'),
-  phone: text('phone'),
-  notes: text('notes'),
+    firstName: text('first_name').notNull(),
+    lastName: text('last_name').notNull(),
+    email: text('email'),
+    phone: text('phone'),
+    notes: text('notes'),
 
-  isPrimary: boolean('is_primary').notNull().default(false),
+    isPrimary: boolean('is_primary').notNull().default(false),
 
-  sortOrder: integer('sort_order').notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
 
-  ...auditColumns,
-})
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgProperty: index('contacts_org_property_idx').on(t.organizationId, t.propertyId),
+  }),
+)
 
 export type Contact = typeof contacts.$inferSelect
 export type NewContact = typeof contacts.$inferInsert

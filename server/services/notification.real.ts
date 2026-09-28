@@ -18,7 +18,7 @@
  *   - `markRead` and `markAllRead` flip `readAt` only on rows owned
  *     by `userId` — no admin override path exists.
  */
-import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import type {
   INotificationService,
   Notification,
@@ -30,6 +30,7 @@ import { getDb } from '../db/client'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { assertSelfUser } from './_caller'
 import { withAudit } from './_tx'
+import { keysetCursor, pageWindow } from './_pagination'
 
 function rowToContract(r: NotificationRow): Notification {
   return {
@@ -60,7 +61,7 @@ export class RealNotificationService implements INotificationService {
 
   async listForUser(
     userId: string,
-    opts?: { unreadOnly?: boolean; page?: number; pageSize?: number },
+    opts?: { unreadOnly?: boolean; page?: number; pageSize?: number; afterCreatedAt?: string; afterId?: string },
   ): Promise<NotificationListOutput> {
     assertSelfUser(this.tenantResolver, userId)
     const orgId = this.requireOrg()
@@ -84,19 +85,22 @@ export class RealNotificationService implements INotificationService {
       .from(notifications)
       .where(and(...filterConds))
     const total = totalRow[0]?.total ?? 0
+    const win = pageWindow({ page, pageSize, afterCreatedAt: opts?.afterCreatedAt, afterId: opts?.afterId }, notifications.createdAt, notifications.id)
     const rows = await db
       .select()
       .from(notifications)
-      .where(and(...filterConds))
-      .orderBy(desc(notifications.createdAt))
+      .where(and(...filterConds, win.where))
+      .orderBy(...win.orderBy)
       .limit(pageSize)
-      .offset((page - 1) * pageSize)
+      .offset(win.offset)
+    const mapped = rows.map(rowToContract)
     return {
-      rows: rows.map(rowToContract),
+      rows: mapped,
       total: Number(total ?? 0),
       unreadTotal: Number(unreadTotal ?? 0),
       page,
       pageSize,
+      nextCursor: await keysetCursor(db, notifications, notifications.createdAt, notifications.id, rows, pageSize),
     }
   }
 

@@ -10,7 +10,7 @@
  *   - No `softDelete` in IWorkOrderService; deletion is left to admin
  *     scripts in v1.
  */
-import { and, count, desc, eq, gte, like, lt, sql, type SQL } from 'drizzle-orm'
+import { and, eq, gte, lt, sql, type SQL } from 'drizzle-orm'
 import type {
   IWorkOrderService,
   TradeSlotStatus,
@@ -24,7 +24,8 @@ import { workOrders } from '../db/schema/work_orders'
 import type { WorkOrder as DbWO } from '../db/schema/work_orders'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
-import { buildLikePatternForYear, formatSequentialNumber } from '../../shared/utils/numbering'
+import { allocateDocumentNumber, withNumberRetry } from './_numbering'
+import { keysetCursor, pageWindow } from './_pagination'
 import { RealOrgSettingsService } from './org-settings.real'
 import { RealTradeService } from './trade.real'
 import { emit } from '../../shared/events/bus'
@@ -89,16 +90,18 @@ export class RealWorkOrderService implements IWorkOrderService {
     if (input.propertyId) conditions.push(eq(workOrders.propertyId, input.propertyId))
     if (input.status) conditions.push(eq(workOrders.status, input.status))
     const where = and(...conditions)!
-    const offset = (input.page - 1) * input.pageSize
+    const win = pageWindow(input, workOrders.createdAt, workOrders.id)
     const [rows, [totalRow]] = await Promise.all([
-      db.select().from(workOrders).where(where).orderBy(desc(workOrders.createdAt)).limit(input.pageSize).offset(offset),
+      db.select().from(workOrders).where(and(where, win.where)).orderBy(...win.orderBy).limit(input.pageSize).offset(win.offset),
       db.select({ count: sql<number>`cast(count(*) as int)` }).from(workOrders).where(where),
     ])
+    const mapped = rows.map(rowToContract)
     return {
-      rows: rows.map(rowToContract),
+      rows: mapped,
       total: Number(totalRow?.count ?? 0),
       page: input.page,
       pageSize: input.pageSize,
+      nextCursor: await keysetCursor(db, workOrders, workOrders.createdAt, workOrders.id, rows, input.pageSize),
     }
   }
 
@@ -116,8 +119,9 @@ export class RealWorkOrderService implements IWorkOrderService {
   async create(input: WorkOrderCreateInput): Promise<WorkOrder> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     await this.tradeCatalog.assertActiveSlugs(input.organizationId, input.tradeSlots.map((slot) => slot.trade))
-    const workOrderNumber = await this.nextWorkOrderNumber(input.organizationId)
-    const created = await withAudit(async ({ tx, audit }) => {
+    const format = await this.workOrderNumberFormat(input.organizationId)
+    const created = await withNumberRetry(() => withAudit(async ({ tx, audit }) => {
+      const workOrderNumber = await allocateDocumentNumber(tx, { organizationId: input.organizationId, entity: 'work_order', format })
       const [row] = await tx
         .insert(workOrders)
         .values({
@@ -147,7 +151,7 @@ export class RealWorkOrderService implements IWorkOrderService {
         after: { workOrderNumber, propertyId: row!.propertyId, slotCount: row!.tradeSlots.length },
       })
       return rowToContract(row!)
-    })
+    }))
     // Post-transaction emit (ADR-0017). Drives the property's
     // auto-status transition to `in_progress` via the subscriber in
     // `_subscribers/property-status.ts`.
@@ -397,19 +401,10 @@ export class RealWorkOrderService implements IWorkOrderService {
     return result
   }
 
-  private async nextWorkOrderNumber(organizationId: string): Promise<string> {
-    // EH-H / W1-3: tenant-configurable format.
+  /** EH-H / W1-3: tenant-configurable format (platform default when settings absent). */
+  private async workOrderNumberFormat(organizationId: string): Promise<string> {
     const settings = await new RealOrgSettingsService(this.tenantResolver).get(organizationId)
-    const format = settings.woNumberFormat
-    const year = new Date().getUTCFullYear()
-    const likePattern = buildLikePatternForYear(format, year)
-    const db = getDb()
-    const [row] = await db
-      .select({ n: count() })
-      .from(workOrders)
-      .where(and(eq(workOrders.organizationId, organizationId), like(workOrders.workOrderNumber, likePattern)))
-    const seq = Number(row?.n ?? 0) + 1
-    return formatSequentialNumber({ format, year, seq })
+    return settings.woNumberFormat
   }
 
   /**

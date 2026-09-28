@@ -25,24 +25,31 @@
  *     items. Customers tendering against specific line items is rare; we
  *     keep payments at the invoice envelope level for v1.
  */
-import { pgTable, text, uuid, integer, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, integer, timestamp, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { invoices } from './invoices'
 import { users } from './users'
 
-export const invoicePayments = pgTable('invoice_payments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
-  invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
-  /** Signed cents — negative = refund. */
-  amountCents: integer('amount_cents').notNull(),
-  receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
-  method: text('method').notNull(),
-  reference: text('reference'),
-  notes: text('notes'),
-  recordedByUserId: uuid('recorded_by_user_id').references(() => users.id),
-  ...auditColumns,
-})
+export const invoicePayments = pgTable(
+  'invoice_payments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
+    invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
+    /** Signed cents — negative = refund. */
+    amountCents: integer('amount_cents').notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+    method: text('method').notNull(),
+    reference: text('reference'),
+    notes: text('notes'),
+    recordedByUserId: uuid('recorded_by_user_id').references(() => users.id),
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgInvoice: index('invoice_payments_org_invoice_idx').on(t.organizationId, t.invoiceId),
+  }),
+)
 
 export type InvoicePaymentRow = typeof invoicePayments.$inferSelect
 export type NewInvoicePaymentRow = typeof invoicePayments.$inferInsert

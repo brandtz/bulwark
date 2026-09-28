@@ -22,7 +22,7 @@
  *     2× the audit volume. If we ever need it (e.g. HIPAA-style logs)
  *     we add it explicitly per-method, not blanket.
  */
-import { and, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm'
+import { and, eq, ilike, inArray, or, sql, type SQL } from 'drizzle-orm'
 import type {
   IPropertyService,
   Property,
@@ -52,6 +52,7 @@ import { emit } from '../../shared/events/bus'
 import { propertyCreated } from '../../shared/events/catalog'
 import { RealStatusPipelineService } from './status-pipeline.real'
 import { signAssetUrl } from './storage/asset-urls'
+import { keysetCursor, pageWindow } from './_pagination'
 
 export class RealPropertyService implements IPropertyService {
   private readonly statusPipelines: RealStatusPipelineService
@@ -77,25 +78,27 @@ export class RealPropertyService implements IPropertyService {
     }
     const whereClause = and(...conditions)!
 
-    const offset = (input.page - 1) * input.pageSize
+    const win = pageWindow(input, properties.createdAt, properties.id)
     const [rows, [totalRow]] = await Promise.all([
       db
         .select()
         .from(properties)
-        .where(whereClause)
-        .orderBy(desc(properties.createdAt))
+        .where(and(whereClause, win.where))
+        .orderBy(...win.orderBy)
         .limit(input.pageSize)
-        .offset(offset),
+        .offset(win.offset),
       db
         .select({ count: sql<number>`cast(count(*) as int)` })
         .from(properties)
         .where(whereClause),
     ])
+    const mapped = rows.map(dbPropertyToContract)
     return {
-      rows: rows.map(dbPropertyToContract),
+      rows: mapped,
       total: Number(totalRow?.count ?? 0),
       page: input.page,
       pageSize: input.pageSize,
+      nextCursor: await keysetCursor(db, properties, properties.createdAt, properties.id, rows, input.pageSize),
     }
   }
 
@@ -114,6 +117,24 @@ export class RealPropertyService implements IPropertyService {
       )
       .limit(1)
     return row ? dbPropertyToContract(row) : null
+  }
+
+  async getMany(ids: string[], organizationId: string): Promise<Property[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const unique = [...new Set(ids)]
+    if (unique.length === 0) return []
+    if (unique.length > 500) throw new Error('Invalid getMany: at most 500 ids')
+    const rows = await getDb()
+      .select()
+      .from(properties)
+      .where(
+        and(
+          inArray(properties.id, unique),
+          eq(properties.organizationId, organizationId),
+          sql`${properties.deletedAt} IS NULL`,
+        ),
+      )
+    return rows.map(dbPropertyToContract)
   }
 
   async create(input: PropertyCreateInput): Promise<Property> {

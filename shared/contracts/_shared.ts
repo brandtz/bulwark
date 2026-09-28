@@ -46,9 +46,14 @@ export const AuditFieldsSchema = z.object({
 // ----------------------------------------------------------------------------
 // Pagination wrappers. Every list/<scope> endpoint uses these.
 // ----------------------------------------------------------------------------
+// WP-L06 S3: offset pages are capped at 1000 (deep OFFSETs scan every skipped
+// row); pass the previous page's `nextCursor` as afterCreatedAt + afterId for
+// keyset paging at any depth. See shared/utils/pagination.ts.
 export const PaginationInputSchema = z.object({
-  page: z.number().int().positive().default(1),
+  page: z.number().int().positive().max(1000).default(1),
   pageSize: z.number().int().positive().max(200).default(25),
+  afterCreatedAt: z.string().datetime({ offset: true }).optional(),
+  afterId: z.string().uuid().optional(),
 })
 export type PaginationInput = z.infer<typeof PaginationInputSchema>
 
@@ -58,6 +63,8 @@ export const ListOutputSchema = <T extends z.ZodTypeAny>(rowSchema: T) =>
     total: z.number().int().nonnegative(),
     page: z.number().int().positive(),
     pageSize: z.number().int().positive(),
+    /** Keyset cursor for the next page; null on the last page. Optional for list methods that predate L06. */
+    nextCursor: z.object({ afterCreatedAt: z.string(), afterId: z.string() }).nullable().optional(),
   })
 
 // ----------------------------------------------------------------------------

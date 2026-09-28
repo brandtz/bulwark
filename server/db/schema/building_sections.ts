@@ -11,26 +11,33 @@
  *   - Soft-delete only via deletedAt — historical inspection responses
  *     may still reference removed sections.
  */
-import { pgTable, text, uuid, integer } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, integer, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 
-export const buildingSections = pgTable('building_sections', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
+export const buildingSections = pgTable(
+  'building_sections',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
 
-  buildingId: uuid('building_id').notNull(),
+    buildingId: uuid('building_id').notNull(),
 
-  label: text('label').notNull(),
-  // 'room' | 'exterior_face' | 'deck' | 'roof' | 'other'
-  kind: text('kind').notNull().default('other'),
+    label: text('label').notNull(),
+    // 'room' | 'exterior_face' | 'deck' | 'roof' | 'other'
+    kind: text('kind').notNull().default('other'),
 
-  squareFeet: integer('square_feet'),
-  notes: text('notes'),
+    squareFeet: integer('square_feet'),
+    notes: text('notes'),
 
-  sortOrder: integer('sort_order').notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
 
-  ...auditColumns,
-})
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgBuilding: index('building_sections_org_building_idx').on(t.organizationId, t.buildingId),
+  }),
+)
 
 export type BuildingSection = typeof buildingSections.$inferSelect
 export type NewBuildingSection = typeof buildingSections.$inferInsert

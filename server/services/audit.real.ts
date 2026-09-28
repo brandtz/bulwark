@@ -39,6 +39,10 @@ import { assertSameTenant, type TenantResolver } from './_tenant'
 // W3-5 / EH-Q (ADR-0034): structured logger fallback for
 // `logSystemError()` when the audit insert itself fails.
 import { log } from '../utils/logger'
+import { keysetCursor, pageWindow } from './_pagination'
+
+const EXPORT_PAGE_SIZE = 1000
+const EXPORT_MAX_ROWS = 50_000
 
 type DbOrTx = ReturnType<typeof getDb>
 
@@ -166,19 +170,22 @@ export class RealAuditService implements IAuditService {
       .where(where)
     const total = countRows[0]?.count ?? 0
 
+    const win = pageWindow(input, auditLog.createdAt, auditLog.id)
     const rows = await this.db
       .select()
       .from(auditLog)
-      .where(where)
-      .orderBy(desc(auditLog.createdAt))
+      .where(and(where, win.where))
+      .orderBy(...win.orderBy)
       .limit(input.pageSize)
-      .offset((input.page - 1) * input.pageSize)
+      .offset(win.offset)
 
+    const mapped = rows.map(rowToContract)
     return {
-      rows: rows.map(rowToContract),
+      rows: mapped,
       total,
       page: input.page,
       pageSize: input.pageSize,
+      nextCursor: await keysetCursor(this.db, auditLog, auditLog.createdAt, auditLog.id, rows, input.pageSize),
     }
   }
 
@@ -220,8 +227,15 @@ export class RealAuditService implements IAuditService {
 
   async exportCsv(input: Omit<AuditFilterInput, 'page' | 'pageSize'>): Promise<string> {
     assertSameTenant(this.tenantResolver, input.organizationId)
-    // Reuse filter() with a wide page size. Cap at 10k rows to avoid runaway exports.
-    const { rows } = await this.filter({ ...input, page: 1, pageSize: 10000 })
+    // WP-L06 S3: walk the keyset cursor in bounded pages (no deep OFFSET, no
+    // single 10k-row query); EXPORT_MAX_ROWS still bounds a runaway export.
+    const rows: AuditLogRow[] = []
+    let cursor: { afterCreatedAt: string, afterId: string } | null | undefined
+    do {
+      const page = await this.filter({ ...input, page: 1, pageSize: EXPORT_PAGE_SIZE, ...(cursor ?? {}) })
+      rows.push(...page.rows)
+      cursor = page.nextCursor
+    } while (cursor && rows.length < EXPORT_MAX_ROWS)
     const header = [
       'id',
       'createdAt',

@@ -20,6 +20,7 @@ import type {
   TimelineForPropertyInput,
 } from '../contracts/audit'
 import { assertSameTenant, type TenantResolver } from './tenant'
+import { compareNewestFirst, pageRows } from '../utils/pagination'
 
 const rows: AuditLogRow[] = []
 
@@ -95,12 +96,14 @@ export class MockAuditService implements IAuditService {
   async filter(input: AuditFilterInput): Promise<AuditFilterOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     const all = this.applyFilter(input)
-    const start = (input.page - 1) * input.pageSize
+    // WP-L06 S3: same order, offset cap and keyset cursor as the real service.
+    const paged = pageRows(all.slice().sort(compareNewestFirst), input)
     return {
-      rows: all.slice(start, start + input.pageSize),
+      rows: paged.rows,
       total: all.length,
       page: input.page,
       pageSize: input.pageSize,
+      nextCursor: paged.nextCursor,
     }
   }
 

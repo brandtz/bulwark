@@ -12,24 +12,32 @@
  *     storage backend (S3/R2 later; `local://attachments/<uuid>` stub
  *     in this slice).
  */
-import { pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { pgTable, text, uuid, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 
-export const propertyAttachments = pgTable('property_attachments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
+export const propertyAttachments = pgTable(
+  'property_attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
 
-  propertyId: uuid('property_id').notNull(),
+    propertyId: uuid('property_id').notNull(),
 
-  // 'survey' | 'plat' | 'insurance' | 'permit' | 'other'
-  kind: text('kind').notNull().default('other'),
+    // 'survey' | 'plat' | 'insurance' | 'permit' | 'other'
+    kind: text('kind').notNull().default('other'),
 
-  name: text('name').notNull(),
-  url: text('url').notNull(),
-  uploadedByUserId: uuid('uploaded_by_user_id'),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    uploadedByUserId: uuid('uploaded_by_user_id'),
 
-  ...auditColumns,
-})
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgProperty: index('property_attachments_org_property_idx').on(t.organizationId, t.propertyId).where(sql`${t.deletedAt} IS NULL`),
+  }),
+)
 
 export type PropertyAttachment = typeof propertyAttachments.$inferSelect
 export type NewPropertyAttachment = typeof propertyAttachments.$inferInsert

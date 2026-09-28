@@ -16,25 +16,32 @@
  *   - Soft delete via `deletedAt`. Vendor turnover keeps the audit
  *     trail; an admin can hide old certs without losing history.
  */
-import { pgTable, text, uuid, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, timestamp, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { subcontractors } from './subcontractors'
 import { users } from './users'
 
-export const subcontractorCoiDocs = pgTable('subcontractor_coi_docs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
-  subcontractorId: uuid('subcontractor_id').notNull().references(() => subcontractors.id),
-  /** R2 / S3 object URL (or data URL in mock). */
-  fileUrl: text('file_url').notNull(),
-  fileName: text('file_name').notNull(),
-  /** Carrier-stated expiry date. Drives the 30-day warning job. */
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  uploadedByUserId: uuid('uploaded_by_user_id').references(() => users.id),
-  uploadedAt: timestamp('uploaded_at', { withTimezone: true }).defaultNow().notNull(),
-  notes: text('notes'),
-  ...auditColumns,
-})
+export const subcontractorCoiDocs = pgTable(
+  'subcontractor_coi_docs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
+    subcontractorId: uuid('subcontractor_id').notNull().references(() => subcontractors.id),
+    /** R2 / S3 object URL (or data URL in mock). */
+    fileUrl: text('file_url').notNull(),
+    fileName: text('file_name').notNull(),
+    /** Carrier-stated expiry date. Drives the 30-day warning job. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    uploadedByUserId: uuid('uploaded_by_user_id').references(() => users.id),
+    uploadedAt: timestamp('uploaded_at', { withTimezone: true }).defaultNow().notNull(),
+    notes: text('notes'),
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgSubcontractor: index('subcontractor_coi_docs_org_sub_idx').on(t.organizationId, t.subcontractorId),
+  }),
+)
 
 export type SubcontractorCoiDocRow = typeof subcontractorCoiDocs.$inferSelect
 export type NewSubcontractorCoiDocRow = typeof subcontractorCoiDocs.$inferInsert

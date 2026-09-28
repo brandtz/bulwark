@@ -7,17 +7,15 @@
  *     tampered client cannot lie about totalCents — the row's `totals`
  *     and mirror `total_cents` are always deterministically derived from
  *     `lineItems + markupPercent + taxPercent` server-side.
- *   - `quoteNumber` generated as `Q-YYYY-{seq}`. Sequence is org-scoped
- *     and queried via `COUNT(*) WHERE quote_number LIKE 'Q-YYYY-%'`. A
- *     race between two concurrent creates could theoretically produce
- *     duplicate numbers; we accept that for v1 because (a) volumes are
- *     low, (b) duplicates are visible (unique constraint TODO), and (c)
- *     the alternative — a per-org sequence table — is over-engineering.
+ *   - `quoteNumber` follows the org's format (default `Q-{year}-{seq:04}`)
+ *     and is allocated race-safely inside the create transaction from the
+ *     org_number_counters row, with a per-org UNIQUE backstop (WP-L06 S2,
+ *     server/services/_numbering.ts).
  *   - `markSent` and `markAccepted` are idempotent: re-call returns the
  *     existing row unchanged. `markAccepted` only allows draft→ never-
  *     mind, must be `sent` first per the contract decision.
  */
-import { and, count, desc, eq, like, sql, type SQL } from 'drizzle-orm'
+import { and, eq, sql, type SQL } from 'drizzle-orm'
 import type {
   IQuoteService,
   Quote,
@@ -27,7 +25,8 @@ import type {
   QuoteRejectedReasonCode,
 } from '../../shared/contracts/quote'
 import { computeQuoteTotals } from '../../shared/utils/money'
-import { buildLikePatternForYear, formatSequentialNumber } from '../../shared/utils/numbering'
+import { allocateDocumentNumber, withNumberRetry } from './_numbering'
+import { keysetCursor, pageWindow } from './_pagination'
 import { RealOrgSettingsService } from './org-settings.real'
 import { getDb } from '../db/client'
 import { quotes } from '../db/schema/quotes'
@@ -90,16 +89,18 @@ export class RealQuoteService implements IQuoteService {
     if (input.propertyId) conditions.push(eq(quotes.propertyId, input.propertyId))
     if (input.status) conditions.push(eq(quotes.status, input.status))
     const where = and(...conditions)!
-    const offset = (input.page - 1) * input.pageSize
+    const win = pageWindow(input, quotes.createdAt, quotes.id)
     const [rows, [totalRow]] = await Promise.all([
-      db.select().from(quotes).where(where).orderBy(desc(quotes.createdAt)).limit(input.pageSize).offset(offset),
+      db.select().from(quotes).where(and(where, win.where)).orderBy(...win.orderBy).limit(input.pageSize).offset(win.offset),
       db.select({ count: sql<number>`cast(count(*) as int)` }).from(quotes).where(where),
     ])
+    const mapped = rows.map(rowToContract)
     return {
-      rows: rows.map(rowToContract),
+      rows: mapped,
       total: Number(totalRow?.count ?? 0),
       page: input.page,
       pageSize: input.pageSize,
+      nextCursor: await keysetCursor(db, quotes, quotes.createdAt, quotes.id, rows, input.pageSize),
     }
   }
 
@@ -117,8 +118,9 @@ export class RealQuoteService implements IQuoteService {
   async create(input: QuoteCreateInput): Promise<Quote> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     const totals = computeQuoteTotals(input.lineItems, input.markupPercent, input.taxPercent)
-    const quoteNumber = await this.nextQuoteNumber(input.organizationId)
-    return await withAudit(async ({ tx, audit }) => {
+    const format = await this.quoteNumberFormat(input.organizationId)
+    return await withNumberRetry(() => withAudit(async ({ tx, audit }) => {
+      const quoteNumber = await allocateDocumentNumber(tx, { organizationId: input.organizationId, entity: 'quote', format })
       const [row] = await tx
         .insert(quotes)
         .values({
@@ -155,7 +157,7 @@ export class RealQuoteService implements IQuoteService {
         after: { quoteNumber, totalCents: totals.totalCents, status: 'draft' },
       })
       return rowToContract(row!)
-    })
+    }))
   }
 
   async markSent(id: string, organizationId: string): Promise<Quote> {
@@ -209,9 +211,10 @@ export class RealQuoteService implements IQuoteService {
         ),
       )
     const nextRev = Number(maxRow?.maxRev ?? 1) + 1
-    const quoteNumber = await this.nextQuoteNumber(organizationId)
+    const format = await this.quoteNumberFormat(organizationId)
     const totals = computeQuoteTotals(source.lineItems, source.markupPercent, source.taxPercent)
-    const created = await withAudit(async ({ tx, audit }) => {
+    const created = await withNumberRetry(() => withAudit(async ({ tx, audit }) => {
+      const quoteNumber = await allocateDocumentNumber(tx, { organizationId, entity: 'quote', format })
       // Backfill parent's revisionGroupId if it's still null (first revise).
       if (!source.revisionGroupId) {
         await tx
@@ -255,7 +258,7 @@ export class RealQuoteService implements IQuoteService {
         metadata: { kind: 'revise', parentQuoteId: source.id, revisionNumber: nextRev },
       })
       return rowToContract(row!)
-    })
+    }))
     await emit(quoteRevised, {
       organizationId,
       entityId: created.id,
@@ -465,19 +468,9 @@ export class RealQuoteService implements IQuoteService {
     })
   }
 
-  private async nextQuoteNumber(organizationId: string): Promise<string> {
-    // EH-H / W1-3: format is tenant-configurable via org_settings. Falls back
-    // to the platform default (`Q-{year}-{seq:04}`) when settings absent.
+  /** EH-H / W1-3: tenant-configurable format (platform default when settings absent). */
+  private async quoteNumberFormat(organizationId: string): Promise<string> {
     const settings = await new RealOrgSettingsService(this.tenantResolver).get(organizationId)
-    const format = settings.quoteNumberFormat
-    const year = new Date().getUTCFullYear()
-    const likePattern = buildLikePatternForYear(format, year)
-    const db = getDb()
-    const [row] = await db
-      .select({ n: count() })
-      .from(quotes)
-      .where(and(eq(quotes.organizationId, organizationId), like(quotes.quoteNumber, likePattern)))
-    const seq = Number(row?.n ?? 0) + 1
-    return formatSequentialNumber({ format, year, seq })
+    return settings.quoteNumberFormat
   }
 }

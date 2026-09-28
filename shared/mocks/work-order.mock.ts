@@ -32,6 +32,7 @@ import type {
 import { MockTradeService } from './trade.mock'
 import { FIXTURE_WORK_ORDERS } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
+import { compareNewestFirst, pageRows } from '../utils/pagination'
 
 const rows: WorkOrder[] = [...FIXTURE_WORK_ORDERS]
 const newId = () => crypto.randomUUID()
@@ -73,14 +74,15 @@ export class MockWorkOrderService implements IWorkOrderService {
     if (input.status) {
       scoped = scoped.filter((r) => r.status === input.status)
     }
-    scoped = scoped.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
     const total = scoped.length
-    const start = (input.page - 1) * input.pageSize
+    // WP-L06 S3: same newest-first order, offset cap and keyset cursor as the real service.
+    const paged = pageRows(scoped.slice().sort(compareNewestFirst), input)
     return {
-      rows: scoped.slice(start, start + input.pageSize),
+      rows: paged.rows,
       total,
       page: input.page,
       pageSize: input.pageSize,
+      nextCursor: paged.nextCursor,
     }
   }
 

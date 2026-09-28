@@ -29,30 +29,38 @@
  *     schema. If buildings isn't shipped at the time this row is
  *     written, the inspection still binds at the property level.
  */
-import { pgTable, text, uuid, integer, timestamp } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { pgTable, text, uuid, integer, timestamp, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { properties } from './properties'
 import { inspectionTemplates } from './inspection_templates'
 import { programs } from './programs'
 
-export const inspections = pgTable('inspections', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
-  propertyId: uuid('property_id').notNull().references(() => properties.id),
-  buildingId: uuid('building_id'),
-  templateId: uuid('template_id').notNull().references(() => inspectionTemplates.id),
-  templateVersion: integer('template_version').notNull(),
-  programId: uuid('program_id').references(() => programs.id),
-  inspectorUserId: uuid('inspector_user_id'),
-  startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
-  submittedAt: timestamp('submitted_at', { withTimezone: true }),
-  signedAt: timestamp('signed_at', { withTimezone: true }),
-  signedByName: text('signed_by_name'),
-  signatureUrl: text('signature_url'),
-  status: text('status').notNull().default('draft'),
-  summary: text('summary'),
-  ...auditColumns,
-})
+export const inspections = pgTable(
+  'inspections',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
+    propertyId: uuid('property_id').notNull().references(() => properties.id),
+    buildingId: uuid('building_id'),
+    templateId: uuid('template_id').notNull().references(() => inspectionTemplates.id),
+    templateVersion: integer('template_version').notNull(),
+    programId: uuid('program_id').references(() => programs.id),
+    inspectorUserId: uuid('inspector_user_id'),
+    startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    signedAt: timestamp('signed_at', { withTimezone: true }),
+    signedByName: text('signed_by_name'),
+    signatureUrl: text('signature_url'),
+    status: text('status').notNull().default('draft'),
+    summary: text('summary'),
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S1/S2: hot list queries + per-org number uniqueness.
+    orgPropertyCreated: index('inspections_org_property_created_idx').on(t.organizationId, t.propertyId, t.createdAt.desc()).where(sql`${t.deletedAt} IS NULL`),
+  }),
+)
 
 export type Inspection = typeof inspections.$inferSelect
 export type NewInspection = typeof inspections.$inferInsert

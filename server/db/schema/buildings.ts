@@ -21,33 +21,40 @@
  *     templates) want to filter on; jsonb defeats query plans and the
  *     contract Zod parsing.
  */
-import { pgTable, text, uuid, integer } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, integer, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 
-export const buildings = pgTable('buildings', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
+export const buildings = pgTable(
+  'buildings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
 
-  propertyId: uuid('property_id').notNull(),
+    propertyId: uuid('property_id').notNull(),
 
-  name: text('name').notNull(),
-  // 'house' | 'adu' | 'garage' | 'barn' | 'shop' | 'other'
-  kind: text('kind').notNull().default('house'),
+    name: text('name').notNull(),
+    // 'house' | 'adu' | 'garage' | 'barn' | 'shop' | 'other'
+    kind: text('kind').notNull().default('house'),
 
-  yearBuilt: integer('year_built'),
-  squareFeet: integer('square_feet'),
-  stories: integer('stories'),
+    yearBuilt: integer('year_built'),
+    squareFeet: integer('square_feet'),
+    stories: integer('stories'),
 
-  constructionType: text('construction_type'),
-  roofMaterial: text('roof_material'),
-  sidingMaterial: text('siding_material'),
+    constructionType: text('construction_type'),
+    roofMaterial: text('roof_material'),
+    sidingMaterial: text('siding_material'),
 
-  notes: text('notes'),
+    notes: text('notes'),
 
-  sortOrder: integer('sort_order').notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
 
-  ...auditColumns,
-})
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgProperty: index('buildings_org_property_idx').on(t.organizationId, t.propertyId),
+  }),
+)
 
 export type Building = typeof buildings.$inferSelect
 export type NewBuilding = typeof buildings.$inferInsert

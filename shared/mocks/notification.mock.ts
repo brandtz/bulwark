@@ -19,6 +19,7 @@ import type {
   NotificationListOutput,
 } from '../contracts/notification'
 import { assertSameTenant, type TenantResolver } from './tenant'
+import { compareNewestFirst, pageRows } from '../utils/pagination'
 
 const rows: Notification[] = []
 
@@ -31,7 +32,7 @@ export class MockNotificationService implements INotificationService {
 
   async listForUser(
     userId: string,
-    opts?: { unreadOnly?: boolean; page?: number; pageSize?: number },
+    opts?: { unreadOnly?: boolean; page?: number; pageSize?: number; afterCreatedAt?: string; afterId?: string },
   ): Promise<NotificationListOutput> {
     const orgId = this.orgId()
     if (orgId) assertSameTenant(this.resolver, orgId)
@@ -40,11 +41,10 @@ export class MockNotificationService implements INotificationService {
     let scope = rows.filter((r) => r.userId === userId && (!orgId || r.organizationId === orgId))
     const unreadTotal = scope.filter((r) => r.readAt === null).length
     if (opts?.unreadOnly) scope = scope.filter((r) => r.readAt === null)
-    scope = [...scope].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
     const total = scope.length
-    const start = (page - 1) * pageSize
-    const slice = scope.slice(start, start + pageSize)
-    return { rows: slice, total, unreadTotal, page, pageSize }
+    // WP-L06 S3: same order, offset cap and keyset cursor as the real service.
+    const paged = pageRows([...scope].sort(compareNewestFirst), { page, pageSize, afterCreatedAt: opts?.afterCreatedAt, afterId: opts?.afterId })
+    return { rows: paged.rows, total, unreadTotal, page, pageSize, nextCursor: paged.nextCursor }
   }
 
   async unreadCountForUser(userId: string): Promise<number> {

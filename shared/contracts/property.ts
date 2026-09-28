@@ -136,6 +136,12 @@ export type PropertyDepth = {
 export interface IPropertyService {
   list(input: PropertyListInput): Promise<PropertyListOutput>
   get(id: string, organizationId: string): Promise<Property | null>
+  /**
+   * Batch read (WP-L06 S4): one query for many ids, replacing per-row `get`
+   * calls on list pages. Unknown / other-tenant / deleted ids are omitted.
+   * At most 500 ids.
+   */
+  getMany(ids: string[], organizationId: string): Promise<Property[]>
   create(input: PropertyCreateInput): Promise<Property>
   update(input: PropertyUpdateInput): Promise<Property>
   softDelete(id: string, organizationId: string): Promise<void>

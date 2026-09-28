@@ -10,7 +10,7 @@
  *     accepts an explicit override for partial pay scenarios (per the
  *     contract decision).
  */
-import { and, count, desc, eq, like, sql, type SQL } from 'drizzle-orm'
+import { and, eq, sql, type SQL } from 'drizzle-orm'
 import type {
   IInvoiceService,
   Invoice,
@@ -21,7 +21,7 @@ import type {
 } from '../../shared/contracts/invoice'
 import { INVOICE_TERMS_DAYS } from '../../shared/contracts/invoice'
 import { computeQuoteTotals } from '../../shared/utils/money'
-import { buildLikePatternForYear, formatSequentialNumber } from '../../shared/utils/numbering'
+import { allocateDocumentNumber, withNumberRetry } from './_numbering'
 import { RealOrgSettingsService } from './org-settings.real'
 import { RealInvoicePaymentService } from './invoice-payment.real'
 import { getDb } from '../db/client'
@@ -37,6 +37,7 @@ import {
   invoiceVoided,
 } from '../../shared/events/catalog'
 import type { InvoicePaymentMethod } from '../../shared/contracts/invoice-payment'
+import { keysetCursor, pageWindow } from './_pagination'
 
 function rowToContract(r: DbInvoice): Invoice {
   return {
@@ -84,16 +85,18 @@ export class RealInvoiceService implements IInvoiceService {
     if (input.propertyId) conditions.push(eq(invoices.propertyId, input.propertyId))
     if (input.status) conditions.push(eq(invoices.status, input.status))
     const where = and(...conditions)!
-    const offset = (input.page - 1) * input.pageSize
+    const win = pageWindow(input, invoices.createdAt, invoices.id)
     const [rows, [totalRow]] = await Promise.all([
-      db.select().from(invoices).where(where).orderBy(desc(invoices.createdAt)).limit(input.pageSize).offset(offset),
+      db.select().from(invoices).where(and(where, win.where)).orderBy(...win.orderBy).limit(input.pageSize).offset(win.offset),
       db.select({ count: sql<number>`cast(count(*) as int)` }).from(invoices).where(where),
     ])
+    const mapped = rows.map(rowToContract)
     return {
-      rows: rows.map(rowToContract),
+      rows: mapped,
       total: Number(totalRow?.count ?? 0),
       page: input.page,
       pageSize: input.pageSize,
+      nextCursor: await keysetCursor(db, invoices, invoices.createdAt, invoices.id, rows, input.pageSize),
     }
   }
 
@@ -117,14 +120,15 @@ export class RealInvoiceService implements IInvoiceService {
       input.markupPercent,
       input.taxPercent,
     )
-    const invoiceNumber = await this.nextInvoiceNumber(input.organizationId)
+    const format = await this.invoiceNumberFormat(input.organizationId)
     // W2-3 / EH-G: derive dueDate from terms if caller didn't provide one.
     let dueDate: Date | null = input.dueDate ? new Date(input.dueDate) : null
     if (!dueDate && input.terms && input.terms !== 'custom') {
       const days = INVOICE_TERMS_DAYS[input.terms]
       dueDate = new Date(Date.now() + days * 86_400_000)
     }
-    return await withAudit(async ({ tx, audit }) => {
+    return await withNumberRetry(() => withAudit(async ({ tx, audit }) => {
+      const invoiceNumber = await allocateDocumentNumber(tx, { organizationId: input.organizationId, entity: 'invoice', format })
       const [row] = await tx
         .insert(invoices)
         .values({
@@ -162,7 +166,7 @@ export class RealInvoiceService implements IInvoiceService {
         after: { invoiceNumber, totalCents: totals.totalCents, status: 'draft' },
       })
       return rowToContract(row!)
-    })
+    }))
   }
 
   async markSent(id: string, organizationId: string): Promise<Invoice> {
@@ -431,18 +435,9 @@ export class RealInvoiceService implements IInvoiceService {
     })
   }
 
-  private async nextInvoiceNumber(organizationId: string): Promise<string> {
-    // EH-H / W1-3: tenant-configurable format.
+  /** EH-H / W1-3: tenant-configurable format (platform default when settings absent). */
+  private async invoiceNumberFormat(organizationId: string): Promise<string> {
     const settings = await new RealOrgSettingsService(this.tenantResolver).get(organizationId)
-    const format = settings.invoiceNumberFormat
-    const year = new Date().getUTCFullYear()
-    const likePattern = buildLikePatternForYear(format, year)
-    const db = getDb()
-    const [row] = await db
-      .select({ n: count() })
-      .from(invoices)
-      .where(and(eq(invoices.organizationId, organizationId), like(invoices.invoiceNumber, likePattern)))
-    const seq = Number(row?.n ?? 0) + 1
-    return formatSequentialNumber({ format, year, seq })
+    return settings.invoiceNumberFormat
   }
 }

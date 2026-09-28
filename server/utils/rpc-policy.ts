@@ -58,7 +58,7 @@ export const RPC_POLICY: Record<string, Record<string, RpcRule>> = {
   featureFlag: { listForOrg: member, get: member, list: admin, set: admin },
 
   property: {
-    list: staff, get: staff, getWithDepth: staff,
+    list: staff, get: staff, getMany: staff, getWithDepth: staff,
     create: staffWrite, update: staffWrite, updateStatus: staffWrite, softDelete: admin,
   },
   client: { list: staff, get: staff, create: admin },

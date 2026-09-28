@@ -26,31 +26,38 @@
  *     single delta line ("Add gutter guards: +$1,200"). Storing the
  *     amount inline keeps the math obvious and the read path one row.
  */
-import { pgTable, text, uuid, integer, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, integer, timestamp, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 import { workOrders } from './work_orders'
 import { invoices } from './invoices'
 import { users } from './users'
 
-export const changeOrders = pgTable('change_orders', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ...orgColumn,
-  workOrderId: uuid('work_order_id').references(() => workOrders.id),
-  invoiceId: uuid('invoice_id').references(() => invoices.id),
-  title: text('title').notNull(),
-  description: text('description').notNull(),
-  /** Signed cents — negative = credit. */
-  amountCents: integer('amount_cents').notNull(),
-  /** `proposed | approved | rejected` (Zod-enforced). */
-  status: text('status').notNull().default('proposed'),
-  proposedByUserId: uuid('proposed_by_user_id').references(() => users.id),
-  approvedAt: timestamp('approved_at', { withTimezone: true }),
-  rejectedAt: timestamp('rejected_at', { withTimezone: true }),
-  approvedByName: text('approved_by_name'),
-  signatureUrl: text('signature_url'),
-  rejectedReason: text('rejected_reason'),
-  ...auditColumns,
-})
+export const changeOrders = pgTable(
+  'change_orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...orgColumn,
+    workOrderId: uuid('work_order_id').references(() => workOrders.id),
+    invoiceId: uuid('invoice_id').references(() => invoices.id),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    /** Signed cents — negative = credit. */
+    amountCents: integer('amount_cents').notNull(),
+    /** `proposed | approved | rejected` (Zod-enforced). */
+    status: text('status').notNull().default('proposed'),
+    proposedByUserId: uuid('proposed_by_user_id').references(() => users.id),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+    approvedByName: text('approved_by_name'),
+    signatureUrl: text('signature_url'),
+    rejectedReason: text('rejected_reason'),
+    ...auditColumns,
+  },
+  (t) => ({
+    // WP-L06 S5: org-scoped list / lookup indexes (docs/DATA_LAYER.md).
+    orgWorkOrder: index('change_orders_org_work_order_idx').on(t.organizationId, t.workOrderId),
+  }),
+)
 
 export type ChangeOrderRow = typeof changeOrders.$inferSelect
 export type NewChangeOrderRow = typeof changeOrders.$inferInsert

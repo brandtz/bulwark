@@ -112,6 +112,18 @@ export class RealJobService implements IJobService {
     return row ? rowToContract(row) : null
   }
 
+  /** Batch read (WP-L06 S4) — one query for a set of job ids in one org. */
+  async getMany(ids: string[], organizationId: string): Promise<Map<string, Job>> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const unique = [...new Set(ids)]
+    if (unique.length === 0) return new Map()
+    const rows = await getDb()
+      .select()
+      .from(jobs)
+      .where(and(inArray(jobs.id, unique), eq(jobs.organizationId, organizationId), sql`${jobs.deletedAt} IS NULL`))
+    return new Map(rows.map((r) => [r.id, rowToContract(r)]))
+  }
+
   async listRecentRuns(input: { kinds: JobKind[]; limit?: number }): Promise<Job[]> {
     // Platform-scope read: refuse to serve a tenant-scoped construction so
     // this can never become an accidental cross-tenant list endpoint. The

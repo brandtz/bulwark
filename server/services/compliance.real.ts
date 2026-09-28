@@ -296,8 +296,10 @@ export class RealDeliverableService implements IDeliverableService {
       )
 
     const failedIds: string[] = []
+    // WP-L06 S4: one batched job read instead of one query per stuck doc.
+    const jobsById = await this.jobs.getMany(stuck.flatMap((d) => (d.jobId ? [d.jobId] : [])), input.organizationId)
     for (const doc of stuck) {
-      const job = doc.jobId ? await this.jobs.get(doc.jobId, input.organizationId) : null
+      const job = doc.jobId ? jobsById.get(doc.jobId) ?? null : null
       if (job && (job.status === 'queued' || job.status === 'running')) continue // live — leave it
       if (job && job.status === 'succeeded') {
         await this.syncFromJob(doc.id, input.organizationId)

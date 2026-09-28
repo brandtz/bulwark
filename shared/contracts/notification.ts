@@ -72,8 +72,11 @@ export type NotificationEnqueueInput = z.infer<typeof NotificationEnqueueInputSc
 
 export const NotificationListInputSchema = z.object({
   unreadOnly: z.boolean().optional(),
-  page: z.number().int().positive().default(1),
+  // WP-L06 S3: offset capped at 1000; keyset cursor for deeper pages.
+  page: z.number().int().positive().max(1000).default(1),
   pageSize: z.number().int().positive().max(200).default(50),
+  afterCreatedAt: z.string().datetime({ offset: true }).optional(),
+  afterId: z.string().uuid().optional(),
 })
 export type NotificationListInput = z.infer<typeof NotificationListInputSchema>
 
@@ -83,6 +86,7 @@ export const NotificationListOutputSchema = z.object({
   unreadTotal: z.number().int().nonnegative(),
   page: z.number().int().positive(),
   pageSize: z.number().int().positive(),
+  nextCursor: z.object({ afterCreatedAt: z.string(), afterId: z.string() }).nullable().optional(),
 })
 export type NotificationListOutput = z.infer<typeof NotificationListOutputSchema>
 
@@ -92,7 +96,7 @@ export type NotificationListOutput = z.infer<typeof NotificationListOutputSchema
 export interface INotificationService {
   listForUser(
     userId: string,
-    opts?: { unreadOnly?: boolean; page?: number; pageSize?: number },
+    opts?: { unreadOnly?: boolean; page?: number; pageSize?: number; afterCreatedAt?: string; afterId?: string },
   ): Promise<NotificationListOutput>
   unreadCountForUser(userId: string): Promise<number>
   markRead(id: string): Promise<void>
