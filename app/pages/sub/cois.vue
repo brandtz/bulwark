@@ -51,6 +51,10 @@ async function refresh(): Promise<void> {
 
 await refresh()
 
+// No subcontractor record linked to this login (invite not accepted, or the
+// link was removed): say so instead of a form that silently does nothing.
+const notLinked = computed(() => !subId.value)
+
 function expiryBucket(iso: string): 'expired' | 'expiring' | 'active' {
   const d = new Date(iso).getTime()
   const now = Date.now()
@@ -100,6 +104,9 @@ async function upload(): Promise<void> {
 
     <BulwarkCard padding="md" class="mt-4" data-testid="sub-coi-upload">
       <h2 class="text-body font-semibold">Upload a new COI</h2>
+      <p v-if="notLinked" role="alert" class="mt-3 rounded-input bg-status-warning/10 p-3 text-small" data-testid="sub-coi-unlinked">
+        Your login isn't linked to a subcontractor company yet. Ask the contractor who invited you to resend the invite.
+      </p>
       <form class="mt-3 space-y-3" @submit.prevent="upload">
         <label class="block text-small">File URL
           <input v-model="form.fileUrl" type="url" required class="mt-1 w-full h-input rounded-input border border-border px-2" data-testid="sub-coi-file-url" >
@@ -116,7 +123,7 @@ async function upload(): Promise<void> {
         <button
           type="submit"
           class="min-h-tap rounded-input bg-primary text-white px-4 disabled:opacity-50"
-          :disabled="submitting"
+          :disabled="submitting || notLinked"
           data-testid="sub-coi-submit"
         >Upload</button>
         <div v-if="uploadError" role="alert" class="rounded-input bg-status-error/10 p-3 text-small text-status-error" data-testid="sub-coi-error">

@@ -48,7 +48,7 @@ export function isTerminalJobStatus(s: JobStatus): boolean {
 // ----------------------------------------------------------------------------
 // Kind — additive enum. Extend as new consumers land.
 // ----------------------------------------------------------------------------
-export const JobKindSchema = z.enum(['compliance_doc', 'account_purge', 'coi_expiry_scan'])
+export const JobKindSchema = z.enum(['compliance_doc', 'account_purge', 'coi_expiry_scan', 'asset_scan'])
 export type JobKind = z.infer<typeof JobKindSchema>
 
 /**

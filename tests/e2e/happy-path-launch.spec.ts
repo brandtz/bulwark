@@ -58,6 +58,7 @@ test.describe('Launch happy path (EH-C canary)', () => {
         test.info().project.name !== 'chromium',
         'canary is desktop-chromium-only',
       )
+      test.skip(process.env.BULWARK_BACKEND === 'mock', 'the launch canary exercises the real backend (e2e-real runs it)')
 
       // -----------------------------------------------------------------
       // 1) Create a client.

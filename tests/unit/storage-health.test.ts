@@ -37,6 +37,8 @@ function fakeDriver(overrides: Partial<StorageDriver> = {}): StorageDriver & {
     async getSignedDownloadUrl(_input: SignedDownloadInput): Promise<SignedDownloadResult> {
       throw new Error('not used by probe')
     },
+    async getObject() { return null },
+    async quarantineObject(key: string) { return `quarantine/${key}` },
     async copyObject(fromKey: string, toKey: string) {
       const obj = store.get(fromKey)
       if (obj) store.set(toKey, { ...obj })

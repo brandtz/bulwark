@@ -35,7 +35,7 @@ import { invoices } from '../db/schema/invoices'
 import { assessments } from '../db/schema/assessments'
 import { deliverables } from '../db/schema/deliverables'
 import { getDb } from '../db/client'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { assertSameTenant, SYSTEM_USER_ID, type TenantResolver } from './_tenant'
 // W3-5 / EH-Q (ADR-0034): structured logger fallback for
 // `logSystemError()` when the audit insert itself fails.
 import { log } from '../utils/logger'
@@ -85,7 +85,10 @@ export class RealAuditService implements IAuditService {
         entityType: input.entityType,
         entityId: input.entityId,
         action: input.action,
-        actorUserId: input.actorUserId,
+        // WP-X3: jobs and event subscribers run as the SYSTEM_USER_ID sentinel,
+        // which is not a uuid; ~20 services pass the raw resolver user id here,
+        // so normalize once at the choke point (system action = no human actor).
+        actorUserId: input.actorUserId === SYSTEM_USER_ID ? null : input.actorUserId,
         metadata: input.metadata ?? {},
         before: input.before ?? null,
         after: input.after ?? null,

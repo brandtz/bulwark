@@ -15,6 +15,7 @@
  */
 import { z } from 'zod'
 import { AuditFieldsSchema, UuidSchema } from './_shared'
+import { ScanStatusSchema } from './scan'
 
 export const ATTACHMENT_KIND_LABEL: Record<string, string> = {
   survey: 'Survey',
@@ -32,6 +33,8 @@ export const PropertyAttachmentSchema = z.object({
   name: z.string().min(1),
   url: z.string().min(1),
   uploadedByUserId: UuidSchema.nullable(),
+  /** WP-X3 / ED-00E malware scan state; absent = skipped (mock / pre-scan rows). */
+  scanStatus: ScanStatusSchema.optional(),
 }).merge(AuditFieldsSchema)
 export type PropertyAttachment = z.infer<typeof PropertyAttachmentSchema>
 

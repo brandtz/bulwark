@@ -148,6 +148,10 @@ export const RPC_POLICY: Record<string, Record<string, RpcRule>> = {
   comms: { deliveryHealth: admin },
   // WP-X3 / ED-00C: maps may render on any surface; address lookup is for staff who write.
   geo: { status: member, staticMap: member, autocomplete: staffWrite, geocode: staffWrite, route: staff },
+  // WP-X3 / ED-00E: scanning state + rescan are admin tools.
+  scan: { status: admin, rescan: admin },
+  // WP-X3 / ED-016: self-scoped device management for every role.
+  push: { config: member, subscribe: member, unsubscribe: member, listMine: member, sendTest: member },
   securityPolicy: { get: admin, update: admin, mfaRoster: admin, getMine: member },
 }
 

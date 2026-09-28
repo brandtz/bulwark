@@ -18,6 +18,7 @@ import type { JobKind } from '../../../shared/contracts/job'
 import { complianceDocHandler } from './compliance-doc'
 import { accountPurgeHandler } from './account-purge'
 import { coiExpiryScanHandler } from './coi-expiry-scan'
+import { assetScanHandler } from './asset-scan'
 
 export interface JobEnvelope<TPayload = Record<string, unknown>> {
   jobId: string
@@ -43,4 +44,5 @@ export const HANDLERS: Record<JobKind, JobHandler> = {
   compliance_doc: complianceDocHandler,
   account_purge: accountPurgeHandler,
   coi_expiry_scan: coiExpiryScanHandler,
+  asset_scan: assetScanHandler,
 }

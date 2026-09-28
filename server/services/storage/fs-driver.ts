@@ -11,7 +11,7 @@
  * 404 in production as a second line of defense.
  */
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { copyFile, mkdir, writeFile, readFile, stat, unlink } from 'node:fs/promises'
+import { copyFile, mkdir, writeFile, readFile, rename, stat, unlink } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { MIME_EXTENSION, StorageObjectKeySchema } from '../../../shared/contracts/storage'
 import type {
@@ -129,6 +129,22 @@ export class FsDriver implements StorageDriver {
     const target = safeFullPath(toKey)
     await mkdir(dirname(target), { recursive: true })
     await copyFile(safeFullPath(fromKey), target)
+  }
+
+  async getObject(key: string): Promise<Buffer | null> {
+    try {
+      return await readFile(safeFullPath(key))
+    } catch {
+      return null
+    }
+  }
+
+  async quarantineObject(key: string): Promise<string> {
+    const source = safeFullPath(key)
+    const target = join(BASE, 'quarantine', key)
+    await mkdir(dirname(target), { recursive: true })
+    await rename(source, target)
+    return `quarantine/${key}`
   }
 
   async deleteObject(key: string): Promise<void> {

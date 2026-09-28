@@ -52,6 +52,14 @@ export const JOB_POLICIES: Record<JobKind, JobPolicy> = {
     retryBackoff: true,
     expireInSeconds: 10 * 60,
   },
+  // WP-X3 / ED-00E: a scanner outage should not strand uploads as pending, so
+  // retry longer (5 tries, 2-min exponential backoff).
+  asset_scan: {
+    retryLimit: 5,
+    retryDelay: 120,
+    retryBackoff: true,
+    expireInSeconds: 5 * 60,
+  },
 }
 
 /** Every JobKind, derived from the policy registry (single source of truth). */

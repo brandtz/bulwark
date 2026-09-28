@@ -25,6 +25,8 @@ export const NotificationChannelsSchema = z.object({
   inApp: z.boolean(),
   email: z.boolean(),
   sms: z.boolean(),
+  /** WP-X3 / ED-016: Web Push. Optional so rows written before it parse (absent = off). */
+  push: z.boolean().optional(),
 })
 export type NotificationChannels = z.infer<typeof NotificationChannelsSchema>
 

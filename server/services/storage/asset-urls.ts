@@ -37,3 +37,16 @@ export async function signAssetUrl(value: string | null, filename?: string): Pro
   const signed = await getStorage().getSignedDownloadUrl({ key: value, expiresInSeconds: READ_TTL_SECONDS, downloadFilename: filename })
   return signed.url
 }
+
+/**
+ * WP-X3 / ED-00E: what a viewer may see of a scanned asset. `infected` is
+ * never served; `pending` is served only to the uploader (async-permissive).
+ * Everyone else gets this same-origin placeholder until the scan clears it.
+ */
+export const ASSET_UNAVAILABLE_URL = '/images/asset-unavailable.svg'
+
+export function isWithheld(scanStatus: string | undefined, uploadedByUserId: string | null, viewerUserId: string | null): boolean {
+  if (scanStatus === 'infected') return true
+  if (scanStatus === 'pending') return !viewerUserId || viewerUserId !== uploadedByUserId
+  return false
+}

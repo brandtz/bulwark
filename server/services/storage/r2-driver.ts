@@ -137,6 +137,30 @@ export class R2Driver implements StorageDriver {
     }))
   }
 
+  async getObject(key: string): Promise<Buffer | null> {
+    try {
+      const res = await getR2Client().send(new GetObjectCommand({ Bucket: getR2Bucket(), Key: key }))
+      if (!res.Body) return null
+      return Buffer.from(await res.Body.transformToByteArray())
+    } catch (err) {
+      if ((err as { name?: string }).name === 'NoSuchKey') return null
+      throw err
+    }
+  }
+
+  async quarantineObject(key: string): Promise<string> {
+    const client = getR2Client()
+    const bucket = getR2Bucket()
+    const target = `quarantine/${key}`
+    await client.send(new CopyObjectCommand({
+      Bucket: bucket,
+      Key: target,
+      CopySource: [bucket, ...key.split('/')].map(encodeURIComponent).join('/'),
+    }))
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+    return target
+  }
+
   async deleteObject(key: string): Promise<void> {
     const client = getR2Client()
     await client.send(new DeleteObjectCommand({ Bucket: getR2Bucket(), Key: key }))

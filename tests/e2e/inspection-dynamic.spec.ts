@@ -18,6 +18,7 @@ import { signInAsAdmin, waitForHydration, drawSignature } from './_helpers'
 
 test.describe('inspection template engine — admin happy path', () => {
   test('admin starts inspection, fills fields, signs, sees issues banner', async ({ page }) => {
+    test.skip(process.env.BULWARK_BACKEND === 'mock', 'real-backend inspection flow (e2e-real covers it)')
     await signInAsAdmin(page)
 
     // Jump to the admin property list and open the first property.

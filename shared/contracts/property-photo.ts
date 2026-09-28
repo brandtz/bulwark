@@ -20,6 +20,7 @@
  */
 import { z } from 'zod'
 import { AuditFieldsSchema, UuidSchema } from './_shared'
+import { ScanStatusSchema } from './scan'
 
 export const PropertyPhotoSchema = z.object({
   id: UuidSchema,
@@ -33,6 +34,8 @@ export const PropertyPhotoSchema = z.object({
   takenAt: z.string().datetime().nullable(),
   uploadedByUserId: UuidSchema.nullable(),
   sortOrder: z.number().int(),
+  /** WP-X3 / ED-00E malware scan state; absent = skipped (mock / pre-scan rows). */
+  scanStatus: ScanStatusSchema.optional(),
 }).merge(AuditFieldsSchema)
 export type PropertyPhoto = z.infer<typeof PropertyPhotoSchema>
 

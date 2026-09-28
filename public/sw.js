@@ -93,3 +93,34 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('sync', (_event) => {
   // intentionally empty
 })
+
+// WP-X3 / ED-016: Web Push. Pushes are payload-less by design (nothing
+// sensitive transits the push service), so show a generic prompt and open the
+// signed-in notifications page, which reads the real content.
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    self.registration.showNotification('Bulwark', {
+      body: 'You have a new notification.',
+      icon: '/icons/sprite.svg',
+      tag: 'bulwark-notification',
+      renotify: true,
+      data: { url: '/notifications' },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = new URL((event.notification.data && event.notification.data.url) || '/notifications', self.location.origin).href
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const w of windows) {
+        if (w.url.startsWith(self.location.origin) && 'focus' in w) {
+          w.navigate(target)
+          return w.focus()
+        }
+      }
+      return self.clients.openWindow(target)
+    }),
+  )
+})

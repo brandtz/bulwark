@@ -56,4 +56,12 @@ export interface StorageDriver {
    * valid upload URL (gap 3.1.8 finalize TOCTOU).
    */
   copyObject(fromKey: string, toKey: string): Promise<void>
+  /** Read an object's bytes (WP-X3 scanning); null when it does not exist. */
+  getObject(key: string): Promise<Buffer | null>
+  /**
+   * Move an object out of the servable key space into `quarantine/<key>` (WP-X3,
+   * ED-00E). The quarantined copy is never signed or served (it is not a valid
+   * storage key) but stays available for investigation. Returns its location.
+   */
+  quarantineObject(key: string): Promise<string>
 }

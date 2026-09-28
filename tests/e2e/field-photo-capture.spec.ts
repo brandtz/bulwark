@@ -33,6 +33,7 @@ test.describe('Field photo capture (W3-3)', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
   test('uploads a photo and renders the thumbnail', async ({ page, context }) => {
+    test.skip(process.env.BULWARK_BACKEND === 'mock', 'uploads go through the real storage endpoints')
     test.slow()
 
     // 1. Harvest a WO id as admin.

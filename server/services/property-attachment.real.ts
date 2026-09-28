@@ -20,13 +20,15 @@ import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { dbPropertyAttachmentToContract } from './_row-mappers'
 import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
-import { assertOwnedAssetKey, signAssetUrl } from './storage/asset-urls'
+import { ASSET_UNAVAILABLE_URL, assertOwnedAssetKey, isWithheld, signAssetUrl } from './storage/asset-urls'
+import { enqueueAssetScan, initialScanStatus } from './storage/asset-scan'
 
 // WP-L02: rows store storage keys; callers receive short-lived signed URLs.
-async function signAttachment(a: PropertyAttachment): Promise<PropertyAttachment> {
+async function signAttachment(viewer: string | null, a: PropertyAttachment): Promise<PropertyAttachment> {
+  if (isWithheld(a.scanStatus, a.uploadedByUserId, viewer)) return { ...a, url: ASSET_UNAVAILABLE_URL }
   return { ...a, url: await signAssetUrl(a.url, a.name) }
 }
-const signAttachments = (list: PropertyAttachment[]) => Promise.all(list.map(signAttachment))
+const signAttachments = (viewer: string | null, list: PropertyAttachment[]) => Promise.all(list.map((a) => signAttachment(viewer, a)))
 
 export class RealPropertyAttachmentService implements IPropertyAttachmentService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -48,7 +50,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
         ),
       )
       .orderBy(desc(propertyAttachments.createdAt))
-    return signAttachments(rows.map(dbPropertyAttachmentToContract))
+    return signAttachments(this.actorUserId(), rows.map(dbPropertyAttachmentToContract))
   }
 
   async listForProperty(propertyId: string, organizationId: string): Promise<PropertyAttachment[]> {
@@ -65,7 +67,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
         ),
       )
       .orderBy(desc(propertyAttachments.createdAt))
-    return signAttachments(rows.map(dbPropertyAttachmentToContract))
+    return signAttachments(this.actorUserId(), rows.map(dbPropertyAttachmentToContract))
   }
 
   async get(id: string, organizationId: string): Promise<PropertyAttachment | null> {
@@ -82,7 +84,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
         ),
       )
       .limit(1)
-    return row ? signAttachment(dbPropertyAttachmentToContract(row)) : null
+    return row ? signAttachment(this.actorUserId(), dbPropertyAttachmentToContract(row)) : null
   }
 
   // L01-S3: reject placeholder asset URLs in prod. L02-S2 migrates this to a
@@ -91,7 +93,8 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
     assertSameTenant(this.tenantResolver, input.organizationId)
     assertStorableUrlOrKey(input.url)
     await assertOwnedAssetKey(input.url, input.organizationId, 'property_attachment')
-    return await withAudit(async ({ tx, audit }) => {
+    const scanStatus = initialScanStatus() // WP-X3 / ED-00E
+    const created = await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(propertyAttachments)
         .values({
@@ -101,6 +104,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
           name: input.name,
           url: input.url,
           uploadedByUserId: input.uploadedByUserId ?? this.actorUserId(),
+          scanStatus,
         })
         .returning()
       await audit.record({
@@ -111,8 +115,10 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
         actorUserId: this.actorUserId(),
         after: { name: row!.name, kind: row!.kind, propertyId: row!.propertyId },
       })
-      return signAttachment(dbPropertyAttachmentToContract(row!))
+      return dbPropertyAttachmentToContract(row!)
     })
+    if (scanStatus === 'pending') await enqueueAssetScan({ organizationId: input.organizationId, entity: 'property_attachment', id: created.id })
+    return signAttachment(this.actorUserId(), created)
   }
 
   async softDelete(id: string, organizationId: string): Promise<void> {

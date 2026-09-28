@@ -1199,6 +1199,58 @@
         "org_manager"
       ]
     },
+    "push": {
+      "config": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "listMine": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "sendTest": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "subscribe": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "unsubscribe": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ]
+    },
     "quote": {
       "create": [
         "super_admin",
@@ -1353,6 +1405,18 @@
         "org_manager",
         "field",
         "viewer"
+      ]
+    },
+    "scan": {
+      "rescan": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "status": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
       ]
     },
     "search": {

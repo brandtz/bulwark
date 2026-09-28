@@ -17,6 +17,7 @@ test.describe('field tabs (L09-S1)', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
   test('tabs route to distinct real pages and mark the active one', async ({ page, context }) => {
+    test.skip(process.env.BULWARK_BACKEND === 'mock', 'the job pages read /api/field/* from the real server')
     // Harvest a work order id as admin (seed-agnostic, same as field-photo-capture).
     await signInAsAdmin(page)
     await page.goto('/admin/work-orders')

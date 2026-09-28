@@ -49,6 +49,7 @@ import { renderNotification } from '../../../shared/notifications/templates'
 import { fanoutForRecipient, type FanoutRecipient } from '../../../shared/notifications/dispatch'
 import { sendEmail } from '../_providers/email'
 import { sendSms } from '../_providers/sms'
+import { sendPushToUser } from '../_providers/push'
 // W3-5 / EH-Q (ADR-0034): structured logger + counters.
 import { log } from '../../utils/logger'
 import { incCounter, COUNTERS } from '../../utils/metrics'
@@ -95,7 +96,7 @@ interface ResolvedRecipient {
   userId: string
   email: string
   fullName: string
-  channels: { inApp: boolean; email: boolean; sms: boolean }
+  channels: { inApp: boolean; email: boolean; sms: boolean; push?: boolean }
 }
 
 async function resolveRecipients(
@@ -243,6 +244,12 @@ async function dispatchEvent(eventName: string, payload: unknown): Promise<void>
         },
       },
     })
+    // WP-X3 / ED-016: Web Push is a best-effort 4th channel alongside the
+    // fan-out (payload-less; sendPushToUser never throws).
+    if (r.channels.push) {
+      const push = await sendPushToUser(orgId, r.userId)
+      if (push.failed) log('warn', 'notification_subscriber.push_partial', { organizationId: orgId, eventType: eventName, ...push })
+    }
     for (const channel of result.channels) {
       if ((channel.channel !== 'email' && channel.channel !== 'sms') || channel.outcome !== 'error') continue
       incCounter(COUNTERS.commsDeliveryFailedTotal)

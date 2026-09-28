@@ -48,11 +48,9 @@ export const SUB_PORTAL_FIXTURE = {
   workOrderId: mk('wo-seed-1'),
 } as const
 
-let seeded = false
 
 export async function seedSubPortal(): Promise<void> {
   if (process.env.BULWARK_BACKEND !== 'real') return
-  if (seeded) return
   if (!process.env.DATABASE_URL) {
     throw new Error('BULWARK_BACKEND=real but DATABASE_URL is unset')
   }
@@ -70,9 +68,11 @@ export async function seedSubPortal(): Promise<void> {
         NOW()
       )
       ON CONFLICT (organization_id, subcontractor_id, user_id) DO UPDATE
-        SET accepted_at = EXCLUDED.accepted_at
+        SET accepted_at = EXCLUDED.accepted_at, deleted_at = NULL
     `
-    seeded = true
+    // Re-run on every call and clear deleted_at: an earlier spec in the same
+    // worker may have removed the link (a once-per-process cache made later
+    // sub specs run unlinked — WP-X3 flake fix).
   } finally {
     await sql.end({ timeout: 1 })
   }

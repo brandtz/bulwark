@@ -83,6 +83,8 @@ import { RealCommsService } from '../services/comms/comms.real'
 // WP-L07 S2 — per-organization security policy.
 import { RealSecurityPolicyService } from '../services/security-policy.real'
 import { RealGeoService } from '../services/geo.real'
+import { RealScanService } from '../services/scan.real'
+import { RealPushService } from '../services/push.real'
 import type { TenantContext, TenantResolver } from '../services/_tenant'
 
 export interface SessionUserShape {
@@ -248,5 +250,7 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
     comms: new RealCommsService(tenantResolver),
     securityPolicy: new RealSecurityPolicyService(tenantResolver),
     geo: new RealGeoService(tenantResolver),
+    scan: new RealScanService(tenantResolver),
+    push: new RealPushService(tenantResolver),
   } as BulwarkServices
 }
