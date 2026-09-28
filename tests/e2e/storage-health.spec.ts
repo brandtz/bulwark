@@ -3,11 +3,11 @@
  *
  * Permission gate + shape assertions for GET /api/health/storage:
  * 401 unauthenticated, 403 for a non-admin persona, and for an admin a full
- * payload — fs driver in dev, probe ok, and the legacy-asset census with the
- * avatars row flagged intentional-inline.
+ * payload — fs driver in dev (r2 on a built server), probe ok, and the legacy-asset census with the
+ * avatar column included (no intentional-inline exemptions since L02-S3).
  */
 import { test, expect } from '@playwright/test'
-import { signIn, signOut } from './_helpers'
+import { isBuiltServer, signIn, signOut } from './_helpers'
 
 const BASE = 'http://localhost:3000'
 
@@ -30,13 +30,13 @@ test.describe('storage health (L01-S4)', () => {
     expect(res.ok()).toBeTruthy()
     const body = await res.json()
 
-    // Dev/test always runs the filesystem driver (prod fails closed to r2).
-    expect(body.driver).toBe('fs')
+    // Dev runs the filesystem driver; a production build fails closed to r2 (S3 stand-in in CI).
+    expect(body.driver).toBe(isBuiltServer() ? 'r2' : 'fs')
     expect(body.probe.ok).toBe(true)
     expect(body.probe.latencyMs).toBeGreaterThanOrEqual(0)
 
-    // Census covers every guarded asset column plus the intentional-inline
-    // avatar column; counts are non-negative integers.
+    // Census covers every guarded asset column including the avatar column
+    // (on storage since L02-S3); counts are non-negative integers.
     const keys = body.legacyAssets.map((r: { table: string; column: string }) => `${r.table}.${r.column}`)
     expect(keys).toEqual(
       expect.arrayContaining([
@@ -52,7 +52,7 @@ test.describe('storage health (L01-S4)', () => {
     for (const row of body.legacyAssets) {
       expect(Number.isInteger(row.count)).toBe(true)
       expect(row.count).toBeGreaterThanOrEqual(0)
-      expect(row.intentionalInline).toBe(row.table === 'users')
+      expect(row.intentionalInline).toBe(false)
     }
   })
 })

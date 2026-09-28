@@ -16,11 +16,19 @@
  *     check-ins; everything else is `()`.
  *   - **`BULWARK_CSP_REPORT_ONLY=1`** flips the header name to
  *     `Content-Security-Policy-Report-Only` for staging ratchet.
+ *   - **Object-storage origin in img-src + connect-src** (WP-L02). Browsers
+ *     PUT uploads straight to presigned R2 URLs and render signed GET URLs,
+ *     both cross-origin. Only the configured bucket origin is added (derived
+ *     from R2_ENDPOINT / R2_ACCOUNT_ID / R2_BUCKET), not a wildcard.
  */
 export interface HeaderEnv {
   nodeEnv?: string
   forceHsts?: string
   cspReportOnly?: string
+  r2Endpoint?: string
+  r2AccountId?: string
+  r2Bucket?: string
+  r2ForcePathStyle?: string
 }
 
 export const CSP_DIRECTIVES: ReadonlyArray<[string, string]> = [
@@ -35,8 +43,30 @@ export const CSP_DIRECTIVES: ReadonlyArray<[string, string]> = [
   ['form-action', "'self'"],
 ]
 
-export function buildCspValue(): string {
-  return CSP_DIRECTIVES.map(([k, v]) => `${k} ${v}`).join('; ')
+/**
+ * Origins the browser talks to for object storage: the endpoint itself (path-style
+ * URLs) and, unless path-style is forced, the bucket virtual host the S3 client
+ * presigns against. Empty when storage is not configured (fs driver = same origin).
+ */
+export function storageOrigins(env: HeaderEnv): string[] {
+  const endpoint = env.r2Endpoint || (env.r2AccountId ? `https://${env.r2AccountId}.r2.cloudflarestorage.com` : '')
+  if (!endpoint) return []
+  let url: URL
+  try {
+    url = new URL(endpoint)
+  } catch {
+    return []
+  }
+  const out = [url.origin]
+  if (env.r2Bucket && env.r2ForcePathStyle !== '1') out.push(`${url.protocol}//${env.r2Bucket}.${url.host}`)
+  return out
+}
+
+export function buildCspValue(extraStorageOrigins: readonly string[] = []): string {
+  const extra = extraStorageOrigins.length ? ' ' + extraStorageOrigins.join(' ') : ''
+  return CSP_DIRECTIVES
+    .map(([k, v]) => `${k} ${k === 'img-src' || k === 'connect-src' ? v + extra : v}`)
+    .join('; ')
 }
 
 export interface SecurityHeaderOptions {
@@ -49,6 +79,10 @@ function readHeaderEnv(): HeaderEnv {
     nodeEnv: process.env.NODE_ENV,
     forceHsts: process.env.BULWARK_FORCE_HSTS,
     cspReportOnly: process.env.BULWARK_CSP_REPORT_ONLY,
+    r2Endpoint: process.env.R2_ENDPOINT,
+    r2AccountId: process.env.R2_ACCOUNT_ID,
+    r2Bucket: process.env.R2_BUCKET,
+    r2ForcePathStyle: process.env.R2_FORCE_PATH_STYLE,
   }
 }
 
@@ -69,7 +103,7 @@ export function buildSecurityHeaders(opts: SecurityHeaderOptions): Record<string
       env.cspReportOnly === '1'
         ? 'Content-Security-Policy-Report-Only'
         : 'Content-Security-Policy'
-    out[headerName] = buildCspValue()
+    out[headerName] = buildCspValue(storageOrigins(env))
   }
   return out
 }

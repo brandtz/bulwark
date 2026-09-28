@@ -7,6 +7,7 @@
  * deploy fails closed with a clear message instead of silently degrading.
  */
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -112,6 +113,17 @@ export class R2Driver implements StorageDriver {
     } catch {
       return { exists: false }
     }
+  }
+
+  async copyObject(fromKey: string, toKey: string): Promise<void> {
+    const client = getR2Client()
+    const bucket = getR2Bucket()
+    await client.send(new CopyObjectCommand({
+      Bucket: bucket,
+      Key: toKey,
+      // CopySource is "bucket/key" URL-encoded per path segment.
+      CopySource: [bucket, ...fromKey.split('/')].map(encodeURIComponent).join('/'),
+    }))
   }
 
   async deleteObject(key: string): Promise<void> {

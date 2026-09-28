@@ -8,7 +8,7 @@
 import { createRealServices } from '~~/server/utils/services-factory'
 import { PresignUploadInputSchema } from '~~/shared/contracts/storage'
 import { getStorage } from '~~/server/services/storage'
-import { authorizePresignUpload } from '~~/server/services/storage/presign-policy'
+import { authorizePresignUpload, roleMayUpload } from '~~/server/services/storage/presign-policy'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -31,6 +31,9 @@ export default defineEventHandler(async (event) => {
   const authz = authorizePresignUpload(current.activeOrganizationId, parsed.data)
   if (!authz.ok) {
     throw createError({ statusCode: authz.status, statusMessage: authz.message })
+  }
+  if (!roleMayUpload(current.activeRole, parsed.data.entity)) {
+    throw createError({ statusCode: 403, statusMessage: `Role ${current.activeRole} may not upload ${parsed.data.entity}` })
   }
 
   const signed = await getStorage().getSignedUploadUrl({

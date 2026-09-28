@@ -92,8 +92,9 @@ async function onChangePassword() {
 }
 
 // --- Avatar upload --------------------------------------------------------
-// Client-side resize-to-256-square via <canvas>, encode as JPEG data URL,
-// POST to /api/account/avatar which validates + persists into users.avatar_url.
+// Client-side resize-to-256-square via <canvas>, encode as a JPEG blob,
+// upload through storage (presign → PUT → finalize, WP-L02-S3), then POST the
+// finalized key to /api/account/avatar which verifies + persists it.
 // We then refresh the session so the new URL surfaces in the nav.
 const { refresh: refreshSession } = useSession()
 const avatarFile = ref<HTMLInputElement | null>(null)
@@ -112,7 +113,7 @@ function pickAvatar() {
   avatarFile.value?.click()
 }
 
-async function resizeToDataUrl(file: File, size = 256): Promise<string> {
+async function resizeToJpeg(file: File, size = 256): Promise<Blob> {
   const bitmap = await createImageBitmap(file)
   try {
     const canvas = document.createElement('canvas')
@@ -125,7 +126,9 @@ async function resizeToDataUrl(file: File, size = 256): Promise<string> {
     const sx = (bitmap.width - srcSize) / 2
     const sy = (bitmap.height - srcSize) / 2
     ctx.drawImage(bitmap, sx, sy, srcSize, srcSize, 0, 0, size, size)
-    return canvas.toDataURL('image/jpeg', 0.82)
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode image'))), 'image/jpeg', 0.82)
+    })
   } finally {
     bitmap.close?.()
   }
@@ -143,8 +146,15 @@ async function onAvatarChange(ev: Event) {
   avatarBusy.value = true
   avatarError.value = ''
   try {
-    const dataUrl = await resizeToDataUrl(file)
-    await $fetch('/api/account/avatar', { method: 'POST', body: { dataUrl } })
+    const blob = await resizeToJpeg(file)
+    const asset = await uploadAsset({
+      organizationId: session.value!.activeOrganizationId,
+      entity: 'avatar',
+      entityId: session.value!.userId,
+      file: blob,
+      contentType: 'image/jpeg',
+    })
+    await $fetch('/api/account/avatar', { method: 'POST', body: { key: asset.key } })
     await refreshSession()
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Upload failed'
@@ -158,7 +168,7 @@ async function onAvatarRemove() {
   avatarBusy.value = true
   avatarError.value = ''
   try {
-    await $fetch('/api/account/avatar', { method: 'POST', body: { dataUrl: null } })
+    await $fetch('/api/account/avatar', { method: 'POST', body: { key: null } })
     await refreshSession()
   } catch (err) {
     avatarError.value = err instanceof Error ? err.message : 'Could not remove avatar'

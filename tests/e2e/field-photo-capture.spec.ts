@@ -10,8 +10,8 @@
  * # Decisions (ADR-0007 / ADR-0029)
  *   - We use `setInputFiles` with a 1×1 PNG buffer so the test does
  *     not depend on an actual camera or filesystem path. The component
- *     reads the file as a dataURL and posts it through the RPC
- *     dispatcher; the seed PropertyPhotoService accepts arbitrary URLs.
+ *     uploads it through storage (presign → PUT → finalize, WP-L02) and
+ *     creates the photo row with the finalized key.
  *   - We harvest the work-order's property via the admin list — same
  *     pattern as field-check-in.spec.ts to stay seed-agnostic.
  *
@@ -50,7 +50,9 @@ test.describe('Field photo capture (W3-3)', () => {
     await page.waitForLoadState('networkidle')
     await expect(page.getByTestId('field-photos')).toBeVisible()
 
-    // 3. Upload a PNG.
+    // 3. Upload a PNG. Seeded photos may already fill the grid, so assert growth.
+    const tiles = page.getByTestId('field-photos-grid').locator('li')
+    const before = await tiles.count()
     await page.getByTestId('field-photos-input').setInputFiles({
       name: 'site.png',
       mimeType: 'image/png',
@@ -61,5 +63,7 @@ test.describe('Field photo capture (W3-3)', () => {
     const grid = page.getByTestId('field-photos-grid')
     await expect(grid).toBeVisible({ timeout: 15_000 })
     await expect(grid.locator('img').first()).toBeVisible()
+    await expect(tiles).toHaveCount(before + 1)
+    await expect(page.getByTestId('field-photos-error')).toHaveCount(0)
   })
 })

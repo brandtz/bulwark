@@ -20,6 +20,13 @@ import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { dbPropertyAttachmentToContract } from './_row-mappers'
 import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
+import { assertOwnedAssetKey, signAssetUrl } from './storage/asset-urls'
+
+// WP-L02: rows store storage keys; callers receive short-lived signed URLs.
+async function signAttachment(a: PropertyAttachment): Promise<PropertyAttachment> {
+  return { ...a, url: await signAssetUrl(a.url, a.name) }
+}
+const signAttachments = (list: PropertyAttachment[]) => Promise.all(list.map(signAttachment))
 
 export class RealPropertyAttachmentService implements IPropertyAttachmentService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -41,7 +48,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
         ),
       )
       .orderBy(desc(propertyAttachments.createdAt))
-    return rows.map(dbPropertyAttachmentToContract)
+    return signAttachments(rows.map(dbPropertyAttachmentToContract))
   }
 
   async listForProperty(propertyId: string, organizationId: string): Promise<PropertyAttachment[]> {
@@ -58,7 +65,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
         ),
       )
       .orderBy(desc(propertyAttachments.createdAt))
-    return rows.map(dbPropertyAttachmentToContract)
+    return signAttachments(rows.map(dbPropertyAttachmentToContract))
   }
 
   async get(id: string, organizationId: string): Promise<PropertyAttachment | null> {
@@ -75,7 +82,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
         ),
       )
       .limit(1)
-    return row ? dbPropertyAttachmentToContract(row) : null
+    return row ? signAttachment(dbPropertyAttachmentToContract(row)) : null
   }
 
   // L01-S3: reject placeholder asset URLs in prod. L02-S2 migrates this to a
@@ -83,6 +90,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
   async create(input: PropertyAttachmentCreateInput): Promise<PropertyAttachment> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     assertStorableUrlOrKey(input.url)
+    await assertOwnedAssetKey(input.url, input.organizationId, 'property_attachment')
     return await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(propertyAttachments)
@@ -103,7 +111,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
         actorUserId: this.actorUserId(),
         after: { name: row!.name, kind: row!.kind, propertyId: row!.propertyId },
       })
-      return dbPropertyAttachmentToContract(row!)
+      return signAttachment(dbPropertyAttachmentToContract(row!))
     })
   }
 

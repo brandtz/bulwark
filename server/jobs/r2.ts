@@ -29,6 +29,9 @@ export function getR2Client(): S3Client {
   _client = new S3Client({
     region: 'auto',
     endpoint,
+    // Path-style for S3-compatible stand-ins (MinIO in the e2e-real CI job); R2 itself
+    // works either way.
+    forcePathStyle: process.env.R2_FORCE_PATH_STYLE === '1',
     credentials: {
       accessKeyId: requireEnv('R2_ACCESS_KEY_ID'),
       secretAccessKey: requireEnv('R2_SECRET_ACCESS_KEY'),

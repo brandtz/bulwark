@@ -69,6 +69,7 @@ import { loadPolicyForUser } from './security-policy.real'
 import type { SecurityPolicy } from '../../shared/contracts/security-policy'
 import { sendEmail } from './_providers/email'
 import { buildAuthLink, escapeEmailHtml } from './_providers/auth-links'
+import { signAssetUrl } from './storage/asset-urls'
 
 export interface RealAuthSessionAdapter {
   getActiveUserId(): Promise<string | null> | string | null
@@ -496,7 +497,7 @@ export class RealAuthService implements IAuthService {
       userId: user.id,
       email: user.email,
       fullName: user.fullName,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: await signAssetUrl(user.avatarUrl),
       activeOrganizationId: active.organizationId,
       activeRole: active.role,
       memberships: rows.map((r) => ({

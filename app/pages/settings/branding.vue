@@ -7,10 +7,11 @@
     - The page loads `getBranding(orgId)` once; the mock + real services
       both synthesize sane defaults when the row is missing, so a fresh
       org renders an editable form on first visit.
-    - Logo upload is deferred. The sponsor accepts a manual logo URL for
-      Phase 1; an R2/S3 upload widget is tracked in the W1-2 handoff and
-      Wave 2 backlog. We still render the URL preview so the admin can
-      confirm the image resolves before saving.
+    - Logo upload goes through storage (presign → PUT → finalize, WP-L02-S4)
+      and the finalized key is saved as `logoUrl`. Reads come back as a
+      short-lived signed URL, so the form only sends `logoUrl` when the admin
+      uploaded or removed a logo — echoing the signed URL back would persist
+      an expiring link.
     - Color inputs use the native `<input type="color">` plus a sibling
       text input for hex. Rationale: native pickers give us a real eye-
       dropper on Chromium and respect OS dark mode, while the text
@@ -47,6 +48,32 @@ const serverError = ref('')
 const fieldErrors = reactive<Record<string, string>>({})
 const saving = ref(false)
 
+// undefined = unchanged, null = removed, string = newly uploaded key.
+const pendingLogoKey = ref<string | null | undefined>(undefined)
+const logoInput = ref<HTMLInputElement | null>(null)
+const { upload: uploadLogoFile, uploading: logoUploading, error: logoError } = useUpload()
+
+async function onLogoPicked(ev: Event) {
+  const input = ev.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  const asset = await uploadLogoFile({ organizationId: orgId.value, entity: 'branding_logo', entityId: orgId.value, file })
+  if (!asset) return
+  pendingLogoKey.value = asset.key
+  // Preview the local file until the save returns a signed URL.
+  form.logoUrl = URL.createObjectURL(file)
+}
+
+function onLogoRemove() {
+  pendingLogoKey.value = null
+  form.logoUrl = null
+}
+
+function logoPreviewSrc(url: string | null): string | null {
+  return url?.startsWith('blob:') ? url : safeUrl(url)
+}
+
 // Locale option lists. Conservative — we ship what we know we support.
 const TIMEZONES = [
   'America/Los_Angeles',
@@ -70,7 +97,7 @@ async function onSave() {
   for (const k of Object.keys(fieldErrors)) Reflect.deleteProperty(fieldErrors, k)
   const parse = BrandingUpdateInputSchema.safeParse({
     organizationId: orgId.value,
-    logoUrl: form.logoUrl,
+    ...(pendingLogoKey.value !== undefined ? { logoUrl: pendingLogoKey.value } : {}),
     primaryColor: form.primaryColor,
     accentColor: form.accentColor,
     footerText: form.footerText,
@@ -91,6 +118,7 @@ async function onSave() {
   saving.value = true
   try {
     Object.assign(form, await labelSvc.updateBranding(parse.data))
+    pendingLogoKey.value = undefined
     toastSuccess('Branding saved', 'Your branding will appear on new exports and emails.')
   } catch (err: unknown) {
     serverError.value = err instanceof Error ? err.message : 'Could not save branding.'
@@ -116,23 +144,47 @@ async function onSave() {
       <BulwarkCard padding="md">
         <h2 class="text-h2">Logo</h2>
         <p class="text-small text-text-secondary mt-1">
-          Paste a public image URL. Uploads from disk arrive in Wave 2.
+          PNG, JPEG or WEBP (up to 2 MB). Shown on PDFs, emails and the app shell after you save.
         </p>
-        <BulwarkInput
-          v-model="form.logoUrl"
-          label="Logo URL"
-          placeholder="https://cdn.example.com/logo.png"
-          :error="fieldErrors.logoUrl"
-          class="mt-3"
-        />
-        <div v-if="safeUrl(form.logoUrl)" class="mt-3 p-3 rounded-card bg-surface-muted">
+        <div v-if="logoPreviewSrc(form.logoUrl)" class="mt-3 p-3 rounded-card bg-surface-muted">
           <img
-            :src="safeUrl(form.logoUrl) ?? ''"
+            :src="logoPreviewSrc(form.logoUrl) ?? ''"
             alt="Logo preview"
             class="max-h-16"
             data-testid="branding-logo-preview"
           >
         </div>
+        <div class="mt-3 flex gap-2">
+          <input
+            ref="logoInput"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            class="hidden"
+            data-testid="branding-logo-input"
+            @change="onLogoPicked"
+          >
+          <BulwarkButton
+            type="button"
+            variant="secondary"
+            :loading="logoUploading"
+            data-testid="branding-logo-upload"
+            @click="logoInput?.click()"
+          >
+            {{ form.logoUrl ? 'Replace logo' : 'Upload logo' }}
+          </BulwarkButton>
+          <BulwarkButton
+            v-if="form.logoUrl"
+            type="button"
+            variant="ghost"
+            data-testid="branding-logo-remove"
+            @click="onLogoRemove"
+          >
+            Remove
+          </BulwarkButton>
+        </div>
+        <p v-if="logoError || fieldErrors.logoUrl" class="mt-2 text-small text-status-error" data-testid="branding-logo-error">
+          {{ logoError || fieldErrors.logoUrl }}
+        </p>
       </BulwarkCard>
 
       <BulwarkCard padding="md">

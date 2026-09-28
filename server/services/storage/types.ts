@@ -50,4 +50,10 @@ export interface StorageDriver {
   getSignedDownloadUrl(input: SignedDownloadInput): Promise<SignedDownloadResult>
   headObject(key: string): Promise<HeadResult>
   deleteObject(key: string): Promise<void>
+  /**
+   * Server-side copy (WP-L02). Finalize copies a verified upload to a key that was
+   * never presigned, so the persisted object cannot be overwritten through a still-
+   * valid upload URL (gap 3.1.8 finalize TOCTOU).
+   */
+  copyObject(fromKey: string, toKey: string): Promise<void>
 }

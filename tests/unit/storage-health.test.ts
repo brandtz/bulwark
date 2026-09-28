@@ -37,6 +37,10 @@ function fakeDriver(overrides: Partial<StorageDriver> = {}): StorageDriver & {
     async getSignedDownloadUrl(_input: SignedDownloadInput): Promise<SignedDownloadResult> {
       throw new Error('not used by probe')
     },
+    async copyObject(fromKey: string, toKey: string) {
+      const obj = store.get(fromKey)
+      if (obj) store.set(toKey, { ...obj })
+    },
     async headObject(key: string): Promise<HeadResult> {
       const hit = store.get(key)
       return hit ? { exists: true, size: hit.size, contentType: hit.contentType } : { exists: false }

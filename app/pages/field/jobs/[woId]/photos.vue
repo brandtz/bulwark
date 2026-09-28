@@ -1,35 +1,31 @@
 <!--
   app/pages/field/jobs/[woId]/photos.vue — field photo capture
-  (W3-3 / EH-M / ADR-0029).
+  (W3-3 / EH-M / ADR-0029; storage path WP-L02).
 
   # What this is
     A camera-first photo capture page. The native file input uses
     `accept="image/*"` + `capture="environment"` so iOS/Android open
     the rear camera directly without going through the system picker
-    on capable devices. Files are read into data URLs and POSTed to
-    `propertyPhotoService.create(...)` — the W2-1 stub upload already
-    accepts data URLs as the v1 storage seam, so we reuse it as-is.
+    on capable devices. Each file goes through the storage service
+    (presign → PUT → finalize, `uploadAsset`) and the finalized key is
+    passed to `propertyPhotoService.create(...)`. data: URLs are no
+    longer accepted by the service (WP-L02).
 
   # Decisions (ADR-0008)
-    - **No image resizing in v1.** A modern phone photo (~3 MB after
-      JPEG compression) is small enough that the stub upload handles
-      it; the property-photo service already caps the URL length by
-      virtue of the postgres column type. We document client-side
-      resize as a Phase 2 promotion in ADR-0029.
-    - **Offline path.** When `navigator.onLine === false`, we enqueue
-      the create request via `useOfflineQueue` (namespace
-      `field-photos`). Drain happens when the browser fires `online`.
-      The grid below shows photos that have synced; queued-but-not-
-      synced photos surface a "pending" pill (we just count items in
-      the queue snapshot — no thumb until upload completes).
+    - **No image resizing in v1.** Documented as a Phase 2 promotion in
+      ADR-0029.
+    - **Offline path.** Captured files taken while offline (or whose
+      upload fails) are held in memory and retried when the browser
+      fires `online`. The "queued" pill counts them. They do not survive
+      a reload — a durable (IndexedDB) blob queue belongs to WP-D2.
     - **Caption is post-hoc.** Tap a thumbnail to edit; we don't
       block capture on requiring a caption. Field crews need throughput.
 -->
 <script setup lang="ts">
 import { useLabel } from '~/composables/useLabel'
-import { useOfflineQueue } from '~/composables/useOfflineQueue'
+import { uploadAsset } from '~/composables/useUpload'
 import { safeUrl } from '~/utils/safeUrl'
-import type { PropertyPhoto, PropertyPhotoCreateInput } from '~~/shared/contracts/property-photo'
+import type { PropertyPhoto } from '~~/shared/contracts/property-photo'
 
 definePageMeta({
   layout: 'field',
@@ -55,29 +51,33 @@ const photos = ref<PropertyPhoto[]>([])
 const uploading = ref(false)
 const error = ref<string | null>(null)
 
-const offline = useOfflineQueue({ namespace: 'field-photos' })
-const pendingCount = ref(0)
-
-function refreshPendingCount(): void {
-  pendingCount.value = offline.snapshot().length
-}
+// Captures waiting for connectivity (memory only; see header).
+const pending = shallowRef<Array<{ file: File, takenAt: string }>>([])
+const pendingCount = computed(() => pending.value.length)
 
 async function load(): Promise<void> {
   const wo = await workOrderService.get(woId.value, orgId)
   if (!wo) throw createError({ statusCode: 404 })
   propertyId.value = wo.propertyId
   photos.value = await photoService.listForProperty(wo.propertyId, orgId)
-  refreshPendingCount()
 }
 await load()
 
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(reader.error ?? new Error('read failed'))
-    reader.onload = () => resolve(String(reader.result))
-    reader.readAsDataURL(file)
+async function uploadOne(file: File, takenAt: string): Promise<void> {
+  const asset = await uploadAsset({ organizationId: orgId, entity: 'property_photo', entityId: propertyId.value!, file })
+  const row = await photoService.create({
+    organizationId: orgId,
+    propertyId: propertyId.value!,
+    url: asset.key,
+    caption: null,
+    takenAt,
+    uploadedByUserId: session.value!.userId,
   })
+  photos.value = [row, ...photos.value]
+}
+
+function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && !navigator.onLine
 }
 
 async function onPick(event: Event): Promise<void> {
@@ -85,41 +85,46 @@ async function onPick(event: Event): Promise<void> {
   if (!input.files || input.files.length === 0 || !propertyId.value) return
   uploading.value = true
   error.value = null
+  const deferred: Array<{ file: File, takenAt: string }> = []
   try {
     for (const file of Array.from(input.files)) {
-      const dataUrl = await readAsDataUrl(file)
-      const payload: PropertyPhotoCreateInput = {
-        organizationId: orgId,
-        propertyId: propertyId.value,
-        url: dataUrl,
-        caption: null,
-        takenAt: new Date().toISOString(),
-        uploadedByUserId: session.value!.userId,
-      }
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        offline.enqueue({
-          url: '/api/services/propertyPhoto/create',
-          method: 'POST',
-          body: { args: [payload] },
-        })
+      const takenAt = new Date().toISOString()
+      if (isOffline()) {
+        deferred.push({ file, takenAt })
         continue
       }
       try {
-        const row = await photoService.create(payload)
-        photos.value = [row, ...photos.value]
+        await uploadOne(file, takenAt)
       } catch (err) {
-        offline.enqueue({
-          url: '/api/services/propertyPhoto/create',
-          method: 'POST',
-          body: { args: [payload] },
-        })
+        deferred.push({ file, takenAt })
         error.value = err instanceof Error ? err.message : 'Upload deferred.'
       }
     }
   } finally {
-    refreshPendingCount()
+    if (deferred.length > 0) pending.value = [...pending.value, ...deferred]
     uploading.value = false
     input.value = ''
+  }
+}
+
+async function flushPending(): Promise<void> {
+  if (uploading.value || pending.value.length === 0 || isOffline()) return
+  uploading.value = true
+  const queue = pending.value
+  pending.value = []
+  const failed: typeof queue = []
+  try {
+    for (const item of queue) {
+      try {
+        await uploadOne(item.file, item.takenAt)
+      } catch (err) {
+        failed.push(item)
+        error.value = err instanceof Error ? err.message : 'Upload deferred.'
+      }
+    }
+  } finally {
+    pending.value = [...failed, ...pending.value]
+    uploading.value = false
   }
 }
 
@@ -128,9 +133,11 @@ async function deletePhoto(id: string): Promise<void> {
   photos.value = photos.value.filter((p) => p.id !== id)
 }
 
-onMounted(() => {
-  offline.attachOnlineListener()
-})
+function onOnline(): void {
+  void flushPending()
+}
+onMounted(() => window.addEventListener('online', onOnline))
+onBeforeUnmount(() => window.removeEventListener('online', onOnline))
 </script>
 
 <template>

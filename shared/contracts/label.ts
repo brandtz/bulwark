@@ -194,7 +194,8 @@ export const BrandingSchema = z
   .object({
     id: UuidSchema,
     organizationId: UuidSchema,
-    logoUrl: z.string().url().nullable(),
+    // Signed read URL (key mapped server-side, WP-L02-S4) or a legacy absolute URL.
+    logoUrl: z.string().min(1).nullable(),
     primaryColor: HexColor,
     accentColor: HexColor,
     onAccent: z.string().regex(/^#[0-9a-fA-F]{6}$/u),
@@ -211,7 +212,8 @@ export type Branding = z.infer<typeof BrandingSchema>
 
 export const BrandingUpdateInputSchema = z.object({
   organizationId: UuidSchema,
-  logoUrl: z.string().url().nullable().optional(),
+  // A finalized branding_logo storage key or an absolute https URL.
+  logoUrl: z.string().min(1).max(2048).nullable().optional(),
   primaryColor: HexColor.optional(),
   accentColor: HexColor.optional(),
   footerText: z.string().max(1000).nullable().optional(),

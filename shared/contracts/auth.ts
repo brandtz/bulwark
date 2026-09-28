@@ -18,7 +18,7 @@ export const SessionUserSchema = z.object({
   userId: UuidSchema,
   email: z.string().email(),
   fullName: z.string(),
-  avatarUrl: z.string().url().nullable(),
+  avatarUrl: z.string().min(1).nullable(), // absolute or signed-relative (WP-L02)
   // The active org for this session. UI uses this to drive scope.
   activeOrganizationId: UuidSchema,
   activeRole: RoleSchema,

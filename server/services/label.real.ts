@@ -53,6 +53,7 @@ import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
 import { computeOnAccent } from '../../shared/utils/theme'
+import { assertOwnedAssetKey, signAssetUrl } from './storage/asset-urls'
 
 function normalizedHex(color: string): string {
   const value = color.replace(/^#/, '')
@@ -74,11 +75,11 @@ function rowToContract(r: DbLabelRow): Label {
   }
 }
 
-function brandingRowToContract(r: DbBrandingRow): Branding {
+async function brandingRowToContract(r: DbBrandingRow): Promise<Branding> {
   return {
     id: r.id,
     organizationId: r.organizationId,
-    logoUrl: r.logoUrl,
+    logoUrl: await signAssetUrl(r.logoUrl),
     primaryColor: r.primaryColor,
     accentColor: r.accentColor,
     onAccent: r.onAccent,
@@ -266,14 +267,18 @@ export class RealLabelService implements ILabelService {
       .where(eq(orgBranding.organizationId, organizationId))
       .limit(1)
     if (!row) return syntheticBranding(organizationId)
-    return brandingRowToContract(row)
+    return await brandingRowToContract(row)
   }
 
   async updateBranding(input: BrandingUpdateInput): Promise<Branding> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     // L01-S3: a logo must be a storage key or http(s) URL in prod, never a
-    // data:/local:// placeholder. L02-S4 wires real logo upload.
-    if (input.logoUrl !== undefined && input.logoUrl !== null) assertStorableUrlOrKey(input.logoUrl)
+    // data:/local:// placeholder. L02-S4: an uploaded key must be this org's
+    // finalized branding_logo object.
+    if (input.logoUrl !== undefined && input.logoUrl !== null) {
+      assertStorableUrlOrKey(input.logoUrl)
+      await assertOwnedAssetKey(input.logoUrl, input.organizationId, 'branding_logo')
+    }
     return await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()
@@ -324,7 +329,7 @@ export class RealLabelService implements ILabelService {
         after: { primaryColor: row!.primaryColor, accentColor: row!.accentColor, logoUrl: row!.logoUrl },
       })
 
-      return brandingRowToContract(row!)
+      return await brandingRowToContract(row!)
     })
   }
 }

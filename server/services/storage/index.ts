@@ -20,7 +20,12 @@ import { R2Driver } from './r2-driver'
 export type StorageEnv = Record<string, string | undefined>
 
 /** Decide which driver name to use. Production is always 'r2' (fail closed). */
-export function selectStorageDriverName(env: StorageEnv = process.env): 'r2' | 'fs' {
+// NODE_ENV is read as the literal `process.env.NODE_ENV` (Nitro inlines it at build time); a
+// built server started without NODE_ENV would otherwise see it unset on the env object and
+// silently fall back to the fs driver (WP-L02 finding, same quirk as runtimeGuardEnv).
+export function selectStorageDriverName(
+  env: StorageEnv = { ...process.env, NODE_ENV: process.env.NODE_ENV },
+): 'r2' | 'fs' {
   if (env.NODE_ENV === 'production') return 'r2'
   return env.BULWARK_STORAGE_DRIVER === 'r2' ? 'r2' : 'fs'
 }

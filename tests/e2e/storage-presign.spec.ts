@@ -7,11 +7,15 @@
  */
 import { test, expect } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
-import { signIn, signOut } from './_helpers'
+import { isBuiltServer, signIn, signOut } from './_helpers'
 
 const BASE = 'http://localhost:3000'
 
 test.describe('storage presign', () => {
+  // These specs drive the filesystem dev driver (/api/_dev/uploads). A production build
+  // compiles those routes out while local runs have no R2, so they only run on nuxt dev.
+  test.skip(isBuiltServer(), 'filesystem dev storage routes are not in production builds')
+
   test('rejects an unauthenticated upload presign with 401', async ({ context }) => {
     await signOut(context)
     const res = await context.request.post(`${BASE}/api/storage/presign-upload`, {
@@ -77,7 +81,7 @@ test.describe('storage presign', () => {
       data: bytes,
       headers: { 'content-type': 'image/png' },
     })
-    expect(put.ok()).toBeTruthy()
+    expect(put.ok(), `PUT ${put.status()} ${await put.text()}`).toBeTruthy()
 
     // finalize: server HEADs the object and enforces the real size/content-type
     const fin = await context.request.post(`${BASE}/api/storage/finalize-upload`, {
@@ -111,7 +115,7 @@ test.describe('storage presign', () => {
 
     const big = Buffer.alloc(2 * 1024 * 1024 + 16, 7)
     const put = await context.request.put(`${BASE}${url}`, { data: big, headers: { 'content-type': 'image/png' } })
-    expect(put.ok()).toBeTruthy()
+    expect(put.ok(), `PUT ${put.status()} ${await put.text()}`).toBeTruthy()
 
     const fin = await context.request.post(`${BASE}/api/storage/finalize-upload`, {
       data: { organizationId: org, key },

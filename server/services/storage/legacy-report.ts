@@ -15,9 +15,9 @@
  *   - **Predicate matches the L01-S3 guard exactly** (lower + ltrim before the
  *     scheme match) so the report and the write-guard can never disagree about
  *     what counts as a placeholder (the RFC 2397 case/whitespace lesson).
- *   - **`intentionalInline` flags avatars.** `users.avatar_url` is *meant* to be
- *     an inline data URL (≤48KB) until L02-S3 migrates avatars; the column is
- *     counted for visibility but flagged so nobody treats it as a defect today.
+ *   - **`intentionalInline` is now always false.** Avatars were inline data URLs
+ *     until L02-S3 moved them onto storage keys; legacy inline avatars are real
+ *     backfill work (scripts/storage-backfill.mjs), not an exemption.
  *   - **Soft-delete aware.** Tables with `deleted_at` count live rows only —
  *     migrating tombstones is L02's call, and inflating the census with dead
  *     rows would misdirect it.
@@ -46,8 +46,8 @@ export interface LegacyAssetCount {
   /** Live rows whose value is a data:/local:///blob: placeholder. */
   count: number
   /**
-   * True when the inline representation is intentional today (avatars stay
-   * inline data URLs until L02-S3) — informational, not a defect.
+   * True when the inline representation is intentional (none since L02-S3
+   * moved avatars to storage; kept for report-shape stability).
    */
   intentionalInline: boolean
 }
@@ -56,7 +56,7 @@ export interface LegacyAssetCount {
 const PLACEHOLDER_SCHEMES = ['data:', 'local://', 'blob:'] as const
 
 /** SQL predicate mirroring `assertStorableUrlOrKey`'s normalization. */
-function placeholderPredicate(col: PgColumn): SQL {
+export function placeholderPredicate(col: PgColumn): SQL {
   const normalized = sql`lower(ltrim(${col}))`
   return sql`(${normalized} like ${PLACEHOLDER_SCHEMES[0] + '%'} or ${normalized} like ${
     PLACEHOLDER_SCHEMES[1] + '%'
@@ -131,8 +131,7 @@ export async function countLegacyAssetRows(organizationId: string): Promise<Lega
     })
   }
 
-  // users.avatar_url — global table, scoped via the org's memberships. Counted
-  // for L02-S3 sizing but flagged intentional (excluded from the L01-S3 guard).
+  // users.avatar_url — global table, scoped via the org's memberships.
   const [avatarRow] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(users)
@@ -144,7 +143,7 @@ export async function countLegacyAssetRows(organizationId: string): Promise<Lega
     table: 'users',
     column: 'avatar_url',
     count: avatarRow?.n ?? 0,
-    intentionalInline: true,
+    intentionalInline: false,
   })
 
   return results

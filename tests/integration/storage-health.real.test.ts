@@ -95,10 +95,10 @@ d('countLegacyAssetRows (L01-S4)', () => {
     expect(byKey['users.avatar_url']).toBe(0)
   })
 
-  it('flags avatars as intentional-inline, everything else as real migration debt', async () => {
+  it('reports every column as real migration debt (avatars moved to storage in L02-S3)', async () => {
     const census = await countLegacyAssetRows(orgId)
     for (const row of census) {
-      expect(row.intentionalInline).toBe(row.table === 'users')
+      expect(row.intentionalInline).toBe(false)
     }
   })
 

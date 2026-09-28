@@ -62,7 +62,7 @@ export const UserMemberRowSchema = z
     fullName: z.string(),
     role: RoleSchema,
     status: UserStatusSchema, // one of: active | suspended | deactivated
-    avatarUrl: z.string().url().nullable(),
+    avatarUrl: z.string().min(1).nullable(), // absolute or signed-relative (WP-L02)
   })
   .merge(AuditFieldsSchema)
 export type UserMemberRow = z.infer<typeof UserMemberRowSchema>

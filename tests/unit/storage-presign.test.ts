@@ -11,8 +11,10 @@ import {
   authorizePresignUpload,
   authorizePresignDownload,
   authorizeFinalize,
+  roleMayUpload,
 } from '~~/server/services/storage/presign-policy'
 import { buildStorageKey } from '~~/server/services/storage/keys'
+import { isStorageKey } from '~~/server/services/storage/asset-urls'
 
 const ORG = randomUUID()
 
@@ -111,5 +113,35 @@ describe('authorizeFinalize', () => {
     const r = authorizeFinalize(ORG, { organizationId: ORG, key })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.status).toBe(403)
+  })
+})
+
+describe('roleMayUpload (WP-L02)', () => {
+  it('mirrors the owning service: field may stage photos, not logos', () => {
+    expect(roleMayUpload('field', 'property_photo')).toBe(true)
+    expect(roleMayUpload('field', 'branding_logo')).toBe(false)
+    expect(roleMayUpload('org_admin', 'branding_logo')).toBe(true)
+  })
+
+  it('lets every member upload their own avatar but nothing else for portal roles', () => {
+    for (const role of ['homeowner', 'sub_contractor', 'stakeholder', 'viewer']) {
+      expect(roleMayUpload(role, 'avatar')).toBe(true)
+      expect(roleMayUpload(role, 'property_photo')).toBe(false)
+    }
+  })
+
+  it('denies unknown roles', () => {
+    expect(roleMayUpload('nobody', 'avatar')).toBe(false)
+  })
+})
+
+describe('isStorageKey (WP-L02)', () => {
+  it('accepts minted keys and rejects URLs / placeholders', () => {
+    const key = buildStorageKey({ tenantId: ORG, entity: 'avatar', entityId: randomUUID(), contentType: 'image/png' })
+    expect(isStorageKey(key)).toBe(true)
+    expect(isStorageKey('https://cdn.example.com/a.png')).toBe(false)
+    expect(isStorageKey('data:image/png;base64,AAAA')).toBe(false)
+    expect(isStorageKey(`${ORG}/avatar/../../etc/passwd`)).toBe(false)
+    expect(isStorageKey(null)).toBe(false)
   })
 })

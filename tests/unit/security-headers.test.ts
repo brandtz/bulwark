@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildSecurityHeaders,
   buildCspValue,
+  storageOrigins,
   CSP_DIRECTIVES,
 } from '~~/server/utils/security-headers'
 
@@ -83,5 +84,21 @@ describe('buildSecurityHeaders — CSP gating', () => {
   it('CSP_DIRECTIVES is a stable ordered list', () => {
     expect(CSP_DIRECTIVES.length).toBeGreaterThan(5)
     expect(CSP_DIRECTIVES[0]?.[0]).toBe('default-src')
+  })
+
+  it('adds only the configured storage origin to img-src and connect-src (WP-L02)', () => {
+    const origins = storageOrigins({ r2AccountId: 'acct', r2Bucket: 'bucket' })
+    expect(origins).toEqual(['https://acct.r2.cloudflarestorage.com', 'https://bucket.acct.r2.cloudflarestorage.com'])
+    const h = buildSecurityHeaders({ isHtml: true, env: { r2AccountId: 'acct', r2Bucket: 'bucket' } })
+    const csp = h['Content-Security-Policy']!
+    expect(csp).toContain("connect-src 'self' https://acct.r2.cloudflarestorage.com https://bucket.acct.r2.cloudflarestorage.com;")
+    expect(csp).toContain("img-src 'self' data: blob: https://acct.r2.cloudflarestorage.com https://bucket.acct.r2.cloudflarestorage.com;")
+    expect(csp).toContain("default-src 'self';")
+  })
+
+  it('uses the endpoint origin alone for path-style stand-ins and nothing when unconfigured', () => {
+    expect(storageOrigins({ r2Endpoint: 'http://localhost:9000', r2Bucket: 'b', r2ForcePathStyle: '1' })).toEqual(['http://localhost:9000'])
+    expect(storageOrigins({})).toEqual([])
+    expect(storageOrigins({ r2Endpoint: 'not a url' })).toEqual([])
   })
 })

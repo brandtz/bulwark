@@ -20,6 +20,23 @@ import {
 } from '../../../shared/contracts/storage'
 
 export type PresignDenial = { ok: false; status: 400 | 403; message: string }
+
+/**
+ * Which roles may upload each asset kind (WP-L02). Mirrors the RPC policy of the
+ * owning service's create method, so a role that cannot attach a photo cannot
+ * stage one either. Avatars are personal, so every member may upload their own.
+ */
+const UPLOAD_ROLES: Record<StorageEntityKind, readonly string[]> = {
+  property_photo: ['super_admin', 'org_admin', 'org_manager', 'field'],
+  property_attachment: ['super_admin', 'org_admin', 'org_manager', 'field'],
+  document: ['super_admin', 'org_admin', 'org_manager', 'field'],
+  branding_logo: ['super_admin', 'org_admin', 'org_manager'],
+  avatar: ['super_admin', 'org_admin', 'org_manager', 'field', 'viewer', 'sub_contractor', 'homeowner', 'stakeholder'],
+}
+
+export function roleMayUpload(role: string, entity: StorageEntityKind): boolean {
+  return UPLOAD_ROLES[entity]?.includes(role) ?? false
+}
 export type UploadAuthz = { ok: true; key: string } | PresignDenial
 export type DownloadAuthz = { ok: true } | PresignDenial
 

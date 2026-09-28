@@ -4,14 +4,14 @@
  * # Decisions (ADR-0007 / ADR-0008)
  *   - Single chromium-desktop flow. We exercise the depth happy path:
  *     open a property, add a building → add a section → add a contact
- *     and mark it primary → upload a photo (as data URL). The overview
+ *     and mark it primary → upload a photo (through storage, WP-L02). The overview
  *     tab then reflects the new depth.
  *   - We don't assert the precise tile / chip count because fixtures
  *     ship clean (zero buildings / contacts / photos pre-test) — we
  *     just assert presence after each step.
  */
 import { test, expect } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -23,6 +23,7 @@ test.describe('Property depth happy path (W2-1)', () => {
 
   test('admin can add a building, a section, a primary contact, and a photo', async ({ page }) => {
     await page.goto('/admin/properties')
+    await waitForHydration(page)
     await page.waitForLoadState('networkidle')
     await page.getByTestId('property-card').first().click()
     await expect(page.getByTestId('property-detail')).toBeVisible()
@@ -48,7 +49,8 @@ test.describe('Property depth happy path (W2-1)', () => {
     await page.locator('[data-depth-tab="contacts"]').click()
     await expect(page.getByTestId('property-contacts-page')).toBeVisible()
     await page.getByTestId('contact-add-button').click()
-    await page.getByTestId('contact-name-input').locator('input').fill('Sandra Mitchell')
+    await page.getByTestId('contact-first-name-input').locator('input').fill('Sandra')
+    await page.getByTestId('contact-last-name-input').locator('input').fill('Mitchell')
     await page.getByTestId('contact-is-primary').check()
     await page.getByTestId('contact-submit').click()
     const primaryBadge = page.getByTestId('contact-primary-badge')

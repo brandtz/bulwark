@@ -80,6 +80,7 @@ import { auditLog } from '../db/schema/audit_log'
 import { withAudit } from './_tx'
 import type { TenantResolver } from './_tenant'
 import { assertSelfUser } from './_caller'
+import { signAssetUrl } from './storage/asset-urls'
 
 function sha256Hex(input: string): string {
   return createHash('sha256').update(input).digest('hex')
@@ -231,7 +232,7 @@ export class RealAccountService implements IAccountService {
         userId: userRow.id,
         email: userRow.email,
         fullName: userRow.fullName,
-        avatarUrl: userRow.avatarUrl,
+        avatarUrl: await signAssetUrl(userRow.avatarUrl),
         isActive: userRow.isActive,
         createdAt: userRow.createdAt.toISOString(),
         updatedAt: userRow.updatedAt.toISOString(),

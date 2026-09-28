@@ -24,6 +24,13 @@ import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { dbPropertyPhotoToContract } from './_row-mappers'
 import { assertStorableUrlOrKey } from '../../shared/utils/storage-url'
+import { assertOwnedAssetKey, signAssetUrl } from './storage/asset-urls'
+
+// WP-L02: rows store storage keys; callers receive short-lived signed URLs.
+async function signPhoto(photo: PropertyPhoto): Promise<PropertyPhoto> {
+  return { ...photo, url: await signAssetUrl(photo.url), thumbnailUrl: await signAssetUrl(photo.thumbnailUrl) }
+}
+const signPhotos = (photos: PropertyPhoto[]) => Promise.all(photos.map(signPhoto))
 
 export class RealPropertyPhotoService implements IPropertyPhotoService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -42,7 +49,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
         and(eq(propertyPhotos.organizationId, organizationId), sql`${propertyPhotos.deletedAt} IS NULL`),
       )
       .orderBy(asc(propertyPhotos.sortOrder), asc(propertyPhotos.createdAt))
-    return rows.map(dbPropertyPhotoToContract)
+    return signPhotos(rows.map(dbPropertyPhotoToContract))
   }
 
   async listForProperty(propertyId: string, organizationId: string): Promise<PropertyPhoto[]> {
@@ -59,7 +66,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
         ),
       )
       .orderBy(asc(propertyPhotos.sortOrder), asc(propertyPhotos.createdAt))
-    return rows.map(dbPropertyPhotoToContract)
+    return signPhotos(rows.map(dbPropertyPhotoToContract))
   }
 
   async listForBuilding(buildingId: string, organizationId: string): Promise<PropertyPhoto[]> {
@@ -76,7 +83,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
         ),
       )
       .orderBy(asc(propertyPhotos.sortOrder))
-    return rows.map(dbPropertyPhotoToContract)
+    return signPhotos(rows.map(dbPropertyPhotoToContract))
   }
 
   async listForSection(sectionId: string, organizationId: string): Promise<PropertyPhoto[]> {
@@ -93,7 +100,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
         ),
       )
       .orderBy(asc(propertyPhotos.sortOrder))
-    return rows.map(dbPropertyPhotoToContract)
+    return signPhotos(rows.map(dbPropertyPhotoToContract))
   }
 
   async get(id: string, organizationId: string): Promise<PropertyPhoto | null> {
@@ -110,7 +117,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
         ),
       )
       .limit(1)
-    return row ? dbPropertyPhotoToContract(row) : null
+    return row ? signPhoto(dbPropertyPhotoToContract(row)) : null
   }
 
   // L01-S3: reject placeholder asset URLs in prod. L02-S1 migrates this to a
@@ -119,6 +126,8 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
     assertSameTenant(this.tenantResolver, input.organizationId)
     assertStorableUrlOrKey(input.url)
     assertStorableUrlOrKey(input.thumbnailUrl)
+    await assertOwnedAssetKey(input.url, input.organizationId, 'property_photo')
+    if (input.thumbnailUrl) await assertOwnedAssetKey(input.thumbnailUrl, input.organizationId, 'property_photo')
     return await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(propertyPhotos)
@@ -143,7 +152,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
         actorUserId: this.actorUserId(),
         after: { propertyId: row!.propertyId, caption: row!.caption },
       })
-      return dbPropertyPhotoToContract(row!)
+      return signPhoto(dbPropertyPhotoToContract(row!))
     })
   }
 
@@ -178,7 +187,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
         before: { caption: before.caption },
         after: { caption: after!.caption },
       })
-      return dbPropertyPhotoToContract(after!)
+      return signPhoto(dbPropertyPhotoToContract(after!))
     })
   }
 
@@ -261,7 +270,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
           ),
         )
         .orderBy(asc(propertyPhotos.sortOrder))
-      return reordered.map(dbPropertyPhotoToContract)
+      return signPhotos(reordered.map(dbPropertyPhotoToContract))
     })
   }
 }

@@ -11,7 +11,7 @@
  * 404 in production as a second line of defense.
  */
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { mkdir, writeFile, readFile, stat, unlink } from 'node:fs/promises'
+import { copyFile, mkdir, writeFile, readFile, stat, unlink } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { MIME_EXTENSION, StorageObjectKeySchema } from '../../../shared/contracts/storage'
 import type {
@@ -123,6 +123,12 @@ export class FsDriver implements StorageDriver {
     } catch {
       return { exists: false }
     }
+  }
+
+  async copyObject(fromKey: string, toKey: string): Promise<void> {
+    const target = safeFullPath(toKey)
+    await mkdir(dirname(target), { recursive: true })
+    await copyFile(safeFullPath(fromKey), target)
   }
 
   async deleteObject(key: string): Promise<void> {

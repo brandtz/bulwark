@@ -5,10 +5,9 @@
     - Gallery is a Tailwind grid (`grid grid-cols-2 md:grid-cols-4`)
       because the photo set is bounded (≤ a few dozen per property);
       virtualisation isn't worth the API surface.
-    - Upload uses `FileReader.readAsDataURL` and posts the data URL to
-      the photo service — the real service stores it as-is for now.
-      W3-1 will swap that for a sealed-secret S3/R2 signed-URL flow.
-      The TODO marker lives in the service, not the page.
+    - Upload goes through the storage service (useUpload: presign → PUT →
+      finalize) and the photo service stores the returned key; reads come
+      back as short-lived signed URLs (WP-L02).
     - Filter chips by building / section are derived from the live
       photo list (only chips for buildings/sections that have ≥1 photo)
       to avoid a separate fetch.
@@ -77,7 +76,7 @@ const buildingFilterChips = computed(() => {
   return chips
 })
 
-// ── Upload (data URL, W3-1 will swap to signed URL) ──────────────────
+// ── Upload (WP-L02: presign → PUT → finalize, then persist the key) ─────
 const uploading = ref(false)
 const uploadError = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -89,25 +88,26 @@ async function onFileChange(ev: Event) {
   uploading.value = true
   uploadError.value = null
   try {
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result))
-      reader.onerror = () => reject(new Error('Failed to read file'))
-      reader.readAsDataURL(file)
+    const asset = await uploadAsset({
+      organizationId: orgId.value,
+      entity: 'property_photo',
+      entityId: propertyId.value,
+      file,
     })
     await photoSvc.create({
       organizationId: orgId.value,
       propertyId: propertyId.value,
       buildingId: null,
       sectionId: null,
-      url: dataUrl,
+      url: asset.key,
       thumbnailUrl: null,
       caption: null,
       takenAt: null,
     })
     await refresh()
   } catch (err) {
-    uploadError.value = err instanceof Error ? err.message : 'Upload failed'
+    const e = err as { data?: { statusMessage?: string }, message?: string }
+    uploadError.value = e.data?.statusMessage ?? e.message ?? 'Upload failed'
   } finally {
     uploading.value = false
     if (fileInput.value) fileInput.value.value = ''
@@ -148,7 +148,7 @@ useHead({ title: 'Photos — Bulwark' })
       ]"
     />
 
-    <PropertyPropertyDepthNav :property-id="propertyId" class="mt-4" />
+    <PropertyDepthNav :property-id="propertyId" class="mt-4" />
 
     <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <h1 class="text-h1">{{ t('property.tabs', 'photos', 'Photos') }}</h1>

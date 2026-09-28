@@ -51,6 +51,7 @@ import {
 import { emit } from '../../shared/events/bus'
 import { propertyCreated } from '../../shared/events/catalog'
 import { RealStatusPipelineService } from './status-pipeline.real'
+import { signAssetUrl } from './storage/asset-urls'
 
 export class RealPropertyService implements IPropertyService {
   private readonly statusPipelines: RealStatusPipelineService
@@ -354,7 +355,7 @@ export class RealPropertyService implements IPropertyService {
         sections: (sectionsByBuilding.get(b.id) ?? []).map(dbBuildingSectionToContract),
       })),
       contacts: contactRows.map(dbContactToContract),
-      primaryPhotoUrl: photoRows[0]?.url ?? null,
+      primaryPhotoUrl: await signAssetUrl(photoRows[0]?.url ?? null), // WP-L02: key → signed URL
     }
   }
 }

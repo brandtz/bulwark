@@ -43,6 +43,7 @@ import { emit } from '../../shared/events/bus'
 import { userInvited, type UserInvitedPayload } from '../../shared/events/catalog'
 import { sendEmail } from './_providers/email'
 import { buildAuthLink, escapeEmailHtml } from './_providers/auth-links'
+import { signAssetUrl } from './storage/asset-urls'
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -126,7 +127,7 @@ export class RealUserService implements IUserService {
         fullName: m.fullName,
         role: m.role as Role,
         status,
-        avatarUrl: m.avatarUrl,
+        avatarUrl: await signAssetUrl(m.avatarUrl),
         createdAt: m.createdAt.toISOString(),
         updatedAt: m.updatedAt.toISOString(),
         deletedAt: null,
