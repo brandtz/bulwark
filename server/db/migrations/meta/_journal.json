@@ -148,6 +148,13 @@
       "when": 1790620312761,
       "tag": "0020_x3_scan_push",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790630622910,
+      "tag": "0021_x2_people_permits_sessions",
+      "breakpoints": true
     }
   ]
 }

@@ -23,6 +23,8 @@ export const orgSettings = pgTable(
     defaultInvoiceTermsDays: integer('default_invoice_terms_days').notNull().default(30),
     defaultSlaDaysAssessment: integer('default_sla_days_assessment').notNull().default(7),
     defaultSlaDaysQuote: integer('default_sla_days_quote').notNull().default(3),
+    /** WP-X2 / ED-000: in-app list history window, 30-365 days (export/audit keep everything). */
+    uiHistoryDays: integer('ui_history_days').notNull().default(90),
     ...auditColumns,
   },
   (t) => ({

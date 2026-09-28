@@ -54,6 +54,8 @@ export const quotes = pgTable(
     rejectedReason: text('rejected_reason'),
     rejectedReasonCode: text('rejected_reason_code'),
     customerVisibleNotes: text('customer_visible_notes'),
+    /** WP-X2 / ED-047: tiers the author hid on this quote version. */
+    hiddenTiers: text('hidden_tiers').array().notNull().default(sql`'{}'::text[]`),
     ...auditColumns,
   },
   (t) => ({

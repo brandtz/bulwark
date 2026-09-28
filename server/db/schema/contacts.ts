@@ -18,6 +18,7 @@
  */
 import { pgTable, text, uuid, integer, boolean, index } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
+import { people } from './people'
 
 export const contacts = pgTable(
   'contacts',
@@ -40,6 +41,11 @@ export const contacts = pgTable(
     notes: text('notes'),
 
     isPrimary: boolean('is_primary').notNull().default(false),
+    // WP-X2 / ED-036: contacts become the join to `people`. person_id is backfilled
+    // by 0021 (dedupe by email); name/email/phone stay as a denormalized copy
+    // until every reader moves to the person.
+    personId: uuid('person_id').references(() => people.id),
+    isBilling: boolean('is_billing').notNull().default(false),
 
     sortOrder: integer('sort_order').notNull().default(0),
 

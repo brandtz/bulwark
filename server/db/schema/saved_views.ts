@@ -36,6 +36,8 @@ export const savedViews = pgTable(
     sortBy: text('sort_by'),
     sortDir: text('sort_dir'),
     isDefault: boolean('is_default').notNull().default(false),
+    /** WP-X2 / ED-013: column visibility + order ({ columns: [{ key, visible }] }). */
+    layoutJson: jsonb('layout_json').$type<{ columns: Array<{ key: string, visible: boolean }> }>(),
     ...auditColumns,
   },
   (t) => ({
