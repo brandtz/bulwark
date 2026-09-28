@@ -198,11 +198,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Runner system Python is externally managed (PEP 668), so pip needs its own interpreter.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Start S3 stand-in for R2 (moto)
         run: |
           python -m pip install --quiet "moto[server]==5.2.3"
           nohup python -m moto.server -H 127.0.0.1 -p 9000 > moto.log 2>&1 &
           for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:9000/ && break; sleep 1; done
+          curl -sf -o /dev/null http://127.0.0.1:9000/ || { cat moto.log; exit 1; }
           node -e "const {S3Client,CreateBucketCommand}=require('@aws-sdk/client-s3');new S3Client({region:'auto',endpoint:process.env.R2_ENDPOINT,forcePathStyle:true,credentials:{accessKeyId:process.env.R2_ACCESS_KEY_ID,secretAccessKey:process.env.R2_SECRET_ACCESS_KEY}}).send(new CreateBucketCommand({Bucket:process.env.R2_BUCKET})).then(()=>console.log('bucket ready'))"
 
       - name: Migrate + seed database
