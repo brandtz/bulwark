@@ -25,6 +25,7 @@ export const STAFF: readonly Role[] = [...STAFF_WRITE, 'viewer']
 export const SUB: readonly Role[] = ['sub_contractor']
 export const HOMEOWNER: readonly Role[] = ['homeowner']
 export const MEMBER: readonly Role[] = [...STAFF, ...SUB, ...HOMEOWNER, 'stakeholder']
+export const SUPER: readonly Role[] = ['super_admin']
 
 /** `public`: callable without a session. `system`: never callable over RPC. */
 export type RpcRule = readonly Role[] | 'public' | 'system'
@@ -152,6 +153,27 @@ export const RPC_POLICY: Record<string, Record<string, RpcRule>> = {
   scan: { status: admin, rescan: admin },
   // WP-X3 / ED-016: self-scoped device management for every role.
   push: { config: member, subscribe: member, unsubscribe: member, listMine: member, sendTest: member },
+  // WP-X2 / ED-036: people directory; contacts are the property join.
+  person: {
+    list: staff, get: staff, findByEmail: staff, listProperties: staff,
+    create: staffWrite, update: staffWrite, attachToProperty: staffWrite, softDelete: admin,
+  },
+  // WP-X2 / ED-039: permits are field-editable; the jurisdiction catalog is admin-owned.
+  permit: {
+    list: staff, get: staff, listJurisdictions: staff,
+    create: staffWrite, update: staffWrite, linkWorkOrder: staffWrite, unlinkWorkOrder: staffWrite, softDelete: admin,
+    upsertJurisdiction: admin, deleteJurisdiction: admin,
+  },
+  // WP-X2 / ED-00D: staff sign anything in the org; homeowners only their own
+  // quotes / change orders (enforced in the service by role + property link).
+  signature: {
+    create: [...staffWrite, ...HOMEOWNER], get: [...staff, ...HOMEOWNER],
+    listForEntity: [...staff, ...HOMEOWNER], verify: staff,
+  },
+  // WP-X2 / ED-007: everyone reads + dismisses; only the platform operator writes.
+  announcement: { listActive: member, dismiss: member, list: SUPER, upsert: SUPER, remove: SUPER },
+  // WP-X2 / ED-015: a user's own sign-in sessions (scoped to the caller in the service).
+  session: { listMine: member, revoke: member, revokeOthers: member },
   securityPolicy: { get: admin, update: admin, mfaRoster: admin, getMine: member },
 }
 

@@ -35,6 +35,7 @@ function rowToContract(r: SavedViewRow): SavedView {
     sortBy: r.sortBy,
     sortDir: (r.sortDir as SavedView['sortDir']) ?? null,
     isDefault: r.isDefault,
+    layout: r.layoutJson ?? null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
@@ -98,6 +99,7 @@ export class RealSavedViewService implements ISavedViewService {
           sortBy: input.sortBy ?? null,
           sortDir: input.sortDir ?? null,
           isDefault: input.isDefault ?? false,
+          layoutJson: input.layout ?? null,
         })
         .returning()
       if (row!.isDefault) {
@@ -144,6 +146,7 @@ export class RealSavedViewService implements ISavedViewService {
       if (input.sortBy !== undefined) patch.sortBy = input.sortBy ?? null
       if (input.sortDir !== undefined) patch.sortDir = input.sortDir ?? null
       if (input.isDefault !== undefined) patch.isDefault = input.isDefault
+      if (input.layout !== undefined) patch.layoutJson = input.layout
 
       const [row] = await tx
         .update(savedViews)

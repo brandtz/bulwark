@@ -65,6 +65,8 @@ export const OrgSettingsSchema = z
     defaultInvoiceTermsDays: z.number().int().positive().max(365),
     defaultSlaDaysAssessment: z.number().int().positive().max(365),
     defaultSlaDaysQuote: z.number().int().positive().max(365),
+    /** WP-X2 / ED-000: in-app list history window (days); export + audit keep everything. */
+    uiHistoryDays: z.number().int().min(30).max(365),
   })
   .merge(AuditFieldsSchema)
 export type OrgSettings = z.infer<typeof OrgSettingsSchema>
@@ -80,6 +82,7 @@ export const OrgSettingsUpdateInputSchema = z.object({
   defaultInvoiceTermsDays: z.number().int().positive().max(365).optional(),
   defaultSlaDaysAssessment: z.number().int().positive().max(365).optional(),
   defaultSlaDaysQuote: z.number().int().positive().max(365).optional(),
+  uiHistoryDays: z.number().int().min(30).max(365).optional(),
 })
 export type OrgSettingsUpdateInput = z.infer<typeof OrgSettingsUpdateInputSchema>
 
@@ -93,6 +96,7 @@ export const ORG_SETTINGS_DEFAULTS = {
   defaultInvoiceTermsDays: 30,
   defaultSlaDaysAssessment: 7,
   defaultSlaDaysQuote: 3,
+  uiHistoryDays: 90,
 } as const
 
 // ----------------------------------------------------------------------------

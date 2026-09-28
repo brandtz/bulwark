@@ -15,6 +15,7 @@
  */
 import type { SecurityPolicy } from '../../shared/contracts/security-policy'
 import { isMfaEnrolled, loadSecurityPolicy } from '../services/security-policy.real'
+import { touchSession } from '../services/session.real'
 import { sessionWriteConfig, type SessionUserShape } from './services-factory'
 
 type Event = Parameters<typeof clearUserSession>[0]
@@ -74,6 +75,8 @@ export async function enforceSecurityPolicy(
     if (decision === 'refresh') {
       const next: SessionUserShape = { ...stored, lastSeenAt: Date.now() }
       await setUserSession(event, { user: next }, sessionWriteConfig(next))
+      // ED-015: the sessions list shows last activity; same once-a-minute cadence.
+      if (stored.sessionId) await touchSession(stored.sessionId)
     }
   }
 

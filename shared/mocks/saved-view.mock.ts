@@ -66,6 +66,7 @@ export class MockSavedViewService implements ISavedViewService {
       sortBy: input.sortBy ?? null,
       sortDir: input.sortDir ?? null,
       isDefault: input.isDefault ?? false,
+      layout: input.layout ?? null,
       createdAt: nowIso(),
       updatedAt: nowIso(),
       deletedAt: null,
@@ -85,6 +86,7 @@ export class MockSavedViewService implements ISavedViewService {
     if (input.filters !== undefined) row.filters = input.filters
     if (input.sortBy !== undefined) row.sortBy = input.sortBy ?? null
     if (input.sortDir !== undefined) row.sortDir = input.sortDir ?? null
+    if (input.layout !== undefined) row.layout = input.layout
     if (input.isDefault !== undefined) {
       row.isDefault = input.isDefault
       if (input.isDefault) this.clearSiblingDefaults(row)

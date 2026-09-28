@@ -34,6 +34,7 @@ function rowToContract(r: typeof orgSettings.$inferSelect): OrgSettings {
     defaultInvoiceTermsDays: r.defaultInvoiceTermsDays,
     defaultSlaDaysAssessment: r.defaultSlaDaysAssessment,
     defaultSlaDaysQuote: r.defaultSlaDaysQuote,
+    uiHistoryDays: r.uiHistoryDays,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
@@ -102,6 +103,10 @@ export class RealOrgSettingsService implements IOrgSettingsService {
       if (input.defaultInvoiceTermsDays !== undefined) patch.defaultInvoiceTermsDays = input.defaultInvoiceTermsDays
       if (input.defaultSlaDaysAssessment !== undefined) patch.defaultSlaDaysAssessment = input.defaultSlaDaysAssessment
       if (input.defaultSlaDaysQuote !== undefined) patch.defaultSlaDaysQuote = input.defaultSlaDaysQuote
+      if (input.uiHistoryDays !== undefined) {
+        if (input.uiHistoryDays < 30 || input.uiHistoryDays > 365) throw new Error('Invalid uiHistoryDays: must be 30-365')
+        patch.uiHistoryDays = input.uiHistoryDays
+      }
       const [after] = await tx
         .update(orgSettings)
         .set(patch)

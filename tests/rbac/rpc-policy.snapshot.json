@@ -33,6 +33,37 @@
         "stakeholder"
       ]
     },
+    "announcement": {
+      "dismiss": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "list": [
+        "super_admin"
+      ],
+      "listActive": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "remove": [
+        "super_admin"
+      ],
+      "upsert": [
+        "super_admin"
+      ]
+    },
     "apiKey": {
       "create": [
         "super_admin",
@@ -975,6 +1006,121 @@
         "org_manager"
       ]
     },
+    "permit": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "deleteJurisdiction": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "linkWorkOrder": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listJurisdictions": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "unlinkWorkOrder": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "upsertJurisdiction": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "person": {
+      "attachToProperty": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "findByEmail": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listProperties": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ]
+    },
     "program": {
       "assignToEntity": [
         "super_admin",
@@ -1454,6 +1600,70 @@
         "super_admin",
         "org_admin",
         "org_manager"
+      ]
+    },
+    "session": {
+      "listMine": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "revoke": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "revokeOthers": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ]
+    },
+    "signature": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "homeowner"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "homeowner"
+      ],
+      "listForEntity": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "homeowner"
+      ],
+      "verify": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
       ]
     },
     "standards": {

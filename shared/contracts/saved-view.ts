@@ -34,6 +34,12 @@ export type SavedViewEntityType = z.infer<typeof SavedViewEntityTypeSchema>
 // ----------------------------------------------------------------------------
 // Row.
 // ----------------------------------------------------------------------------
+/** WP-X2 / ED-013: which columns show, in what order. */
+export const SavedViewLayoutSchema = z.object({
+  columns: z.array(z.object({ key: z.string().min(1).max(60), visible: z.boolean() })).max(60),
+})
+export type SavedViewLayout = z.infer<typeof SavedViewLayoutSchema>
+
 export const SavedViewSchema = z
   .object({
     id: UuidSchema,
@@ -46,6 +52,8 @@ export const SavedViewSchema = z
     sortBy: z.string().nullable(),
     sortDir: z.enum(['asc', 'desc']).nullable(),
     isDefault: z.boolean(),
+    /** WP-X2 / ED-013: column visibility + order; null = the table's default layout. */
+    layout: SavedViewLayoutSchema.nullable(),
   })
   .merge(AuditFieldsSchema)
 export type SavedView = z.infer<typeof SavedViewSchema>
@@ -69,6 +77,7 @@ export const SavedViewCreateInputSchema = z.object({
   sortBy: z.string().min(1).max(60).nullable().optional(),
   sortDir: z.enum(['asc', 'desc']).nullable().optional(),
   isDefault: z.boolean().optional(),
+  layout: SavedViewLayoutSchema.nullable().optional(),
 })
 export type SavedViewCreateInput = z.infer<typeof SavedViewCreateInputSchema>
 
@@ -80,6 +89,7 @@ export const SavedViewUpdateInputSchema = z.object({
   sortBy: z.string().min(1).max(60).nullable().optional(),
   sortDir: z.enum(['asc', 'desc']).nullable().optional(),
   isDefault: z.boolean().optional(),
+  layout: SavedViewLayoutSchema.nullable().optional(),
 })
 export type SavedViewUpdateInput = z.infer<typeof SavedViewUpdateInputSchema>
 

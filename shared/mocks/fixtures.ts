@@ -269,8 +269,11 @@ export const FIXTURE_WORK_ORDERS: WorkOrder[] = [
 // Invoices (E8). One per persisted status + one overdue (sent + dueAt past).
 // ----------------------------------------------------------------------------
 const SEED_WO_ID = FIXTURE_WORK_ORDERS[0]!.id
-const PAST_ISO = '2026-04-15T17:00:00.000Z'    // before NOW
-const NEAR_FUTURE_ISO = '2026-05-30T17:00:00.000Z'
+// Relative to now (WP-X2 mock-lane fix): fixed dates aged the `sent` fixture into
+// `overdue` once the calendar passed them (the WP-Q3 real-seed bug, mock side).
+const DAY_MS = 86_400_000
+const PAST_ISO = new Date(Date.now() - 30 * DAY_MS).toISOString() // before NOW
+const NEAR_FUTURE_ISO = new Date(Date.now() + 30 * DAY_MS).toISOString()
 
 export const FIXTURE_INVOICES: Invoice[] = [
   {

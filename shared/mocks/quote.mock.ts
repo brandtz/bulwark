@@ -110,6 +110,7 @@ export class MockQuoteService implements IQuoteService {
       rejectedReason: null,
       rejectedReasonCode: null,
       customerVisibleNotes: input.customerVisibleNotes ?? null,
+      hiddenTiers: input.hiddenTiers ?? [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

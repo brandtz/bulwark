@@ -85,6 +85,11 @@ import { RealSecurityPolicyService } from '../services/security-policy.real'
 import { RealGeoService } from '../services/geo.real'
 import { RealScanService } from '../services/scan.real'
 import { RealPushService } from '../services/push.real'
+import { RealPersonService } from '../services/person.real'
+import { RealPermitService } from '../services/permit.real'
+import { RealSignatureService } from '../services/signature.real'
+import { RealAnnouncementService } from '../services/announcement.real'
+import { createSessionRecord, RealSessionService, revokeSession } from '../services/session.real'
 import type { TenantContext, TenantResolver } from '../services/_tenant'
 
 export interface SessionUserShape {
@@ -94,6 +99,8 @@ export interface SessionUserShape {
   persistentSeconds?: number
   /** WP-L07 S2: epoch ms of the last non-passive API call (idle timeout). */
   lastSeenAt?: number
+  /** WP-X2 / ED-015: user_sessions row id; revoking the row signs this cookie out. */
+  sessionId?: string
 }
 
 // Every write re-seals the cookie; without the original maxAge a later write in the same or a
@@ -114,8 +121,15 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
     return (s.user as SessionUserShape | undefined)?.userId ?? null
   }
 
+  async getSessionId(): Promise<string | null> {
+    const s = await getUserSession(this.event)
+    return (s.user as SessionUserShape | undefined)?.sessionId ?? null
+  }
+
   async setActiveUserId(id: string | null, options?: { maxAgeSeconds?: number }): Promise<void> {
+    const previousSessionId = await this.getSessionId()
     if (id === null) {
+      if (previousSessionId) await revokeSession(previousSessionId, 'user')
       await clearUserSession(this.event)
       // Belt-and-suspenders: clearUserSession sets Set-Cookie to expire the
       // session, but in some response paths the browser keeps the cookie if
@@ -128,8 +142,14 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
     // persistence or idle clock from whoever used this browser before). replace, not set:
     // setUserSession merges with the old cookie's data via defu, which kept the previous
     // session's persistentSeconds/lastSeenAt alive across a new sign-in.
+    if (previousSessionId) await revokeSession(previousSessionId, 'replaced')
+    const sessionId = await createSessionRecord(id, {
+      userAgent: getHeader(this.event, 'user-agent') ?? null,
+      ipAddress: getRequestIP(this.event, { xForwardedFor: true }) ?? null,
+    })
     const user: SessionUserShape = {
       userId: id,
+      sessionId,
       lastSeenAt: Date.now(),
       ...(options?.maxAgeSeconds ? { persistentSeconds: options.maxAgeSeconds } : {}),
     }
@@ -252,5 +272,14 @@ export async function createRealServices(event: Event): Promise<BulwarkServices>
     geo: new RealGeoService(tenantResolver),
     scan: new RealScanService(tenantResolver),
     push: new RealPushService(tenantResolver),
+    person: new RealPersonService(tenantResolver),
+    permit: new RealPermitService(tenantResolver),
+    announcement: new RealAnnouncementService(tenantResolver),
+    session: new RealSessionService(tenantResolver, () => adapter.getSessionId()),
+    // ED-00D: IP + user agent come from the request, never the client payload.
+    signature: new RealSignatureService(tenantResolver, () => ({
+      ipAddress: event ? (getRequestIP(event, { xForwardedFor: true }) ?? null) : null,
+      userAgent: event ? (getHeader(event, 'user-agent') ?? null) : null,
+    })),
   } as BulwarkServices
 }

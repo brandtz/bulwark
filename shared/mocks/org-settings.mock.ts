@@ -57,6 +57,10 @@ export class MockOrgSettingsService implements IOrgSettingsService {
     if (input.defaultInvoiceTermsDays !== undefined) row.defaultInvoiceTermsDays = input.defaultInvoiceTermsDays
     if (input.defaultSlaDaysAssessment !== undefined) row.defaultSlaDaysAssessment = input.defaultSlaDaysAssessment
     if (input.defaultSlaDaysQuote !== undefined) row.defaultSlaDaysQuote = input.defaultSlaDaysQuote
+    if (input.uiHistoryDays !== undefined) {
+      if (input.uiHistoryDays < 30 || input.uiHistoryDays > 365) throw new Error('Invalid uiHistoryDays: must be 30-365')
+      row.uiHistoryDays = input.uiHistoryDays
+    }
     row.updatedAt = nowIso()
     return row
   }

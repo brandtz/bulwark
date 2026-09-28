@@ -87,6 +87,8 @@ export const QuoteLineItemSchema = z.object({
   // Free-form note attached to the assessment field this item resolves
   // (E5-S2). Empty string when the item was added manually.
   sourceField: z.string().max(60).default(''),
+  /** WP-X2 / ED-045: price-book item this line came from (null = free-text line). */
+  catalogItemId: UuidSchema.nullable().optional(),
   // W2-3 / EH-G additions. All optional so legacy line items keep
   // validating without rewrites. Code reads with `?? <default>`.
   /** Per-line discount in basis points (1 bp = 0.01%). Default 0. */
@@ -152,6 +154,8 @@ export const QuoteSchema = z
     rejectedReasonCode: QuoteRejectedReasonCodeSchema.nullable().optional(),
     /** Notes visible on the customer-facing quote PDF. */
     customerVisibleNotes: z.string().max(2000).nullable().optional(),
+    /** WP-X2 / ED-047: tiers hidden on this quote version (remembered across revisions). */
+    hiddenTiers: z.array(QuoteTierSchema).max(4).optional(),
   })
   .merge(AuditFieldsSchema)
 export type Quote = z.infer<typeof QuoteSchema>

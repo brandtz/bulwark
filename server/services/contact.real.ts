@@ -22,6 +22,7 @@ import { contacts } from '../db/schema/contacts'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
 import { dbContactToContract } from './_row-mappers'
+import { ensurePersonForContact } from './person.real'
 
 export class RealContactService implements IContactService {
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -119,12 +120,21 @@ export class RealContactService implements IContactService {
             ),
           )
       }
+      // WP-X2 / ED-036: every contact points at a person (deduped by email).
+      const personId = await ensurePersonForContact(tx, {
+        organizationId: input.organizationId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email,
+        phone: input.phone,
+      })
       const [row] = await tx
         .insert(contacts)
         .values({
           organizationId: input.organizationId,
           propertyId,
           clientId,
+          personId,
           kind: input.kind ?? 'other',
           firstName: input.firstName,
           lastName: input.lastName,

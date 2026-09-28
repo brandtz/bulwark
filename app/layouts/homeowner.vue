@@ -81,6 +81,7 @@ const headerTitle = computed(() => (route.meta.homeownerTitle as string | undefi
       tabindex="-1"
       class="flex-1 pb-bottom-nav focus:outline-none"
     >
+      <AppAnnouncements />
       <slot />
     </main>
 

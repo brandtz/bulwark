@@ -59,6 +59,11 @@ import type { ISecurityPolicyService } from './security-policy'
 import type { IGeoService } from './geo'
 import type { IScanService } from './scan'
 import type { IPushService } from './push'
+import type { IPersonService } from './person'
+import type { IPermitService } from './permit'
+import type { ISignatureService } from './signature'
+import type { IAnnouncementService } from './announcement'
+import type { ISessionService } from './session'
 
 export interface BulwarkServices {
   auth: IAuthService
@@ -125,6 +130,11 @@ export interface BulwarkServices {
   geo: IGeoService
   scan: IScanService
   push: IPushService
+  person: IPersonService
+  permit: IPermitService
+  signature: ISignatureService
+  announcement: IAnnouncementService
+  session: ISessionService
 }
 
 export type ServiceName = keyof BulwarkServices

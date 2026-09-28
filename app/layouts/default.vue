@@ -41,6 +41,7 @@ await ensureLoaded()
         data-print-root
         class="flex-1 pb-bottom-nav md:pb-0 focus:outline-none"
       >
+        <AppAnnouncements />
         <slot />
       </main>
       <!--

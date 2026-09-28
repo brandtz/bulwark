@@ -131,6 +131,8 @@ export function dbContactToContract(r: DbContact): Contact {
     phone: r.phone ?? null,
     notes: r.notes ?? null,
     isPrimary: r.isPrimary,
+    personId: r.personId ?? null,
+    isBilling: r.isBilling,
     sortOrder: r.sortOrder,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),

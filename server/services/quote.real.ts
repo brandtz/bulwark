@@ -70,6 +70,7 @@ function rowToContract(r: DbQuote): Quote {
     rejectedReason: r.rejectedReason,
     rejectedReasonCode: (r.rejectedReasonCode as QuoteRejectedReasonCode | null) ?? null,
     customerVisibleNotes: r.customerVisibleNotes,
+    hiddenTiers: (r.hiddenTiers ?? []) as Quote['hiddenTiers'],
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
@@ -146,6 +147,7 @@ export class RealQuoteService implements IQuoteService {
           revisionNumber: input.revisionNumber ?? 1,
           expiryDate: input.expiryDate ? new Date(input.expiryDate) : null,
           customerVisibleNotes: input.customerVisibleNotes ?? null,
+          hiddenTiers: input.hiddenTiers ?? [],
         })
         .returning()
       await audit.record({
@@ -247,6 +249,7 @@ export class RealQuoteService implements IQuoteService {
           revisionNumber: nextRev,
           expiryDate: source.expiryDate ? new Date(source.expiryDate) : null,
           customerVisibleNotes: source.customerVisibleNotes,
+          hiddenTiers: source.hiddenTiers ?? [],
         })
         .returning()
       await audit.record({

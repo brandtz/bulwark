@@ -71,12 +71,15 @@ import { sendEmail } from './_providers/email'
 import { buildAuthLink, escapeEmailHtml } from './_providers/auth-links'
 import { signAssetUrl } from './storage/asset-urls'
 import { COUNTERS, incCounter } from '../utils/metrics'
+import { revokeUserSessions } from './session.real'
 
 export interface RealAuthSessionAdapter {
   getActiveUserId(): Promise<string | null> | string | null
   setActiveUserId(userId: string | null, options?: { maxAgeSeconds?: number }): Promise<void> | void
   getActiveOrgOverride(): Promise<string | null> | string | null
   setActiveOrgOverride(organizationId: string | null): Promise<void> | void
+  /** WP-X2 / ED-015: the user_sessions row behind the current cookie, when tracked. */
+  getSessionId?(): Promise<string | null> | string | null
 }
 
 /** In-memory adapter used by tests + by `withRealAuth()` helpers. */
@@ -359,6 +362,8 @@ export class RealAuthService implements IAuthService {
       ))
       .returning({ id: users.id })
     if (!updated) throw new Error('Reset link is invalid or expired')
+    // ED-015: a reset means the old password may be known to someone else — end every session.
+    await revokeUserSessions(updated.id, 'password_reset')
     await this.adapter.setActiveUserId(updated.id)
     await this.adapter.setActiveOrgOverride(null)
     const session = await this.buildSessionUser(updated.id)
@@ -388,6 +393,8 @@ export class RealAuthService implements IAuthService {
     if (!ok) throw new Error('Current password is incorrect')
     const newHash = await RealAuthService.hashPassword(input.newPassword)
     await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, row.id))
+    // ED-015: keep this browser signed in, sign out every other session.
+    await revokeUserSessions(row.id, 'password_change', (await this.adapter.getSessionId?.()) ?? null)
   }
 
   // --- invitations --------------------------------------------------------

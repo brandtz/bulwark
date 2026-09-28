@@ -74,6 +74,11 @@ import { MockSecurityPolicyService } from './security-policy.mock'
 import { MockGeoService } from './geo.mock'
 import { MockScanService } from './scan.mock'
 import { MockPushService } from './push.mock'
+import { MockPersonService } from './person.mock'
+import { MockPermitService } from './permit.mock'
+import { MockSignatureService } from './signature.mock'
+import { MockAnnouncementService } from './announcement.mock'
+import { MockSessionService } from './session.mock'
 import type { TenantResolver } from './tenant'
 
 let cachedServices: BulwarkServices | null = null
@@ -228,6 +233,11 @@ export function createMockServices(
       geo: new MockGeoService(resolver),
       scan: new MockScanService(resolver),
       push: new MockPushService(resolver),
+      person: new MockPersonService(resolver, contactMock),
+      permit: new MockPermitService(resolver),
+      signature: new MockSignatureService(resolver),
+      announcement: new MockAnnouncementService(resolver),
+      session: new MockSessionService(resolver),
     }
     // W3-5 / EH-P (ADR-0033): wire search adapters now that all
     // mocks exist. Each adapter calls the corresponding mock's

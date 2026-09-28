@@ -48,6 +48,9 @@ export const ContactSchema = z.object({
   phone: z.string().nullable(),
   notes: z.string().nullable(),
   isPrimary: z.boolean(),
+  /** WP-X2 / ED-036: the person this contact row links to (absent in mock/legacy rows). */
+  personId: UuidSchema.nullable().optional(),
+  isBilling: z.boolean().optional(),
   sortOrder: z.number().int(),
 }).merge(AuditFieldsSchema)
 export type Contact = z.infer<typeof ContactSchema>
