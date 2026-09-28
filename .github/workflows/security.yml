@@ -41,4 +41,8 @@ jobs:
         run: node scripts/security/audit-gate.mjs
 
       - name: RPC role policy + tenant firewall coverage
-        run: pnpm exec vitest run tests/unit/rpc-policy.test.ts tests/integration/tenant-firewall-coverage.test.ts tests/unit/audit-gate.test.ts
+        run: pnpm exec vitest run tests/unit/rpc-policy.test.ts tests/unit/rpc-policy-snapshot.test.ts tests/integration/tenant-firewall-coverage.test.ts tests/unit/audit-gate.test.ts
+
+      # WP-Q2: a changed role gate must come with a deliberately regenerated snapshot.
+      - name: RPC policy snapshot is current
+        run: node scripts/security/rpc-policy-snapshot.mjs --check

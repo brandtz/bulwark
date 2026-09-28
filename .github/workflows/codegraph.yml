@@ -31,6 +31,10 @@ jobs:
           else
             node scripts/codegraph/check.mjs --catalog-only
           fi
+      # WP-Q2: every received SPEC action has a normalized permission, and the
+      # generated persona x action matrix is current.
+      - name: Persona x action matrix
+        run: node scripts/codegraph/export-matrix.mjs --check
       - name: Screen readiness (report only)
         run: node scripts/codegraph/screen-audit.mjs || true
       - uses: actions/upload-artifact@v4

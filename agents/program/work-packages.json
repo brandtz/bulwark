@@ -240,17 +240,17 @@
     {
       "id": "WP-Q2",
       "title": "Persona × route × action matrix and adversarial test standards",
-      "lane": "QA", "phase": "0-foundation", "status": "ready", "size": "M",
+      "lane": "QA", "phase": "0-foundation", "status": "review", "size": "M", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
       "goal": "Expand persona-matrix.spec.ts from routes to actions: for every write action in received SPECs (Actions table → Permission column), assert the permitted role can and every other role cannot (UI absent AND API 403).",
       "scope": ["Generate matrix data from codegraph (design actions + roles) into tests/e2e/_matrix.generated.json via scripts/codegraph/export-matrix.mjs", "API-level negative tests hitting /api/services/<svc>/<method> as wrong role and wrong tenant", "Mutation-ish guard: a test that flips one permission in the mock and asserts the matrix catches it (proves tests aren't tautological)"],
       "outOfScope": [],
       "designs": [],
-      "files": ["tests/e2e/persona-matrix.spec.ts", "tests/e2e/_matrix.generated.json", "scripts/codegraph/export-matrix.mjs", "tests/integration/tenant-firewall-matrix.test.ts"],
+      "files": ["tests/e2e/persona-matrix.spec.ts", "tests/e2e/_matrix.generated.json", "scripts/codegraph/export-matrix.mjs", "tests/integration/tenant-firewall-matrix.test.ts", "scripts/security/rpc-policy-snapshot.mjs", "tests/rbac/**", "tests/unit/rpc-policy-snapshot.test.ts", "tests/e2e/rbac-matrix.spec.ts", ".github/workflows/codegraph.yml", ".github/workflows/security.yml"],
       "acceptance": ["Matrix covers 100% of actions in received SPECs (codegraph check)", "Deliberately weakening a role gate in a branch makes ≥1 matrix test fail (documented in test file)"],
       "tests": ["as scope"],
       "dependsOn": ["WP-Q1"],
       "decisions": [],
-      "agentNotes": ""
+      "agentNotes": "2026-09-28 (claude-code). Design matrix: export-matrix.mjs parses the Actions table of all 175 received SPECs, 1,075 actions (946 role- or capability-gated), and normalizes the Permission column (manager+, field+, client->homeowner, owner->org_admin with a note, capabilities, pre-auth conditions) into tests/e2e/_matrix.generated.json. --check (CI codegraph job) fails on an unrecognized permission word or a stale file, so 100% of actions stay in the matrix. API matrix: tests/rbac/rpc-policy.snapshot.json is a committed, reviewed snapshot of the 267-method RPC policy. tests/e2e/rbac-matrix.spec.ts calls every method as each of the 8 personas plus anonymous and requires 401/403 for every pair the snapshot denies (denials fire before service code, so no side effects), plus 11 wrong-tenant calls into the other demo org (403). Not tautological: expectations come from the snapshot, not rpc-policy.ts. tests/unit/rpc-policy-snapshot.test.ts fails on any policy drift, and its mutation test adds viewer to user.invite and shows both the diff and the HTTP matrix catch it (documented in the file). UI absence per action belongs to each SCR screen-contract spec, which reads its rows from the generated matrix."
     },
     {
       "id": "WP-Q3",

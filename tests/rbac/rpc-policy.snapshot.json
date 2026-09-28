@@ -1,0 +1,1679 @@
+{
+  "roles": [
+    "super_admin",
+    "org_admin",
+    "org_manager",
+    "field",
+    "viewer",
+    "sub_contractor",
+    "homeowner",
+    "stakeholder"
+  ],
+  "policy": {
+    "account": {
+      "exportPersonalData": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "purgeExpiredDeletions": "system",
+      "requestDeletion": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ]
+    },
+    "apiKey": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "revoke": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "assessment": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "getLatestForProperty": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ]
+    },
+    "audit": {
+      "exportCsv": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "filter": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "logSystemError": "system",
+      "record": "system",
+      "timelineForProperty": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ]
+    },
+    "auth": {
+      "acceptInvite": "public",
+      "changePassword": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "currentUser": "public",
+      "getAttempts": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "getLockoutState": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "login": "public",
+      "logout": "public",
+      "previewInvite": "public",
+      "requestPasswordReset": "public",
+      "resetPassword": "public",
+      "switchActiveOrg": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "verifyMfa": "public"
+    },
+    "building": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "createSection": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listForProperty": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listSections": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "reorderSections": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "softDeleteSection": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "updateSection": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ]
+    },
+    "changeOrder": {
+      "approve": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "propose": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "reject": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "client": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ]
+    },
+    "comms": {
+      "deliveryHealth": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "complianceDoc": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "reconcileGenerating": "system",
+      "reenqueue": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "syncFromJob": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "contact": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listForClient": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listForProperty": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "setPrimary": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ]
+    },
+    "deliverable": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "reconcileGenerating": "system",
+      "reenqueue": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "syncFromJob": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "featureFlag": {
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "listForOrg": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "set": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "homeowner": {
+      "getMyInvoice": [
+        "homeowner"
+      ],
+      "getMyQuote": [
+        "homeowner"
+      ],
+      "invite": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "listForProperty": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "listForUser": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "listMyInvoices": [
+        "homeowner"
+      ],
+      "listMyProperties": [
+        "homeowner"
+      ],
+      "listMyQuotes": [
+        "homeowner"
+      ],
+      "remove": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "inspection": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "evaluate": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "getWithResponses": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "saveResponses": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "sign": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "submit": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ]
+    },
+    "inspectionTemplate": {
+      "activate": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "addField": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "addSection": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "bootstrap": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "deleteField": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "deleteSection": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "getWithSections": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "updateField": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "invoice": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "markPaid": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "markSent": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "recordPayment": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "voidInvoice": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "invoicePayment": {
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listForInvoice": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "recordPayment": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "voidPayment": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "job": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listRecentRuns": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "label": {
+      "bulkUpsert": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "delete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "getBranding": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "getMap": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "updateBranding": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "upsert": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "mfa": {
+      "confirmTotp": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "consumeBackupCode": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "disable": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "generateBackupCodes": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "getStatus": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "setupTotp": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "verifyTotp": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ]
+    },
+    "notification": {
+      "enqueue": "system",
+      "listForUser": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "markAllRead": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "markRead": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "unreadCountForUser": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ]
+    },
+    "notificationSubscription": {
+      "bulkUpsert": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "listForUser": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "resetToDefaults": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "upsert": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ]
+    },
+    "orgSettings": {
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "getOrganizationProfile": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "updateOrganizationProfile": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "permission": {
+      "bulkUpsert": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "getEffectivePermissions": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "listForOrg": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "resetToDefaults": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "upsert": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "program": {
+      "assignToEntity": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listEntitiesForProgram": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listMembershipsFor": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "unassignFromEntity": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "property": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "getMany": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "getWithDepth": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "updateStatus": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ]
+    },
+    "propertyAttachment": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listForProperty": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "propertyPhoto": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listForBuilding": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listForProperty": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listForSection": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "reorder": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ]
+    },
+    "providerConfig": {
+      "activate": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "upsert": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "quote": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "expire": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "expireBatch": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "markAccepted": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "markSent": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "reject": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "respondToQuote": [
+        "sub_contractor"
+      ],
+      "revise": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "reporting": {
+      "arAging": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "dashboardKpis": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "inspectionPassRate": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "quotesByStatus": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "revenueTrend": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "subcontractorPerformance": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "topProperties": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "wosByPriority": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ]
+    },
+    "savedView": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "setDefault": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ]
+    },
+    "search": {
+      "index": "system",
+      "search": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ]
+    },
+    "securityPolicy": {
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "getMine": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "mfaRoster": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "standards": {
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "save": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "statusPipeline": {
+      "bootstrap": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "canTransition": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "getActive": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "reconcileWithDefaults": "system",
+      "save": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "subcontractor": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "inviteUser": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listCois": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "sub_contractor"
+      ],
+      "listMyAssignments": [
+        "sub_contractor"
+      ],
+      "listMyQuotesRequested": [
+        "sub_contractor"
+      ],
+      "listUsers": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "sub_contractor"
+      ],
+      "removeUser": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "resolveSubForUser": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "sub_contractor"
+      ],
+      "scanCoiExpiry": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "uploadCoi": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "sub_contractor"
+      ]
+    },
+    "themePreferences": {
+      "getCurrent": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ],
+      "updateCurrent": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer",
+        "sub_contractor",
+        "homeowner",
+        "stakeholder"
+      ]
+    },
+    "trade": {
+      "assertActiveSlugs": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "bootstrap": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "user": {
+      "deactivate": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "invite": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "reactivate": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "resendInvite": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "revokeInvite": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "setRole": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "suspend": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "transferOwnership": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "webhook": {
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "deliveries": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "softDelete": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "test": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "update": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ]
+    },
+    "workOrder": {
+      "assignTrade": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "completeSlot": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "costRollup": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "create": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "get": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "schedule": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "startSlot": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ],
+      "updateTradeStatus": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field"
+      ]
+    }
+  }
+}
