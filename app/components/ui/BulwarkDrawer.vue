@@ -32,6 +32,11 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{ 'update:modelValue': [v: boolean] }>()
 
+// WP-L08 / L09-S3: initial focus, Tab trap, focus restore; labelled by the title.
+const titleId = useId()
+const panel = ref<HTMLElement | null>(null)
+useFocusTrap(() => props.modelValue, panel)
+
 function close() {
   if (!props.dismissible) return
   emit('update:modelValue', false)
@@ -92,17 +97,19 @@ const enterFrom = computed(() => props.side === 'right' ? 'translate-x-full' : '
           enter-to-class="translate-x-0 translate-y-0"
         >
           <aside
-            class="fixed bg-surface shadow-xl flex flex-col"
+            ref="panel"
+            class="fixed bg-surface shadow-xl flex flex-col focus:outline-none"
             :class="panelClass"
             v-bind="$attrs"
             role="dialog"
             aria-modal="true"
+            :aria-labelledby="title ? titleId : undefined"
           >
             <header
               v-if="title || dismissible"
               class="flex items-center justify-between gap-3 px-5 py-4 border-b border-border shrink-0"
             >
-              <h2 v-if="title" class="text-h2 text-text-primary">{{ title }}</h2>
+              <h2 v-if="title" :id="titleId" class="text-h2 text-text-primary">{{ title }}</h2>
               <span v-else />
               <button
                 v-if="dismissible"
@@ -112,7 +119,7 @@ const enterFrom = computed(() => props.side === 'right' ? 'translate-x-full' : '
                 @click="close"
               >×</button>
             </header>
-            <div class="flex-1 overflow-y-auto px-5 py-4">
+            <div class="flex-1 overflow-y-auto px-5 py-4" data-dialog-body>
               <slot />
             </div>
             <footer

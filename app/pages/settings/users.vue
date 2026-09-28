@@ -64,9 +64,14 @@ const ROLE_CHOICES: Role[] = [
   'viewer',
 ]
 
+// WP-L08 / L09-S4: a failed invite keeps the modal open with the error and a retry.
+const inviteError = ref('')
+watch(showInviteModal, (open) => { if (open) inviteError.value = '' })
+
 async function onInvite() {
   if (!inviteEmail.value.trim()) return
   inviting.value = true
+  inviteError.value = ''
   try {
     const result = await userService.invite({
       organizationId: orgId.value,
@@ -80,6 +85,7 @@ async function onInvite() {
     inviteRole.value = 'field'
     await load()
   } catch (err) {
+    inviteError.value = (err as Error).message
     toastError('Could not invite', (err as Error).message)
   } finally {
     inviting.value = false
@@ -289,13 +295,11 @@ function statusPill(status: UserAdminRow['status']): { cls: string; text: string
       </ul>
     </BulwarkCard>
 
-    <div
-      v-if="showInviteModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    <BulwarkModal
+      v-model="showInviteModal"
+      title="Invite teammate"
       data-testid="invite-modal"
     >
-      <BulwarkCard padding="md" class="w-full max-w-md">
-        <h2 class="text-headline mb-3">Invite teammate</h2>
         <form class="space-y-3" @submit.prevent="onInvite">
           <BulwarkInput
             v-model="inviteEmail"
@@ -306,14 +310,25 @@ function statusPill(status: UserAdminRow['status']): { cls: string; text: string
             required
           />
           <div>
-            <label class="block text-small font-medium text-text-secondary mb-1">Role</label>
+            <label for="invite-role" class="block text-small font-medium text-text-secondary mb-1">Role</label>
             <select
+              id="invite-role"
               v-model="inviteRole"
               class="w-full rounded-input border border-border-default bg-surface-base px-3 py-2"
               data-testid="invite-role-select"
             >
               <option v-for="r in ROLE_CHOICES" :key="r" :value="r">{{ r }}</option>
             </select>
+          </div>
+          <div v-if="inviteError" role="alert" class="rounded-input bg-status-error/10 p-3 text-small text-status-error" data-testid="invite-error">
+            <p>Could not send the invite: {{ inviteError }}</p>
+            <button
+              type="button"
+              class="mt-2 min-h-tap rounded-input border border-current px-3 font-medium disabled:opacity-50"
+              :disabled="inviting"
+              data-testid="invite-retry"
+              @click="onInvite"
+            >Try again</button>
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <BulwarkButton
@@ -329,7 +344,6 @@ function statusPill(status: UserAdminRow['status']): { cls: string; text: string
             >{{ inviting ? 'Sending…' : 'Send invite' }}</BulwarkButton>
           </div>
         </form>
-      </BulwarkCard>
-    </div>
+    </BulwarkModal>
   </div>
 </template>

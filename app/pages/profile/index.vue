@@ -143,6 +143,15 @@ async function onAvatarChange(ev: Event) {
     avatarError.value = 'Choose a PNG, JPEG, or WEBP image'
     return
   }
+  await uploadAvatar(file)
+}
+
+// WP-L08 / L09-S4: keep the last picked file so a failed upload can be retried
+// without re-opening the picker.
+const lastAvatarFile = shallowRef<File | null>(null)
+
+async function uploadAvatar(file: File) {
+  lastAvatarFile.value = file
   avatarBusy.value = true
   avatarError.value = ''
   try {
@@ -156,6 +165,7 @@ async function onAvatarChange(ev: Event) {
     })
     await $fetch('/api/account/avatar', { method: 'POST', body: { key: asset.key } })
     await refreshSession()
+    lastAvatarFile.value = null
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Upload failed'
     avatarError.value = msg.replace(/^.*?:\s*/, '')
@@ -232,7 +242,17 @@ async function onAvatarRemove() {
             role="alert"
             data-testid="profile-avatar-error"
             class="mt-2 rounded-input border border-status-error/30 bg-status-error/5 px-3 py-1.5 text-small text-status-error"
-          >{{ avatarError }}</div>
+          >
+            {{ avatarError }}
+            <button
+              v-if="lastAvatarFile"
+              type="button"
+              class="ml-2 font-medium underline min-h-tap"
+              :disabled="avatarBusy"
+              data-testid="profile-avatar-retry"
+              @click="uploadAvatar(lastAvatarFile)"
+            >Try again</button>
+          </div>
         </div>
         <div class="flex flex-col gap-2">
           <BulwarkButton

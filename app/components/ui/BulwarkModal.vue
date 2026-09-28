@@ -10,9 +10,11 @@
   A11y
   ----
   - role="dialog" + aria-modal=true
-  - First focusable element gets initial focus
+  - Initial focus on the first control in the body; Tab is trapped inside;
+    focus returns to the opener on close (useFocusTrap, WP-L08 / L09-S3)
   - Escape closes (unless `dismissible=false`)
   - Body overflow locked while open
+  - aria-labelledby uses a generated id (a title-derived id broke on spaces)
 
   Decisions
   ---------
@@ -42,6 +44,10 @@ const emit = defineEmits<{
   'update:modelValue': [v: boolean]
   cancel: []
 }>()
+
+const titleId = useId()
+const panel = ref<HTMLElement | null>(null)
+useFocusTrap(() => props.modelValue, panel)
 
 const sizeClass: Record<NonNullable<Props['size']>, string> = {
   sm: 'max-w-sm',
@@ -99,15 +105,16 @@ onBeforeUnmount(() => {
         v-bind="$attrs"
         role="dialog"
         aria-modal="true"
-        :aria-labelledby="`mdl-${title}`"
+        :aria-labelledby="titleId"
         @click.self="close"
       >
         <div
-          class="relative w-full rounded-card bg-surface shadow-xl"
+          ref="panel"
+          class="relative w-full rounded-card bg-surface shadow-xl focus:outline-none"
           :class="sizeClass[size]"
         >
           <header class="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-border">
-            <h2 :id="`mdl-${title}`" class="text-h2 text-text-primary">{{ title }}</h2>
+            <h2 :id="titleId" class="text-h2 text-text-primary">{{ title }}</h2>
             <button
               v-if="dismissible"
               type="button"
@@ -116,7 +123,7 @@ onBeforeUnmount(() => {
               @click="close"
             >×</button>
           </header>
-          <div class="px-5 py-4">
+          <div class="px-5 py-4" data-dialog-body>
             <slot />
           </div>
           <footer

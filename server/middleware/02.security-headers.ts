@@ -12,11 +12,13 @@
  *     `BULWARK_FORCE_HSTS=1`.
  */
 // h3 + Nitro auto-imports: defineEventHandler, setResponseHeaders.
-import { buildSecurityHeaders, isHtmlPath } from '../utils/security-headers'
+import { buildSecurityHeaders, cacheControlFor, isHtmlPath } from '../utils/security-headers'
 
 export default defineEventHandler((event) => {
   const url = event.node.req.url ?? '/'
   const path = url.split('?')[0] ?? url
   const headers = buildSecurityHeaders({ isHtml: isHtmlPath(path) })
   setResponseHeaders(event, headers)
+  const cacheControl = cacheControlFor(path)
+  if (cacheControl) setResponseHeader(event, 'cache-control', cacheControl)
 })

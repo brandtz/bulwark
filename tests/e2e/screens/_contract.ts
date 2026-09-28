@@ -80,7 +80,7 @@ async function collectRuntimeErrors(page: Page) {
 }
 
 interface AxeViolation { id: string; impact?: string; help: string; nodes: { target: string[] }[] }
-interface AxeBuilderLike { disableRules(rules: string[]): AxeBuilderLike; analyze(): Promise<{ violations: AxeViolation[] }> }
+interface AxeBuilderLike { disableRules(rules: string[]): AxeBuilderLike; exclude(selector: string): AxeBuilderLike; analyze(): Promise<{ violations: AxeViolation[] }> }
 
 export async function assertAxeClean(page: Page, allow: Record<string, string> = {}) {
   let AxeBuilder: (new (opts: { page: Page }) => AxeBuilderLike) | undefined
@@ -89,7 +89,8 @@ export async function assertAxeClean(page: Page, allow: Record<string, string> =
   }
   // Let CSS transitions/animations settle so contrast is measured on final colours.
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'), undefined, { timeout: 5_000 }).catch(() => {})
-  const results = await new AxeBuilder!({ page }).disableRules(Object.keys(allow)).analyze()
+  // The Nuxt devtools overlay only exists under `nuxt dev` (the mock CI lane); it is not app UI.
+  const results = await new AxeBuilder!({ page }).exclude('nuxt-devtools-frame').disableRules(Object.keys(allow)).analyze()
   const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
   expect(serious, serious.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)\n  ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n  ')}`).join('\n')).toEqual([])
 }

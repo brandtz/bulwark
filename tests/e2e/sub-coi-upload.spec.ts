@@ -18,7 +18,7 @@
  *     from prior runs.
  */
 import { test, expect } from '@playwright/test'
-import { signIn } from './_helpers'
+import { signIn, waitForHydration } from './_helpers'
 import { seedSubPortal, SUB_PORTAL_FIXTURE } from '../setup/seed-sub-portal'
 
 test.describe('Sub portal COI upload (W4-2 / EH-N)', () => {
@@ -35,7 +35,9 @@ test.describe('Sub portal COI upload (W4-2 / EH-N)', () => {
   test('sub uploads a COI and sees it in the list with a status pill', async ({ page }) => {
     await page.goto('/sub/cois')
     await expect(page.getByTestId('sub-cois')).toBeVisible()
-    // Fill only after hydration; an earlier fill is reset by v-model when the app mounts.
+    // Fill and submit only after hydration: an earlier fill is reset by v-model, and a click
+    // during Suspense hydration is dropped (WP-Q3 / WP-L08 flake).
+    await waitForHydration(page)
     await page.waitForLoadState('networkidle')
 
     const stamp = Date.now()

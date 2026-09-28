@@ -25,6 +25,9 @@ import type {
   StorageDriver,
 } from './types'
 
+/** Signed-download URLs are stable within this window (seconds); see getSignedDownloadUrl. */
+const SIGNING_WINDOW_S = 1800
+
 const REQUIRED_ENV = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET']
 
 function requireR2Env(): void {
@@ -93,16 +96,24 @@ export class R2Driver implements StorageDriver {
 
   async getSignedDownloadUrl(input: SignedDownloadInput): Promise<SignedDownloadResult> {
     const client = getR2Client()
-    const expiresIn = input.expiresInSeconds ?? 3600
+    const ttl = input.expiresInSeconds ?? 3600
+    // WP-L08 / L10-S4: sign against a fixed 30-minute window so the same object
+    // gets the SAME URL for the whole window (a per-request signature defeats the
+    // browser cache), and let the browser keep it: stored objects never change
+    // (every upload gets a fresh key), so `immutable` is safe.
+    const windowMs = SIGNING_WINDOW_S * 1000
+    const signingDate = new Date(Math.floor(Date.now() / windowMs) * windowMs)
+    const expiresIn = ttl + SIGNING_WINDOW_S
     const command = new GetObjectCommand({
       Bucket: getR2Bucket(),
       Key: input.key,
+      ResponseCacheControl: `private, max-age=${ttl}, immutable`,
       ...(input.downloadFilename
         ? { ResponseContentDisposition: contentDisposition(input.downloadFilename) }
         : {}),
     })
-    const url = await getSignedUrl(client, command, { expiresIn })
-    return { url, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString() }
+    const url = await getSignedUrl(client, command, { expiresIn, signingDate })
+    return { url, expiresAt: new Date(signingDate.getTime() + expiresIn * 1000).toISOString() }
   }
 
   async headObject(key: string): Promise<HeadResult> {

@@ -116,3 +116,16 @@ export function isHtmlPath(path: string): boolean {
   }
   return true
 }
+
+/**
+ * WP-L08 / L10-S4: cache policy for dynamic responses. Platform defaults sent
+ * `public, max-age=0, must-revalidate`, which lets a shared cache store signed-in
+ * pages and API JSON. API responses are never stored; HTML may be kept by the
+ * browser but must be revalidated. Hashed `/_nuxt/*` assets keep the platform's
+ * `immutable` header (returns undefined for them).
+ */
+export function cacheControlFor(path: string): string | undefined {
+  if (path.startsWith('/api/')) return 'private, no-store'
+  if (isHtmlPath(path)) return 'private, no-cache'
+  return undefined
+}

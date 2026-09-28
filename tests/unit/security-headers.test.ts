@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildSecurityHeaders,
   buildCspValue,
+  cacheControlFor,
   storageOrigins,
   CSP_DIRECTIVES,
 } from '~~/server/utils/security-headers'
@@ -100,5 +101,14 @@ describe('buildSecurityHeaders — CSP gating', () => {
     expect(storageOrigins({ r2Endpoint: 'http://localhost:9000', r2Bucket: 'b', r2ForcePathStyle: '1' })).toEqual(['http://localhost:9000'])
     expect(storageOrigins({})).toEqual([])
     expect(storageOrigins({ r2Endpoint: 'not a url' })).toEqual([])
+  })
+
+  it('keeps signed-in pages and API JSON out of shared caches (WP-L08 / L10-S4)', () => {
+    expect(cacheControlFor('/api/services/quote/list')).toBe('private, no-store')
+    expect(cacheControlFor('/api/ready')).toBe('private, no-store')
+    expect(cacheControlFor('/admin/quotes')).toBe('private, no-cache')
+    expect(cacheControlFor('/login')).toBe('private, no-cache')
+    expect(cacheControlFor('/_nuxt/Abc123.js')).toBeUndefined()
+    expect(cacheControlFor('/favicon.ico')).toBeUndefined()
   })
 })

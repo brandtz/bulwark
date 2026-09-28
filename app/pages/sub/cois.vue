@@ -60,10 +60,15 @@ function expiryBucket(iso: string): 'expired' | 'expiring' | 'active' {
   return 'active'
 }
 
+// WP-L08 / L09-S4: failures were unhandled (nothing shown). Keep the form
+// values, show the error, and offer a retry of the same submission.
+const uploadError = ref('')
+
 async function upload(): Promise<void> {
   if (!subId.value || !orgId.value) return
   if (!form.fileUrl || !form.fileName || !form.expiresAt) return
   submitting.value = true
+  uploadError.value = ''
   try {
     await sub.uploadCoi({
       organizationId: orgId.value,
@@ -78,6 +83,8 @@ async function upload(): Promise<void> {
     form.expiresAt = ''
     form.notes = ''
     await refresh()
+  } catch (err) {
+    uploadError.value = err instanceof Error ? err.message : 'Upload failed.'
   } finally {
     submitting.value = false
   }
@@ -112,6 +119,16 @@ async function upload(): Promise<void> {
           :disabled="submitting"
           data-testid="sub-coi-submit"
         >Upload</button>
+        <div v-if="uploadError" role="alert" class="rounded-input bg-status-error/10 p-3 text-small text-status-error" data-testid="sub-coi-error">
+          <p>Could not upload the COI: {{ uploadError }}</p>
+          <button
+            type="button"
+            class="mt-2 min-h-tap rounded-input border border-current px-3 font-medium disabled:opacity-50"
+            :disabled="submitting"
+            data-testid="sub-coi-retry"
+            @click="upload"
+          >Try again</button>
+        </div>
       </form>
     </BulwarkCard>
 

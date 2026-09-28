@@ -11,7 +11,13 @@
     - The header is sticky and the bottom nav is fixed — middle scroll
       area uses `pb-bottom-nav` so the last card never tucks under the
       tab bar. Min tap target is `min-h-tap` (48px, STYLE_GUIDE §6.1).
-    - The four tabs are hard-coded inline here rather than fed through
+    - Tabs (WP-L08 / L09-S1): My Day and Check in are always present; Inspect
+      and Photos exist only inside a job (/field/jobs/:woId/**) and link to
+      THAT job's pages. Previously all three right-hand tabs pointed at
+      /field/check-in. Notes stays hidden until a notes page exists. The
+      active tab carries aria-current="page" (custom matching, so it is set
+      explicitly rather than left to NuxtLink's exact-match).
+    - The tabs are hard-coded inline here rather than fed through
       `shared/nav/nav.config.ts`. nav.config drives the admin sidebar
       and global mobile nav; the field tabs are a distinct concept
       (in-app context bar, not site navigation) and don't share state
@@ -40,12 +46,22 @@ interface FieldTab {
   match?: (path: string) => boolean
 }
 
-const tabs = computed<FieldTab[]>(() => [
-  { to: '/field', labelKey: 'my-day', fallback: 'My Day', icon: 'calendar', match: (p) => p === '/field' || p === '/field/' || p.startsWith('/field/jobs/') && !p.includes('/inspect') && !p.includes('/photos') },
-  { to: '/field/check-in', labelKey: 'inspect', fallback: 'Inspect', icon: 'clipboard-check', match: (p) => p.includes('/inspect') },
-  { to: '/field/check-in', labelKey: 'photos', fallback: 'Photos', icon: 'camera', match: (p) => p.includes('/photos') },
-  { to: '/field/check-in', labelKey: 'notes', fallback: 'Notes', icon: 'note', match: (p) => p.startsWith('/field/check-in') },
-])
+/** The job in context, when the route is under /field/jobs/:woId. */
+const jobId = computed(() => /^\/field\/jobs\/([^/]+)/u.exec(route.path)?.[1] ?? null)
+
+const tabs = computed<FieldTab[]>(() => {
+  const job = jobId.value
+  return [
+    { to: '/field', labelKey: 'my-day', fallback: 'My Day', icon: 'calendar', match: (p) => p === '/field' || p === '/field/' || (p.startsWith('/field/jobs/') && !p.includes('/inspect') && !p.includes('/photos')) },
+    ...(job
+      ? [
+          { to: `/field/jobs/${job}/inspect`, labelKey: 'inspect', fallback: 'Inspect', icon: 'clipboard-check', match: (p: string) => p.endsWith('/inspect') },
+          { to: `/field/jobs/${job}/photos`, labelKey: 'photos', fallback: 'Photos', icon: 'camera', match: (p: string) => p.endsWith('/photos') },
+        ]
+      : []),
+    { to: '/field/check-in', labelKey: 'check-in', fallback: 'Check in', icon: 'map-pin', match: (p) => p.startsWith('/field/check-in') },
+  ]
+})
 
 function isActive(tab: FieldTab): boolean {
   if (tab.match) return tab.match(route.path)
@@ -101,7 +117,8 @@ const headerTitle = computed(() => (route.meta.fieldTitle as string | undefined)
     </main>
 
     <nav
-      class="fixed bottom-0 inset-x-0 h-bottom-nav bg-surface border-t border-border grid grid-cols-4 z-30"
+      class="fixed bottom-0 inset-x-0 h-bottom-nav bg-surface border-t border-border grid z-30"
+      :class="tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-2'"
       aria-label="Field tabs"
       data-testid="field-tabs"
     >
@@ -113,6 +130,7 @@ const headerTitle = computed(() => (route.meta.fieldTitle as string | undefined)
           'flex flex-col items-center justify-center gap-1 text-tiny min-h-tap transition-colors',
           isActive(tab) ? 'text-primary' : 'text-text-secondary',
         ]"
+        :aria-current="isActive(tab) ? 'page' : undefined"
         :data-testid="`field-tab-${tab.labelKey}`"
       >
         <span aria-hidden="true" class="text-base">●</span>
