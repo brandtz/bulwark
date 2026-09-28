@@ -20,6 +20,8 @@ export const jobKindEnum = pgEnum('job_kind', [
   'compliance_doc',
   'account_purge',
   'coi_expiry_scan',
+  // WP-X3 / ED-00E: scan one uploaded asset.
+  'asset_scan',
 ])
 
 export const jobs = pgTable(

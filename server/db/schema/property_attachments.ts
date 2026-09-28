@@ -13,7 +13,7 @@
  *     in this slice).
  */
 import { sql } from 'drizzle-orm'
-import { pgTable, text, uuid, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, index, timestamp } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 
 export const propertyAttachments = pgTable(
@@ -30,6 +30,11 @@ export const propertyAttachments = pgTable(
     name: text('name').notNull(),
     url: text('url').notNull(),
     uploadedByUserId: uuid('uploaded_by_user_id'),
+
+    // WP-X3 / ED-00E: async malware scan. pending | clean | infected | skipped
+    // (no scanner configured, or a row that predates scanning).
+    scanStatus: text('scan_status').notNull().default('skipped'),
+    scannedAt: timestamp('scanned_at', { withTimezone: true }),
 
     ...auditColumns,
   },

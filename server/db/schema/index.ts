@@ -73,3 +73,4 @@ export * from './saved_views'
 // WP-L07 S2 — per-organization security policy (MFA mode, idle timeout, lockout).
 export * from './security_policies'
 export * from './org_number_counters'
+export * from './push_subscriptions'

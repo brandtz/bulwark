@@ -36,6 +36,11 @@ export const propertyPhotos = pgTable(
     takenAt: timestamp('taken_at', { withTimezone: true }),
     uploadedByUserId: uuid('uploaded_by_user_id'),
 
+    // WP-X3 / ED-00E: async malware scan. pending | clean | infected | skipped
+    // (no scanner configured, or a row that predates scanning).
+    scanStatus: text('scan_status').notNull().default('skipped'),
+    scannedAt: timestamp('scanned_at', { withTimezone: true }),
+
     sortOrder: integer('sort_order').notNull().default(0),
 
     ...auditColumns,
