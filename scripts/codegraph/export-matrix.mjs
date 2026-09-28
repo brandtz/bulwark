@@ -19,6 +19,15 @@ import { join } from 'node:path'
 
 const ROOT = 'agents/design/return/design-return'
 const OUT = 'tests/e2e/_matrix.generated.json'
+
+// agents/design/ is gitignored (design returns live on dev machines only), so CI
+// cannot regenerate the matrix; it relies on the committed JSON, which is
+// regenerated and checked wherever the SPECs exist (same split as
+// codegraph check --catalog-only).
+if (!existsSync(ROOT)) {
+  console.log(`export-matrix: ${ROOT} not present — skipping (using the committed ${OUT}).`)
+  process.exit(0)
+}
 const graph = JSON.parse(readFileSync('agents/codegraph/graph.json', 'utf8'))
 const designNodes = Object.values(graph.nodes ?? graph).filter((n) => n.type === 'design' && n.status === 'received')
 const routesBySpec = new Map(designNodes.map((d) => [d.spec?.replace(/\\/gu, '/'), d.routes ?? []]))

@@ -320,7 +320,7 @@
     {
       "id": "WP-X2",
       "title": "People/contacts model, permits, sessions, signatures, announcements, prefs",
-      "lane": "BE", "phase": "2-admin-core", "status": "todo", "size": "L",
+      "lane": "BE", "phase": "2-admin-core", "status": "ready", "size": "L",
       "goal": "Schema + contracts + services for entities the received admin designs need that don't exist.",
       "scope": ["people + contacts join (ED-036) with dedupe migration", "permits + permit_jobs + jurisdictions catalog (ED-039)", "user_sessions (ED-015) + revoke", "signatures immutable table (ED-00D) referenced by inspections, quotes, change orders, deliverables", "platform_announcements (ED-007)", "org_settings.ui_history_days (ED-000); user_prefs (theme, density, trusted devices)", "saved_views.layout_json (ED-013)", "quote_line_items.catalog_item_id nullable + quotes.hidden_tiers (ED-045/047)"],
       "outOfScope": ["UI"],
@@ -330,12 +330,12 @@
       "tests": ["tests/integration/people-contacts.real.test.ts", "tests/integration/permits.real.test.ts", "tests/integration/signatures-immutable.test.ts", "tests/integration/sessions.real.test.ts", "tests/unit/tenant-firewall.test.ts (extend)"],
       "dependsOn": ["WP-X1"],
       "decisions": ["ED-036", "ED-039", "ED-015", "ED-00D", "ED-007", "ED-000", "ED-013", "ED-045", "ED-047"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-28 (claude-code): corrected todo -> ready. WP-X1 is done and all four designs (AD-16, AD-19, SH-31, AD-32) are received, which satisfies registry rule 1."
     },
     {
       "id": "WP-X3",
       "title": "IGeoService (Mapbox + none), IScanService (async AV), IPushService scaffold",
-      "lane": "BE", "phase": "2-admin-core", "status": "todo", "size": "M",
+      "lane": "BE", "phase": "2-admin-core", "status": "in-progress", "size": "M", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
       "goal": "Provider-pattern services behind sealed provider configs; fail-closed with 'none' drivers so the app runs without keys.",
       "scope": ["geo.autocomplete/geocode/staticMap/route; providerConfig kind 'geo'", "scan.enqueue on finalize; status on asset rows; quarantine path", "push.subscribe/unsubscribe/send (Web Push VAPID) + notification channel column"],
       "outOfScope": ["Map UI beyond MapPanel none-state"],
@@ -345,7 +345,7 @@
       "tests": ["tests/unit/geo-none-driver.test.ts", "tests/integration/scan-pipeline.test.ts", "tests/unit/push.test.ts"],
       "dependsOn": ["WP-X1"],
       "decisions": ["ED-00C", "ED-00E", "ED-016"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-28 (claude-code): corrected todo -> ready (WP-X1 done; AD-11, AD-18 and SH-32 received), then claimed. Decisions: ED-00C (Mapbox behind IGeoService, none driver), ED-00E (async scan, scanning badge for others, infected -> quarantine + admin notification), ED-016 (push as a 4th channel)."
     },
 
     {
