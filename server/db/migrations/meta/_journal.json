@@ -155,6 +155,13 @@
       "when": 1790630622910,
       "tag": "0021_x2_people_permits_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790632132586,
+      "tag": "0022_x2_signature_immutable",
+      "breakpoints": true
     }
   ]
 }
