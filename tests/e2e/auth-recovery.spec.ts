@@ -112,6 +112,7 @@ test.describe('Auth recovery — forgot / reset / invite', () => {
 
   test('reset-password full round trip lands on /login with reset=ok', async ({ page }) => {
     test.skip(isBuiltServer(), 'needs the dev-only reset link; tests/integration/auth.real.test.ts covers resetPassword')
+    test.skip(process.env.BULWARK_BACKEND === 'mock', 'the dev reset link is minted by the real auth service')
     await page.goto('/forgot-password')
     await page.waitForLoadState('networkidle')
     // Use a throwaway user so the password rotation doesn't break sibling

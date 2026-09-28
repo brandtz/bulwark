@@ -40,6 +40,7 @@ test.describe('Field check-in (W3-3)', () => {
     page,
     context,
   }) => {
+    test.skip(process.env.BULWARK_BACKEND === 'mock', 'job detail reads /api/field/* from the real server')
     test.slow()
 
     // 1. Harvest a WO id as admin.

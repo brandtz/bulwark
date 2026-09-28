@@ -17,6 +17,7 @@ test.describe('focus management (L09-S3)', () => {
   })
 
   test('modal traps Tab, closes on Escape, restores focus to its opener', async ({ page }) => {
+    test.skip(process.env.BULWARK_BACKEND === 'mock', 'needs a seeded sent invoice (real backend)')
     await page.goto('/admin/invoices')
     await waitForHydration(page)
     await page.waitForLoadState('networkidle')
