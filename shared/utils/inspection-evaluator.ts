@@ -48,8 +48,7 @@ function indexResponses(responses: readonly InspectionResponse[]): ResponseLooku
     by[`${r.sectionInstanceKey}::${r.fieldSlug}`] = r
     // sectionInstanceKey is either `<slug>` or `<slug>-<n>`; split on the
     // final hyphen-number suffix to find the section it belongs to.
-    const baseMatch = r.sectionInstanceKey.match(/^(.+?)(?:-(\d+))?$/u)
-    const base = baseMatch?.[1] ?? r.sectionInstanceKey
+    const base = sectionBase(r.sectionInstanceKey)
     if (!instancesBySection[base]) instancesBySection[base] = []
     if (!instancesBySection[base]!.includes(r.sectionInstanceKey)) {
       instancesBySection[base]!.push(r.sectionInstanceKey)
@@ -206,4 +205,15 @@ export function evaluateInspection(
     }
   }
   return issues
+}
+
+/** `<slug>-<n>` → `<slug>`; anything else is returned unchanged. */
+export function sectionBase(key: string): string {
+  const dash = key.lastIndexOf('-')
+  if (dash <= 0 || dash === key.length - 1) return key
+  for (let i = dash + 1; i < key.length; i++) {
+    const c = key.charCodeAt(i)
+    if (c < 48 || c > 57) return key
+  }
+  return key.slice(0, dash)
 }

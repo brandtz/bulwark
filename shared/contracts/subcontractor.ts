@@ -34,7 +34,7 @@ export const TradeSchema = z
   .string()
   .min(1)
   .max(64)
-  .regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/u, 'trade must be a kebab-case or snake_case slug')
+  .regex(/^(?![-_])(?!.*[-_][-_])[a-z0-9_-]+(?<![-_])$/u, 'trade must be a kebab-case or snake_case slug')
 export type Trade = z.infer<typeof TradeSchema>
 
 export const TRADE_LABEL: Record<Trade, string> = {

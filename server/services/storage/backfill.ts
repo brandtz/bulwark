@@ -46,11 +46,15 @@ interface Decoded { contentType: string, body: Buffer }
 
 /** Decode a data: URL into bytes, or null when it is not one. */
 export function decodeDataUrl(value: string): Decoded | null {
-  const m = /^\s*data:([^;,]*)((?:;[^;,]*)*),(.*)$/isu.exec(value)
-  if (!m) return null
-  const contentType = (m[1] || 'text/plain').trim().toLowerCase()
-  const isBase64 = /;base64$/iu.test(m[2] ?? '')
-  const payload = m[3] ?? ''
+  // Parsed by hand: values can be megabytes, so no backtracking regex (SAST).
+  const trimmed = value.trimStart()
+  if (trimmed.slice(0, 5).toLowerCase() !== 'data:') return null
+  const comma = trimmed.indexOf(',')
+  if (comma === -1) return null
+  const [type = '', ...params] = trimmed.slice(5, comma).split(';')
+  const contentType = (type || 'text/plain').trim().toLowerCase()
+  const isBase64 = params.length > 0 && params[params.length - 1]!.toLowerCase() === 'base64'
+  const payload = trimmed.slice(comma + 1)
   try {
     const body = isBase64 ? Buffer.from(payload, 'base64') : Buffer.from(decodeURIComponent(payload), 'utf8')
     return { contentType, body }

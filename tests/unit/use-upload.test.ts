@@ -22,7 +22,7 @@ function stub(opts: { putStatus?: number } = {}) {
     }
     throw new Error(`unexpected ${url}`)
   })
-  const fetchFn = vi.fn(async (url: string) => {
+  const fetchFn = vi.fn(async (url: string, _init?: RequestInit) => {
     calls.push(`PUT ${url}`)
     return { ok: (opts.putStatus ?? 200) < 300, status: opts.putStatus ?? 200 }
   })

@@ -34,7 +34,7 @@ export const TradeRecordSchema = z
   .object({
     id: UuidSchema,
     organizationId: UuidSchema,
-    slug: z.string().min(1).max(64).regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/u, 'slug must be kebab-case or snake_case'),
+    slug: z.string().min(1).max(64).regex(/^(?![-_])(?!.*[-_][-_])[a-z0-9_-]+(?<![-_])$/u, 'slug must be kebab-case or snake_case'),
     name: z.string().min(1).max(120),
     description: z.string().max(500).nullable(),
     color: z

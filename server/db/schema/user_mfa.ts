@@ -5,10 +5,10 @@
  *   - Single table covers every MFA kind today. v1 ships `kind='totp'`
  *     only; future kinds (webauthn, sms) tack on without a schema
  *     change.
- *   - `secret_encrypted` holds the Base32-encoded TOTP secret. v1
- *     stores plaintext (the column name is forward-looking) — the
- *     accompanying ADR-0024 notes the migration path to envelope
- *     encryption (KMS) when the platform reaches that maturity.
+ *   - `secret_encrypted` holds the Base32 TOTP secret encrypted at the
+ *     application layer (`encryptSecret` in server/utils/crypto.ts, keyed by
+ *     server config; WP-L07 S6). ADR-0024 tracks moving the key to KMS
+ *     envelope encryption.
  *   - `confirmed_at` flips from null → timestamp once the user
  *     verifies their first code. Unconfirmed enrolments are pending
  *     and can be replaced by a fresh enroll attempt.
@@ -37,7 +37,7 @@ export const userMfa = pgTable(
       .references(() => users.id),
     /** Discriminator. v1 = 'totp'. */
     kind: text('kind').notNull(),
-    /** Base32-encoded shared secret. Plaintext at v1; ADR-0024 §Future tracks envelope encryption. */
+    /** Base32 shared secret, encrypted with encryptSecret (server/utils/crypto.ts); ADR-0024 tracks KMS envelope encryption. */
     secretEncrypted: text('secret_encrypted').notNull(),
     confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
     ...auditColumns,

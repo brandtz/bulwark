@@ -31,8 +31,14 @@ describe('mfaGateBlocks', () => {
     expect(mfaGateBlocks({ mfaMode: 'disabled' }, false, 'property.list')).toBe(false)
   })
 
+  it('an unenrolled admin cannot relax a required-MFA policy (stolen-password threat)', () => {
+    expect(MFA_SETUP_ALLOWED.has('securityPolicy.update')).toBe(false)
+    expect(mfaGateBlocks({ mfaMode: 'required' }, false, 'securityPolicy.update')).toBe(true)
+    expect(mfaGateBlocks({ mfaMode: 'required' }, true, 'securityPolicy.update')).toBe(false)
+  })
+
   it('always leaves the enrolment path reachable', () => {
-    for (const key of ['mfa.setupTotp', 'mfa.confirmTotp', 'auth.logout', 'securityPolicy.getMine', 'securityPolicy.update']) {
+    for (const key of ['mfa.setupTotp', 'mfa.confirmTotp', 'auth.logout', 'securityPolicy.getMine', 'securityPolicy.get', 'securityPolicy.mfaRoster']) {
       expect(MFA_SETUP_ALLOWED.has(key)).toBe(true)
       expect(mfaGateBlocks({ mfaMode: 'required' }, false, key)).toBe(false)
     }

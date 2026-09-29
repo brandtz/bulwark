@@ -46,6 +46,6 @@ export function formatSequentialNumber({ format, year, seq }: FormatSequentialNu
  */
 export function buildLikePatternForYear(format: string, year: number): string {
   let out = format.replace(/\{year\}/g, String(year))
-  out = out.replace(/\{seq(:\d+)?\}/g, '%')
+  out = out.replace(/\{seq\}/g, '%').replace(/\{seq:\d+\}/g, '%')
   return out
 }

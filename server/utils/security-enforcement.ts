@@ -29,9 +29,10 @@ export const PASSIVE = new Set(['notification.unreadCountForUser'])
 export const MFA_SETUP_ALLOWED = new Set([
   'auth.currentUser', 'auth.logout', 'auth.switchActiveOrg', 'auth.changePassword',
   'mfa.getStatus', 'mfa.setupTotp', 'mfa.confirmTotp', 'mfa.generateBackupCodes',
-  // An admin who switched MFA to required before enrolling can still review or revert it
-  // (the RPC role policy keeps these admin-only).
-  'securityPolicy.get', 'securityPolicy.update', 'securityPolicy.mfaRoster',
+  // An unenrolled admin can review the policy and who has enrolled, but not change
+  // it: with only a stolen password, relaxing "MFA required" must be impossible
+  // (WP-L07 review). They enrol first, then edit. RPC role policy keeps these admin-only.
+  'securityPolicy.get', 'securityPolicy.mfaRoster',
   'securityPolicy.getMine', 'themePreferences.getCurrent', 'themePreferences.updateCurrent',
   'label.list', 'label.getMap', 'label.getBranding', 'featureFlag.listForOrg', 'featureFlag.get',
   'notification.unreadCountForUser',
