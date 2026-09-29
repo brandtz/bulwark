@@ -162,6 +162,13 @@
       "when": 1790632132586,
       "tag": "0022_x2_signature_immutable",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790695494686,
+      "tag": "0023_x2_permit_ad19",
+      "breakpoints": true
     }
   ]
 }

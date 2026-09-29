@@ -69,7 +69,12 @@ function makeRpcProxy(): BulwarkServices {
   // to internal API calls. useRequestFetch() returns a fetch wrapper that
   // does, so the nuxt-session cookie reaches /api/services/auth/currentUser
   // during SSR navigation. On the client this is a no-op (just returns $fetch).
-  const requestFetch = import.meta.server ? useRequestFetch() : $fetch
+  // Typed as a plain fetcher: letting TS compare the two typed-route $fetch
+  // signatures hits "excessive stack depth" as the route table grows.
+  type RpcFetch = (url: string, opts: { method: 'POST', body: unknown, headers?: Record<string, string> }) => Promise<unknown>
+  const requestFetch: RpcFetch = import.meta.server
+    ? useRequestFetch() as unknown as RpcFetch
+    : $fetch as unknown as RpcFetch
   const ssrToken = import.meta.server ? useRequestEvent()?.context.bulwarkInternalToken as string | undefined : undefined
   return new Proxy({} as BulwarkServices, {
     get(_target, prop: string) {

@@ -77,6 +77,9 @@ export async function ensurePersonForContact(
       return existing.id
     }
   }
+  // Two contacts created at once with the same new email both miss the lookup
+  // above; the org+email unique index makes the loser a no-op, and it then
+  // links to the winner's row instead of failing.
   const [row] = await tx.insert(people).values({
     organizationId: input.organizationId,
     firstName: input.firstName,
@@ -84,8 +87,15 @@ export async function ensurePersonForContact(
     primaryEmail: email,
     emails: email ? [email] : [],
     phones: input.phone ? [input.phone] : [],
-  }).returning({ id: people.id })
-  return row!.id
+  }).onConflictDoNothing().returning({ id: people.id })
+  if (row) return row.id
+  const [winner] = await tx.select({ id: people.id }).from(people).where(and(
+    eq(people.organizationId, input.organizationId),
+    eq(people.primaryEmail, email!),
+    isNull(people.deletedAt),
+  )).limit(1)
+  if (!winner) throw new Error('Invalid contact: could not resolve the person for this email')
+  return winner.id
 }
 
 export class RealPersonService implements IPersonService {

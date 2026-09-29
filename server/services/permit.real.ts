@@ -4,18 +4,28 @@
  */
 import { and, asc, eq, inArray, isNull, lte, type SQL } from 'drizzle-orm'
 import { getDb } from '../db/client'
-import { jurisdictions, permitJobs, permits } from '../db/schema/permits'
+import { jurisdictions, permitInspections, permitJobs, permits } from '../db/schema/permits'
+import { propertyAttachments } from '../db/schema/property_attachments'
 import { properties } from '../db/schema/properties'
 import { workOrders } from '../db/schema/work_orders'
 import {
   PermitCreateInputSchema,
+  PermitInspectionListInputSchema,
+  PermitInspectionResultInputSchema,
+  PermitInspectionScheduleInputSchema,
   PermitListInputSchema,
   PermitUpdateInputSchema,
+  permitTransitionError,
   validatePermitState,
   type IPermitService,
   type Jurisdiction,
   type Permit,
   type PermitCreateInput,
+  type PermitInspection,
+  type PermitInspectionListInput,
+  type PermitInspectionResult,
+  type PermitInspectionResultInput,
+  type PermitInspectionScheduleInput,
   type PermitListInput,
   type PermitStatus,
   type PermitUpdateInput,
@@ -37,12 +47,32 @@ function toContract(r: PermitRow, workOrderIds: string[]): Permit {
     jurisdictionOther: r.jurisdictionOther,
     permitNumber: r.permitNumber,
     kind: r.kind,
+    scope: r.scope,
     status: r.status as PermitStatus,
     appliedAt: iso(r.appliedAt),
     issuedAt: iso(r.issuedAt),
     expiresAt: iso(r.expiresAt),
     notes: r.notes,
+    pdfAttachmentId: r.pdfAttachmentId,
     workOrderIds,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+    deletedAt: iso(r.deletedAt),
+  }
+}
+
+function inspectionToContract(r: typeof permitInspections.$inferSelect): PermitInspection {
+  return {
+    id: r.id,
+    organizationId: r.organizationId,
+    permitId: r.permitId,
+    inspectionType: r.inspectionType,
+    scheduledAt: r.scheduledAt.toISOString(),
+    inspector: r.inspector,
+    result: (r.result as PermitInspectionResult | null) ?? null,
+    resultNote: r.resultNote,
+    recordedAt: iso(r.recordedAt),
+    recordedByUserId: r.recordedByUserId,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     deletedAt: iso(r.deletedAt),
@@ -98,6 +128,16 @@ export class RealPermitService implements IPermitService {
     if (!j) throw new Error('Invalid permit: jurisdiction not found')
   }
 
+  /** The permit PDF must be a live attachment on the permit's own property. */
+  private async assertPdfAttachment(organizationId: string, propertyId: string, id: string | null | undefined) {
+    if (!id) return
+    const [a] = await getDb().select({ id: propertyAttachments.id }).from(propertyAttachments).where(and(
+      eq(propertyAttachments.id, id), eq(propertyAttachments.organizationId, organizationId),
+      eq(propertyAttachments.propertyId, propertyId), isNull(propertyAttachments.deletedAt),
+    )).limit(1)
+    if (!a) throw new Error('Invalid permit: PDF attachment not found on this property')
+  }
+
   async list(input: PermitListInput): Promise<Permit[]> {
     const v = parse(PermitListInputSchema, input)
     assertSameTenant(this.tenantResolver, v.organizationId)
@@ -123,16 +163,20 @@ export class RealPermitService implements IPermitService {
     const v = parse(PermitCreateInputSchema, input)
     assertSameTenant(this.tenantResolver, v.organizationId)
     const err = validatePermitState({
-      status: v.status ?? 'draft',
+      status: v.status ?? 'applied',
+      permitNumber: v.permitNumber ?? null,
+      scope: v.scope ?? null,
       issuedAt: v.issuedAt ?? null,
+      expiresAt: v.expiresAt ?? null,
       jurisdictionId: v.jurisdictionId ?? null,
       jurisdictionOther: v.jurisdictionOther ?? null,
     })
     if (err) throw new Error(err)
     await this.assertJurisdiction(v.organizationId, v.jurisdictionId)
     const [prop] = await getDb().select({ id: properties.id }).from(properties)
-      .where(and(eq(properties.id, v.propertyId), eq(properties.organizationId, v.organizationId))).limit(1)
+      .where(and(eq(properties.id, v.propertyId), eq(properties.organizationId, v.organizationId), isNull(properties.deletedAt))).limit(1)
     if (!prop) throw new Error('Invalid permit: property not found')
+    await this.assertPdfAttachment(v.organizationId, v.propertyId, v.pdfAttachmentId)
     const id = await withAudit(async ({ tx, audit }) => {
       await this.assertWorkOrders(tx, v.organizationId, v.propertyId, v.workOrderIds)
       const [row] = await tx.insert(permits).values({
@@ -142,16 +186,18 @@ export class RealPermitService implements IPermitService {
         jurisdictionOther: v.jurisdictionOther ?? null,
         permitNumber: v.permitNumber ?? null,
         kind: v.kind ?? 'building',
-        status: v.status ?? 'draft',
+        scope: v.scope ?? null,
+        status: v.status ?? 'applied',
         appliedAt: toDate(v.appliedAt),
         issuedAt: toDate(v.issuedAt),
         expiresAt: toDate(v.expiresAt),
         notes: v.notes ?? null,
+        pdfAttachmentId: v.pdfAttachmentId ?? null,
       }).returning({ id: permits.id })
       if (v.workOrderIds.length) {
         await tx.insert(permitJobs).values([...new Set(v.workOrderIds)].map((workOrderId) => ({ organizationId: v.organizationId, permitId: row!.id, workOrderId })))
       }
-      await audit.record({ organizationId: v.organizationId, entityType: 'permit', entityId: row!.id, action: 'create', actorUserId: this.actor(), after: { propertyId: v.propertyId, status: v.status ?? 'draft' } })
+      await audit.record({ organizationId: v.organizationId, entityType: 'permit', entityId: row!.id, action: 'create', actorUserId: this.actor(), after: { propertyId: v.propertyId, status: v.status ?? 'applied' } })
       return row!.id
     })
     return (await this.get(id, v.organizationId))!
@@ -162,20 +208,27 @@ export class RealPermitService implements IPermitService {
     assertSameTenant(this.tenantResolver, v.organizationId)
     const before = await this.get(v.id, v.organizationId)
     if (!before) throw new Error('Permit not found')
+    const pick = <K extends keyof Permit>(k: K, val: Permit[K] | undefined): Permit[K] => (val !== undefined ? val : before[k])
     const next = {
       status: v.status ?? before.status,
-      issuedAt: v.issuedAt !== undefined ? v.issuedAt : before.issuedAt,
-      jurisdictionId: v.jurisdictionId !== undefined ? v.jurisdictionId : before.jurisdictionId,
-      jurisdictionOther: v.jurisdictionOther !== undefined ? v.jurisdictionOther : before.jurisdictionOther,
+      permitNumber: pick('permitNumber', v.permitNumber),
+      scope: pick('scope', v.scope),
+      issuedAt: pick('issuedAt', v.issuedAt),
+      expiresAt: pick('expiresAt', v.expiresAt),
+      jurisdictionId: pick('jurisdictionId', v.jurisdictionId),
+      jurisdictionOther: pick('jurisdictionOther', v.jurisdictionOther),
     }
-    const err = validatePermitState(next)
+    const err = permitTransitionError(before.status, next.status) ?? validatePermitState(next)
     if (err) throw new Error(err)
     if (v.jurisdictionId) await this.assertJurisdiction(v.organizationId, v.jurisdictionId)
+    await this.assertPdfAttachment(v.organizationId, before.propertyId, v.pdfAttachmentId)
     const patch: Partial<typeof permits.$inferInsert> = { updatedAt: new Date() }
     if (v.jurisdictionId !== undefined) patch.jurisdictionId = v.jurisdictionId
     if (v.jurisdictionOther !== undefined) patch.jurisdictionOther = v.jurisdictionOther
     if (v.permitNumber !== undefined) patch.permitNumber = v.permitNumber
     if (v.kind !== undefined) patch.kind = v.kind
+    if (v.scope !== undefined) patch.scope = v.scope
+    if (v.pdfAttachmentId !== undefined) patch.pdfAttachmentId = v.pdfAttachmentId
     if (v.status !== undefined) patch.status = v.status
     if (v.appliedAt !== undefined) patch.appliedAt = toDate(v.appliedAt)
     if (v.issuedAt !== undefined) patch.issuedAt = toDate(v.issuedAt)
@@ -223,6 +276,65 @@ export class RealPermitService implements IPermitService {
       await audit.record({ organizationId: input.organizationId, entityType: 'permit', entityId: input.permitId, action: 'update', actorUserId: this.actor(), metadata: { kind: 'unlink_work_order', workOrderId: input.workOrderId } })
     })
     return (await this.get(input.permitId, input.organizationId))!
+  }
+
+  async listInspections(input: PermitInspectionListInput): Promise<PermitInspection[]> {
+    const v = parse(PermitInspectionListInputSchema, input)
+    assertSameTenant(this.tenantResolver, v.organizationId)
+    const conds: SQL[] = [eq(permitInspections.organizationId, v.organizationId), isNull(permitInspections.deletedAt)]
+    if (v.permitId) conds.push(eq(permitInspections.permitId, v.permitId))
+    if (v.propertyId) {
+      const ids = (await getDb().select({ id: permits.id }).from(permits).where(and(
+        eq(permits.organizationId, v.organizationId), eq(permits.propertyId, v.propertyId), isNull(permits.deletedAt),
+      ))).map((r) => r.id)
+      if (!ids.length) return []
+      conds.push(inArray(permitInspections.permitId, ids))
+    }
+    const rows = await getDb().select().from(permitInspections).where(and(...conds)).orderBy(asc(permitInspections.scheduledAt))
+    return rows.map(inspectionToContract)
+  }
+
+  async scheduleInspection(input: PermitInspectionScheduleInput): Promise<PermitInspection> {
+    const v = parse(PermitInspectionScheduleInputSchema, input)
+    assertSameTenant(this.tenantResolver, v.organizationId)
+    const permit = await this.get(v.permitId, v.organizationId)
+    if (!permit) throw new Error('Permit not found')
+    if (permit.status !== 'issued' && permit.status !== 'inspections_in_progress') {
+      throw new Error('Invalid inspection: inspections are scheduled on issued permits (this one is ' + permit.status + ')')
+    }
+    return await withAudit(async ({ tx, audit }) => {
+      const [row] = await tx.insert(permitInspections).values({
+        organizationId: v.organizationId,
+        permitId: v.permitId,
+        inspectionType: v.inspectionType,
+        scheduledAt: new Date(v.scheduledAt),
+        inspector: v.inspector ?? null,
+      }).returning()
+      if (permit.status === 'issued') {
+        await tx.update(permits).set({ status: 'inspections_in_progress', updatedAt: new Date() })
+          .where(and(eq(permits.id, v.permitId), eq(permits.organizationId, v.organizationId)))
+        await audit.record({ organizationId: v.organizationId, entityType: 'permit', entityId: v.permitId, action: 'state_change', actorUserId: this.actor(), before: { status: 'issued' }, after: { status: 'inspections_in_progress' } })
+      }
+      await audit.record({ organizationId: v.organizationId, entityType: 'permit_inspection', entityId: row!.id, action: 'create', actorUserId: this.actor(), after: { permitId: v.permitId, inspectionType: v.inspectionType } })
+      return inspectionToContract(row!)
+    })
+  }
+
+  async recordInspectionResult(input: PermitInspectionResultInput): Promise<PermitInspection> {
+    const v = parse(PermitInspectionResultInputSchema, input)
+    assertSameTenant(this.tenantResolver, v.organizationId)
+    return await withAudit(async ({ tx, audit }) => {
+      const [row] = await tx.update(permitInspections).set({
+        result: v.result,
+        resultNote: v.note ?? null,
+        recordedAt: new Date(),
+        recordedByUserId: this.actor() ?? null,
+        updatedAt: new Date(),
+      }).where(and(eq(permitInspections.id, v.id), eq(permitInspections.organizationId, v.organizationId), isNull(permitInspections.deletedAt))).returning()
+      if (!row) throw new Error('Permit inspection not found')
+      await audit.record({ organizationId: v.organizationId, entityType: 'permit_inspection', entityId: v.id, action: 'update', actorUserId: this.actor(), after: { result: v.result } })
+      return inspectionToContract(row)
+    })
   }
 
   async listJurisdictions(organizationId: string): Promise<Jurisdiction[]> {

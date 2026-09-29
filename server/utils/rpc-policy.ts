@@ -158,12 +158,14 @@ export const RPC_POLICY: Record<string, Record<string, RpcRule>> = {
   // WP-X2 / ED-036: people directory; contacts are the property join.
   person: {
     list: staff, get: staff, findByEmail: staff, listProperties: staff,
-    create: staffWrite, update: staffWrite, attachToProperty: staffWrite, softDelete: admin,
+    // AD-16: field staff read the people directory; manager+ edit it.
+    create: admin, update: admin, attachToProperty: admin, softDelete: admin,
   },
-  // WP-X2 / ED-039: permits are field-editable; the jurisdiction catalog is admin-owned.
+  // WP-X2 / ED-039 / ED-061: AD-19 permits are manager+ to edit; field staff read them.
   permit: {
-    list: staff, get: staff, listJurisdictions: staff,
-    create: staffWrite, update: staffWrite, linkWorkOrder: staffWrite, unlinkWorkOrder: staffWrite, softDelete: admin,
+    list: staff, get: staff, listJurisdictions: staff, listInspections: staff,
+    create: admin, update: admin, linkWorkOrder: admin, unlinkWorkOrder: admin, softDelete: admin,
+    scheduleInspection: admin, recordInspectionResult: admin,
     upsertJurisdiction: admin, deleteJurisdiction: admin,
   },
   // WP-X2 / ED-00D: staff sign anything in the org; homeowners only their own

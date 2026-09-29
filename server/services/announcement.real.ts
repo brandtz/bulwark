@@ -15,6 +15,7 @@ import {
   type AnnouncementUpsertInput,
   type IAnnouncementService,
 } from '../../shared/contracts/announcement'
+import { UuidSchema } from '../../shared/contracts/_shared'
 import { users } from '../db/schema/users'
 import { log } from '../utils/logger'
 import { ForbiddenError, resolveActorUserId, type TenantResolver } from './_tenant'
@@ -69,6 +70,10 @@ export class RealAnnouncementService implements IAnnouncementService {
   }
 
   async dismiss(id: string): Promise<void> {
+    if (!UuidSchema.safeParse(id).success) throw new Error('Invalid announcement id')
+    const [live] = await getDb().select({ id: platformAnnouncements.id }).from(platformAnnouncements)
+      .where(and(eq(platformAnnouncements.id, id), isNull(platformAnnouncements.deletedAt))).limit(1)
+    if (!live) throw new Error('Announcement not found')
     await getDb().insert(announcementDismissals).values({ announcementId: id, userId: this.user() }).onConflictDoNothing()
   }
 

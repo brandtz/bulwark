@@ -181,6 +181,7 @@ jobs:
       JWT_SECRET: ci-only-jwt-secret-32char-min-aaaaaaaaaa
       BULWARK_PDF_STUB: '1'
       BULWARK_E2E_SERVER_COMMAND: node .output/server/index.mjs
+      BULWARK_PLATFORM_ADMIN_EMAILS: sasha@bulwark.platform
       R2_ACCOUNT_ID: ci
       R2_ACCESS_KEY_ID: bulwarkci
       R2_SECRET_ACCESS_KEY: bulwarkci-secret

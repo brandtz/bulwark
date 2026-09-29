@@ -99,6 +99,17 @@ d('RealQuoteService (E11-S7)', () => {
     await expect(svc.markAccepted(q.id, orgId)).rejects.toThrow(/sent/i)
   })
 
+  it('hiddenTiers round-trips and survives a revision; at least one tier stays shown (WP-X2 / ED-047)', async () => {
+    const svc = new RealQuoteService()
+    const q = await svc.create({ ...baseInput(), tier: 'better', hiddenTiers: ['good', 'best'] })
+    expect((await svc.get(q.id, orgId))!.hiddenTiers).toEqual(['good', 'best'])
+    const rev = await svc.revise(q.id, orgId)
+    expect(rev.hiddenTiers).toEqual(['good', 'best'])
+    await expect(svc.create({ ...baseInput(), tier: 'better', hiddenTiers: ['better'] })).rejects.toThrow(/own tier cannot be hidden/u)
+    await expect(svc.create({ ...baseInput(), hiddenTiers: ['custom'] })).rejects.toThrow(/own tier cannot be hidden/u)
+    await expect(svc.create({ ...baseInput(), tier: 'best', hiddenTiers: ['good', 'good'] })).rejects.toThrow(/must not repeat/u)
+  })
+
   it('markAccepted() flows from sent to accepted', async () => {
     const svc = new RealQuoteService()
     const q = await svc.create(baseInput())

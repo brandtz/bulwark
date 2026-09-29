@@ -28,6 +28,7 @@ import type {
   QuoteStatus,
   QuoteRejectedReasonCode,
 } from '../contracts/quote'
+import { hiddenTiersError } from '../contracts/quote'
 import { computeQuoteTotals } from '../utils/money'
 import { assertSameTenant, type TenantResolver } from './tenant'
 import { compareNewestFirst, pageRows } from '../utils/pagination'
@@ -81,6 +82,8 @@ export class MockQuoteService implements IQuoteService {
 
   async create(input: QuoteCreateInput): Promise<Quote> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    const tiersErr = hiddenTiersError(input.tier, input.hiddenTiers)
+    if (tiersErr) throw new Error(tiersErr)
     const now = nowIso()
     const totals = computeQuoteTotals(input.lineItems, input.markupPercent, input.taxPercent)
     const status: QuoteStatus = 'draft'

@@ -1002,8 +1002,7 @@
       "create": [
         "super_admin",
         "org_admin",
-        "org_manager",
-        "field"
+        "org_manager"
       ],
       "deleteJurisdiction": [
         "super_admin",
@@ -1020,10 +1019,16 @@
       "linkWorkOrder": [
         "super_admin",
         "org_admin",
-        "org_manager",
-        "field"
+        "org_manager"
       ],
       "list": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
+      "listInspections": [
         "super_admin",
         "org_admin",
         "org_manager",
@@ -1037,6 +1042,16 @@
         "field",
         "viewer"
       ],
+      "recordInspectionResult": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
+      "scheduleInspection": [
+        "super_admin",
+        "org_admin",
+        "org_manager"
+      ],
       "softDelete": [
         "super_admin",
         "org_admin",
@@ -1045,14 +1060,12 @@
       "unlinkWorkOrder": [
         "super_admin",
         "org_admin",
-        "org_manager",
-        "field"
+        "org_manager"
       ],
       "update": [
         "super_admin",
         "org_admin",
-        "org_manager",
-        "field"
+        "org_manager"
       ],
       "upsertJurisdiction": [
         "super_admin",
@@ -1064,14 +1077,12 @@
       "attachToProperty": [
         "super_admin",
         "org_admin",
-        "org_manager",
-        "field"
+        "org_manager"
       ],
       "create": [
         "super_admin",
         "org_admin",
-        "org_manager",
-        "field"
+        "org_manager"
       ],
       "findByEmail": [
         "super_admin",
@@ -1109,8 +1120,7 @@
       "update": [
         "super_admin",
         "org_admin",
-        "org_manager",
-        "field"
+        "org_manager"
       ]
     },
     "program": {

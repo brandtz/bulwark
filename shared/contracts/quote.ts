@@ -154,8 +154,12 @@ export const QuoteSchema = z
     rejectedReasonCode: QuoteRejectedReasonCodeSchema.nullable().optional(),
     /** Notes visible on the customer-facing quote PDF. */
     customerVisibleNotes: z.string().max(2000).nullable().optional(),
-    /** WP-X2 / ED-047: tiers hidden on this quote version (remembered across revisions). */
-    hiddenTiers: z.array(QuoteTierSchema).max(4).optional(),
+    /**
+     * WP-X2 / ED-047: tiers hidden on this quote version (remembered across
+     * revisions). At least one tier stays shown: never the quote's own tier,
+     * no duplicates (see `hiddenTiersError`). Editing at send time is WP-B5.
+     */
+    hiddenTiers: z.array(QuoteTierSchema).max(3).optional(),
   })
   .merge(AuditFieldsSchema)
 export type Quote = z.infer<typeof QuoteSchema>
@@ -176,6 +180,14 @@ export const QuoteCreateInputSchema = QuoteSchema.omit({
   deletedAt: true,
 })
 export type QuoteCreateInput = z.infer<typeof QuoteCreateInputSchema>
+
+/** AD-32: a quote must keep at least one tier visible. Error message or null. */
+export function hiddenTiersError(tier: QuoteTier | undefined, hidden: readonly QuoteTier[] | undefined): string | null {
+  if (!hidden?.length) return null
+  if (new Set(hidden).size !== hidden.length) return 'Invalid quote: hidden tiers must not repeat'
+  if (hidden.includes(tier ?? 'custom')) return "Invalid quote: the quote's own tier cannot be hidden (at least one tier must be shown)"
+  return null
+}
 
 export const QuoteListInputSchema = PaginationInputSchema.extend({
   organizationId: UuidSchema,

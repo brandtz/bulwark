@@ -24,6 +24,7 @@ import type {
   QuoteListOutput,
   QuoteRejectedReasonCode,
 } from '../../shared/contracts/quote'
+import { hiddenTiersError } from '../../shared/contracts/quote'
 import { computeQuoteTotals } from '../../shared/utils/money'
 import { allocateDocumentNumber, withNumberRetry } from './_numbering'
 import { keysetCursor, pageWindow } from './_pagination'
@@ -118,6 +119,8 @@ export class RealQuoteService implements IQuoteService {
 
   async create(input: QuoteCreateInput): Promise<Quote> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    const tiersErr = hiddenTiersError(input.tier, input.hiddenTiers)
+    if (tiersErr) throw new Error(tiersErr)
     const totals = computeQuoteTotals(input.lineItems, input.markupPercent, input.taxPercent)
     const format = await this.quoteNumberFormat(input.organizationId)
     return await withNumberRetry(() => withAudit(async ({ tx, audit }) => {

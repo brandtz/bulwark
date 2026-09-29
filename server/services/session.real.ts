@@ -5,9 +5,11 @@
  * # Decisions
  *   - The cookie carries the row id (`sessionId`). A cookie without one (issued
  *     before ED-015) keeps working until it expires; it just is not listed.
- *   - Revocation is checked where the cookie is read (the H3 adapter's
- *     getActiveUserId), so every RPC, including currentUser, sees a revoked
- *     session as signed out.
+ *   - Revocation is checked by server/middleware/05.session-revocation.ts on
+ *     every /api request that carries the session cookie, before any handler
+ *     reads it, so every RPC (including currentUser) and the direct /api routes
+ *     see a revoked session as signed out. Page SSR is not gated; its data
+ *     fetches go through /api and are.
  *   - Reasons: user (signed out / revoked from the list), password_change,
  *     password_reset, replaced (a new sign-in in the same browser), admin.
  */

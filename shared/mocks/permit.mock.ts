@@ -1,18 +1,27 @@
 /**
- * shared/mocks/permit.mock.ts — MockPermitService (WP-X2, ED-039). Same rules
- * as the real service (validatePermitState, unique jurisdiction names,
- * delete-in-use guard), in memory. Work-order/property consistency is not
- * checked here (no cross-mock lookup); the real service enforces it.
+ * shared/mocks/permit.mock.ts — MockPermitService (WP-X2, ED-039, ED-061). Same
+ * rules as the real service (validatePermitState, the transition table,
+ * inspection scheduling/results, unique jurisdiction names, delete-in-use
+ * guard), in memory. Work-order/property/attachment consistency is not checked
+ * here (no cross-mock lookup); the real service enforces it.
  */
 import {
   PermitCreateInputSchema,
+  PermitInspectionListInputSchema,
+  PermitInspectionResultInputSchema,
+  PermitInspectionScheduleInputSchema,
   PermitListInputSchema,
   PermitUpdateInputSchema,
+  permitTransitionError,
   validatePermitState,
   type IPermitService,
   type Jurisdiction,
   type Permit,
   type PermitCreateInput,
+  type PermitInspection,
+  type PermitInspectionListInput,
+  type PermitInspectionResultInput,
+  type PermitInspectionScheduleInput,
   type PermitListInput,
   type PermitUpdateInput,
 } from '../contracts/permit'
@@ -20,8 +29,15 @@ import { assertSameTenant, type TenantResolver } from './tenant'
 
 const now = () => new Date().toISOString()
 
+function parse<T>(schema: { safeParse(v: unknown): { success: true, data: T } | { success: false, error: { issues: Array<{ path: Array<string | number>, message: string }> } } }, input: unknown): T {
+  const r = schema.safeParse(input)
+  if (!r.success) throw new Error(`Invalid permit input: ${r.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`)
+  return r.data
+}
+
 export class MockPermitService implements IPermitService {
   private permits: Permit[] = []
+  private inspections: PermitInspection[] = []
   private jurisdictions: Jurisdiction[] = []
 
   constructor(private readonly tenantResolver?: TenantResolver) {}
@@ -31,7 +47,7 @@ export class MockPermitService implements IPermitService {
   }
 
   async list(input: PermitListInput): Promise<Permit[]> {
-    const v = PermitListInputSchema.parse(input)
+    const v = parse(PermitListInputSchema, input)
     assertSameTenant(this.tenantResolver, v.organizationId)
     return this.live(v.organizationId).filter((p) =>
       (!v.propertyId || p.propertyId === v.propertyId)
@@ -46,7 +62,7 @@ export class MockPermitService implements IPermitService {
   }
 
   async create(input: PermitCreateInput): Promise<Permit> {
-    const v = PermitCreateInputSchema.parse(input)
+    const v = parse(PermitCreateInputSchema, input)
     assertSameTenant(this.tenantResolver, v.organizationId)
     const row: Permit = {
       id: globalThis.crypto.randomUUID(),
@@ -56,11 +72,13 @@ export class MockPermitService implements IPermitService {
       jurisdictionOther: v.jurisdictionOther ?? null,
       permitNumber: v.permitNumber ?? null,
       kind: v.kind ?? 'building',
-      status: v.status ?? 'draft',
+      scope: v.scope ?? null,
+      status: v.status ?? 'applied',
       appliedAt: v.appliedAt ?? null,
       issuedAt: v.issuedAt ?? null,
       expiresAt: v.expiresAt ?? null,
       notes: v.notes ?? null,
+      pdfAttachmentId: v.pdfAttachmentId ?? null,
       workOrderIds: [...new Set(v.workOrderIds)],
       createdAt: now(),
       updatedAt: now(),
@@ -74,15 +92,15 @@ export class MockPermitService implements IPermitService {
   }
 
   async update(input: PermitUpdateInput): Promise<Permit> {
-    const v = PermitUpdateInputSchema.parse(input)
+    const v = parse(PermitUpdateInputSchema, input)
     assertSameTenant(this.tenantResolver, v.organizationId)
     const row = this.live(v.organizationId).find((p) => p.id === v.id)
     if (!row) throw new Error('Permit not found')
     const next = { ...row }
-    for (const k of ['jurisdictionId', 'jurisdictionOther', 'permitNumber', 'kind', 'status', 'appliedAt', 'issuedAt', 'expiresAt', 'notes'] as const) {
+    for (const k of ['jurisdictionId', 'jurisdictionOther', 'permitNumber', 'kind', 'scope', 'status', 'appliedAt', 'issuedAt', 'expiresAt', 'notes', 'pdfAttachmentId'] as const) {
       if (v[k] !== undefined) (next as Record<string, unknown>)[k] = v[k]
     }
-    const err = validatePermitState(next)
+    const err = permitTransitionError(row.status, next.status) ?? validatePermitState(next)
     if (err) throw new Error(err)
     Object.assign(row, next, { updatedAt: now() })
     return row
@@ -105,6 +123,52 @@ export class MockPermitService implements IPermitService {
     const row = await this.get(input.permitId, input.organizationId)
     if (!row) throw new Error('Permit not found')
     row.workOrderIds = row.workOrderIds.filter((w) => w !== input.workOrderId)
+    return row
+  }
+
+  async listInspections(input: PermitInspectionListInput): Promise<PermitInspection[]> {
+    const v = parse(PermitInspectionListInputSchema, input)
+    assertSameTenant(this.tenantResolver, v.organizationId)
+    const permitIds = new Set(this.live(v.organizationId).filter((p) => !v.propertyId || p.propertyId === v.propertyId).map((p) => p.id))
+    return this.inspections
+      .filter((i) => i.organizationId === v.organizationId && !i.deletedAt && permitIds.has(i.permitId) && (!v.permitId || i.permitId === v.permitId))
+      .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
+  }
+
+  async scheduleInspection(input: PermitInspectionScheduleInput): Promise<PermitInspection> {
+    const v = parse(PermitInspectionScheduleInputSchema, input)
+    assertSameTenant(this.tenantResolver, v.organizationId)
+    const permit = await this.get(v.permitId, v.organizationId)
+    if (!permit) throw new Error('Permit not found')
+    if (permit.status !== 'issued' && permit.status !== 'inspections_in_progress') {
+      throw new Error('Invalid inspection: inspections are scheduled on issued permits (this one is ' + permit.status + ')')
+    }
+    const row: PermitInspection = {
+      id: globalThis.crypto.randomUUID(),
+      organizationId: v.organizationId,
+      permitId: v.permitId,
+      inspectionType: v.inspectionType,
+      scheduledAt: v.scheduledAt,
+      inspector: v.inspector ?? null,
+      result: null,
+      resultNote: null,
+      recordedAt: null,
+      recordedByUserId: null,
+      createdAt: now(),
+      updatedAt: now(),
+      deletedAt: null,
+    }
+    this.inspections.push(row)
+    if (permit.status === 'issued') Object.assign(permit, { status: 'inspections_in_progress', updatedAt: now() })
+    return row
+  }
+
+  async recordInspectionResult(input: PermitInspectionResultInput): Promise<PermitInspection> {
+    const v = parse(PermitInspectionResultInputSchema, input)
+    assertSameTenant(this.tenantResolver, v.organizationId)
+    const row = this.inspections.find((i) => i.id === v.id && i.organizationId === v.organizationId && !i.deletedAt)
+    if (!row) throw new Error('Permit inspection not found')
+    Object.assign(row, { result: v.result, resultNote: v.note ?? null, recordedAt: now(), recordedByUserId: this.tenantResolver?.()?.userId ?? null, updatedAt: now() })
     return row
   }
 

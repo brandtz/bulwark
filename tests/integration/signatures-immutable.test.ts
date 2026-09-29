@@ -96,8 +96,10 @@ d('signatures (WP-X2 / ED-00D)', () => {
   it('UPDATE and DELETE are rejected by the database', async () => {
     const sig = await as(id.staff).create(input(id.quoteA, 'immutable'))
     const db = getDb()
-    await expect(db.update(signatures).set({ signerName: 'Forged' }).where(eq(signatures.id, sig.id))).rejects.toThrow()
-    await expect(db.delete(signatures).where(eq(signatures.id, sig.id))).rejects.toThrow()
+    // drizzle wraps the Postgres error; the trigger's message is on `cause`.
+    const reason = (e: unknown) => String((e as { cause?: { message?: string } }).cause?.message ?? (e as Error).message)
+    expect(reason(await db.update(signatures).set({ signerName: 'Forged' }).where(eq(signatures.id, sig.id)).then(() => null, (e: unknown) => e))).toMatch(/append-only \(UPDATE rejected\)/u)
+    expect(reason(await db.delete(signatures).where(eq(signatures.id, sig.id)).then(() => null, (e: unknown) => e))).toMatch(/append-only \(DELETE rejected\)/u)
     const [row] = await db.select().from(signatures).where(eq(signatures.id, sig.id))
     expect(row!.signerName).toBe('Pat Owner')
   })
