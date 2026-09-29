@@ -1,5 +1,6 @@
 // @ts-check
 import withNuxt from './.nuxt/eslint.config.mjs'
+// @ts-expect-error eslint-plugin-security ships no type declarations
 import security from 'eslint-plugin-security'
 
 /**
@@ -9,6 +10,7 @@ import security from 'eslint-plugin-security'
  * timingSafeEqual by convention. tests/unit/sast-gate.test.ts proves a planted
  * violation fails lint.
  */
+/** @type {import('eslint').Linter.RulesRecord} */
 export const SECURITY_RULES = {
   'security/detect-eval-with-expression': 'error',
   'security/detect-non-literal-require': 'error',

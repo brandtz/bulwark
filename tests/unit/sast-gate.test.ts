@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest'
 import { ESLint } from 'eslint'
 import tsParser from '@typescript-eslint/parser'
+// @ts-expect-error eslint-plugin-security ships no type declarations
 import security from 'eslint-plugin-security'
 import { SECURITY_RULES } from '../../eslint.config.mjs'
 import { TradeCreateInputSchema } from '../../shared/contracts/trade'
