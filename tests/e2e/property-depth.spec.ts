@@ -65,12 +65,22 @@ test.describe('Property depth happy path (W2-1)', () => {
       '53DE0000000C49444154789C636060000000040001271D2A990000000049454E44AE426082',
       'hex',
     )
+    const tiles = page.getByTestId('photo-tile')
+    await page.waitForLoadState('networkidle')
+    const before = await tiles.count()
     await page.getByTestId('photo-upload-input').setInputFiles({
       name: 'sample.png',
       mimeType: 'image/png',
       buffer: png,
     })
-    await expect(page.getByTestId('photo-tile').first()).toBeVisible({ timeout: 10000 })
+    // WP-L02: a new tile appears and its image really loads from a signed URL
+    // (presign → PUT → finalize → persisted key → signed read), not a data: URL.
+    await expect(tiles).toHaveCount(before + 1, { timeout: 15000 })
+    const imgs = tiles.locator('img')
+    await expect.poll(async () => imgs.evaluateAll((els) => els.every((el) => {
+      const img = el as HTMLImageElement
+      return !img.src.startsWith('data:') && !img.src.includes('sprite.svg') && img.complete && img.naturalWidth > 0
+    })), { timeout: 10000 }).toBe(true)
 
     // ── Overview reflects the depth ─────────────────────────────────
     await page.locator('[data-depth-tab="overview"]').click()
