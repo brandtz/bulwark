@@ -323,6 +323,11 @@ export class RealPermitService implements IPermitService {
   async recordInspectionResult(input: PermitInspectionResultInput): Promise<PermitInspection> {
     const v = parse(PermitInspectionResultInputSchema, input)
     assertSameTenant(this.tenantResolver, v.organizationId)
+    // A result may be corrected (re-recorded), but not on an inspection whose permit is gone.
+    const [live] = await getDb().select({ id: permitInspections.id }).from(permitInspections)
+      .innerJoin(permits, eq(permits.id, permitInspections.permitId))
+      .where(and(eq(permitInspections.id, v.id), eq(permitInspections.organizationId, v.organizationId), isNull(permitInspections.deletedAt), isNull(permits.deletedAt))).limit(1)
+    if (!live) throw new Error('Permit inspection not found')
     return await withAudit(async ({ tx, audit }) => {
       const [row] = await tx.update(permitInspections).set({
         result: v.result,
