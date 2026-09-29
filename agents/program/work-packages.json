@@ -255,7 +255,7 @@
     {
       "id": "WP-Q3",
       "title": "Real-backend e2e green-up (20 pre-existing chromium failures)",
-      "lane": "QA", "phase": "1-shared", "status": "review", "size": "M", "owner": "claude-code (2026-09-27)", "branch": "main (sliced commits)",
+      "lane": "QA", "phase": "1-shared", "status": "in-progress", "size": "M", "owner": "claude-code (2026-09-27)", "branch": "wp/WP-Q3-release-ci",
       "goal": "The CI e2e job runs in mock mode, so real-backend regressions went unnoticed. Make the chromium suite green against the real backend and a built server, then add a real-backend e2e CI job.",
       "scope": ["Triage and fix the 20 failures measured on 2026-09-27 at 70bf04a (identical before and after WP-L07): dashboard charts, field check-in, launch/quote happy paths, inspection-dynamic, invoice partial payments, invoices-list (seed dates drift: sent invoices age into overdue), property-depth, quote preview/revise/tiers/list, reports CSV, settings inspection-templates/numbering/trades, storage-presign (dev fs upload route on a built server), work-order-create", "Make seed dates relative to 'now' where specs depend on status buckets", "Add a CI job running the real-backend chromium suite on Postgres + built server"],
       "outOfScope": ["Screen-contract per-state specs (SCR WPs)"],
