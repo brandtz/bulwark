@@ -4,6 +4,7 @@
  * the notification badge keeps polling. Policy is restored after each test.
  */
 import { test, expect, type BrowserContext } from '@playwright/test'
+import { TOTP } from 'otpauth'
 import { signIn } from './_helpers'
 
 const BASE = 'http://localhost:3000'
@@ -16,21 +17,40 @@ async function setPolicy(admin: BrowserContext, organizationId: string, patch: R
 test.describe('organization security policy', () => {
   let admin: BrowserContext
   let organizationId: string
+  let adminUserId: string
+  let adminTotp: TOTP | undefined
 
   test.beforeEach(async ({ browser }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'policy enforcement is checked once')
     test.skip(process.env.BULWARK_BACKEND !== 'real', 'enforced by the real RPC dispatcher')
     admin = await browser.newContext()
+    adminTotp = undefined
     await signIn(admin, 'drew@bulwark.demo')
-    organizationId = (await (await admin.request.post(`${BASE}/api/services/auth/currentUser`, { data: { args: [] } })).json()).activeOrganizationId
+    const current = await (await admin.request.post(`${BASE}/api/services/auth/currentUser`, { data: { args: [] } })).json()
+    organizationId = current.activeOrganizationId
+    adminUserId = current.userId
   })
 
   test.afterEach(async () => {
     if (!admin) return
     // The admin's own session may have idled out under the policy being tested.
-    await signIn(admin, 'drew@bulwark.demo')
-    await setPolicy(admin, organizationId, { mfaMode: 'optional', idleMinutes: null })
-    await admin.close()
+    try {
+      // An enrolled admin must complete MFA when renewing an expired session.
+      if (adminTotp) {
+        const login = await admin.request.post(`${BASE}/api/services/auth/login`, { data: { email: 'drew@bulwark.demo', password: 'BulwarkDemo!1' } })
+        expect(login.ok(), await login.text()).toBe(true)
+        const challenge = await login.json()
+        const verified = await admin.request.post(`${BASE}/api/services/auth/verifyMfa`, { data: { args: [challenge.mfaToken, adminTotp.generate()] } })
+        expect(verified.ok(), await verified.text()).toBe(true)
+      } else {
+        await signIn(admin, 'drew@bulwark.demo')
+      }
+      await setPolicy(admin, organizationId, { mfaMode: 'optional', idleMinutes: null })
+      if (adminTotp) {
+        const disabled = await admin.request.post(`${BASE}/api/services/mfa/disable`, { data: { args: [adminUserId, adminTotp.generate()] } })
+        expect(await disabled.json()).toEqual({ disabled: true })
+      }
+    } finally { await admin.close() }
   })
 
   test('admin edits the policy on /settings/security', async () => {
@@ -45,6 +65,13 @@ test.describe('organization security policy', () => {
   })
 
   test('required MFA routes an unenrolled member to enrolment and refuses other calls', async ({ page }) => {
+    // The policy applies to its administrator too. Enrol before requiring MFA
+    // so teardown never relies on the removed unenrolled-admin bypass.
+    const setup = await admin.request.post(`${BASE}/api/services/mfa/setupTotp`, { data: { args: [adminUserId] } })
+    expect(setup.ok(), await setup.text()).toBe(true)
+    adminTotp = new TOTP({ secret: (await setup.json()).secret, digits: 6, period: 30 })
+    const confirmed = await admin.request.post(`${BASE}/api/services/mfa/confirmTotp`, { data: { args: [adminUserId, adminTotp.generate()] } })
+    expect(await confirmed.json()).toEqual({ confirmed: true })
     await setPolicy(admin, organizationId, { mfaMode: 'required' })
     await signIn(page.context(), 'matthew@bulwark.demo')
     const denied = await page.request.post(`${BASE}/api/services/property/list`, { data: { args: [{ organizationId, page: 1, pageSize: 5 }] } })

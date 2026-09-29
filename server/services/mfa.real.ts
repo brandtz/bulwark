@@ -9,9 +9,9 @@
  *     hand-roll HMAC/Base32.
  *
  * # Decisions (ADR-0024-totp-mfa, ADR-0008)
- *   - **Soft-delete on disable.** We set `deleted_at` on the user_mfa
- *     row + hard-delete unused backup codes. Audit history is
- *     preserved on the row; an admin can see a user disabled MFA.
+ *   - **Disable marks the row deleted.** We set `deleted_at` on the
+ *     user_mfa row and backup codes. A later enrolment reuses that row
+ *     with a new secret because `(user_id, kind)` is unique.
  *   - **`generateBackupCodes` deletes unused rows first**, then
  *     inserts ten fresh — matches the contract guarantee that the
  *     prior set is invalidated.
@@ -115,9 +115,19 @@ export class RealMfaService implements IMfaService {
     const secret = new Secret({ size: 20 }).base32
     const enc = encryptSecret(secret)
 
-    // Replace any prior unconfirmed enrolment for the same kind.
-    await db.delete(userMfa).where(and(eq(userMfa.userId, userId), eq(userMfa.kind, 'totp'), isNull(userMfa.confirmedAt)))
-    await db.insert(userMfa).values({ userId, kind: 'totp', secretEncrypted: enc })
+    // The unique key covers disabled rows too. Reuse the row when a user
+    // enrols again; inserting a second row fails after MFA is disabled.
+    const [existing] = await db.select({ confirmedAt: userMfa.confirmedAt, deletedAt: userMfa.deletedAt })
+      .from(userMfa).where(and(eq(userMfa.userId, userId), eq(userMfa.kind, 'totp'))).limit(1)
+    if (existing?.confirmedAt && !existing.deletedAt) {
+      throw new ForbiddenError('Disable MFA before enrolling a new authenticator')
+    }
+    if (existing) {
+      await db.update(userMfa).set({ secretEncrypted: enc, confirmedAt: null, deletedAt: null })
+        .where(and(eq(userMfa.userId, userId), eq(userMfa.kind, 'totp')))
+    } else {
+      await db.insert(userMfa).values({ userId, kind: 'totp', secretEncrypted: enc })
+    }
 
     const otpauthUrl = buildTotp(secret, label).toString()
     const qrCodeDataUrl = await renderQr(otpauthUrl)

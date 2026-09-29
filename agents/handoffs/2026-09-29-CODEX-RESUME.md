@@ -23,6 +23,13 @@ Focused review verdict: SAFE-TO-MERGE; no verified P0/P1 in the scan patch. This
 
 ## Next work
 
+### Release-provider audit (2026-09-29)
+
+- Neon MCP, Vercel MCP, and Render MCP are connected in Codex. Neon project `plain-haze-20101656`, production branch `br-broad-queen-akysmvk8` is ready; `drizzle.__drizzle_migrations` has row id 24 (journal index 23 = migration 0023). Production has one organization and one user. `/api/ready` reports ready, migrationsOk, and configOk.
+- Vercel Bulwark production deployment is READY at main commit `89f50ee`. Production environment key list lacks `BULWARK_APP_URL` and `BULWARK_PLATFORM_ADMIN_EMAILS`; latter intentionally prevents platform-wide announcements until an operator is configured.
+- Render Bulwark background worker `srv-d7tdk5km0tmc73cktnkg` is **not operational**. Its service config uses build `corepack enable && pnpm install --frozen-lockfile` and start `no-op`, unlike `render.yaml` (`pnpm install --frozen-lockfile`, `pnpm run worker:jobs`). Recent auto deploys all fail immediately: `EROFS: read-only file system, unlink '/usr/bin/pnpm'` during `corepack enable`. The Render MCP has no update-service-settings tool. Windows Computer Use native pipe was unavailable when tried. Correct the existing service build/start commands in Render, verify its required DB/R2 environment, deploy and check worker logs before release. Do not create a duplicate Blueprint worker accidentally.
+- Current branch Q3 local changes include a real MFA re-enrollment fix: the `user_mfa` unique key covers disabled rows. Setup now reuses that row with a new secret; database integration test passes. A built-server browser run before the fix passed 4/5 security/session/template tests, with only this MFA defect failing. A fresh build is underway for the end-to-end rerun.
+
 1. Fix browser-test MFA fixture isolation and reproduce the remaining real failures; retain full failure counts above as baseline.
 2. Finish WP-X3 geo token proxy, no-provider UI evidence, scope notes and full acceptance review. Existing geo.test.ts already tests the none driver at service level; the outstanding evidence is UI/acceptance coverage.
 3. Continue inherited L02/L03/L06/L07/L08/Q2/Q3 review list below, then A2. Treat checked inherited hotfixes as handoff claims unless separately verified.

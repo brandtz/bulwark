@@ -15,9 +15,24 @@
  *     a blank screen, which is what the role middleware guarantees
  *     for any admin-only settings page.
  */
-import { test, expect } from '@playwright/test'
-import { signInAsAdmin, signInAsField, signOut } from './_helpers'
+import { test, expect, type Page } from '@playwright/test'
+import { signInAsAdmin, signInAsField, signOut, waitForHydration } from './_helpers'
 import { reseedRealBackend } from './_reseed'
+
+// Every editing test owns its fixture. Browser mock state is intentionally
+// fresh on page load, and real tests must also work when selected in isolation.
+async function createProgram(page: Page, slug: string, name: string) {
+  await page.goto('/settings/programs')
+  await waitForHydration(page)
+  await page.getByTestId('programs-new-button').click()
+  const modal = page.getByRole('dialog')
+  await modal.getByTestId('program-form-name').locator('input').fill(name)
+  await modal.getByTestId('program-form-name').locator('input').blur()
+  await modal.getByTestId('program-form-slug').locator('input').fill(slug)
+  await modal.getByTestId('program-form-kind').locator('select').selectOption('service_program')
+  await modal.getByTestId('program-form-save').click()
+  await expect(page.getByTestId(`program-edit-${slug}`)).toBeVisible()
+}
 
 test.describe('Settings → Programs (Wave 1A / EH-A)', () => {
   test.beforeAll(async () => {
@@ -62,10 +77,9 @@ test.describe('Settings → Programs (Wave 1A / EH-A)', () => {
   })
 
   test('admin renames the custom program', async ({ page }) => {
-    await page.goto('/settings/programs')
-    await page.waitForLoadState('networkidle')
-
-    await page.getByTestId('program-edit-roof-replacement').click()
+    const slug = `rename-${Date.now()}`
+    await createProgram(page, slug, 'Rename fixture')
+    await page.getByTestId(`program-edit-${slug}`).click()
     const modal = page.getByRole('dialog')
     await expect(modal).toBeVisible()
 
@@ -79,15 +93,14 @@ test.describe('Settings → Programs (Wave 1A / EH-A)', () => {
   })
 
   test('admin deactivates the custom program', async ({ page }) => {
-    await page.goto('/settings/programs')
-    await page.waitForLoadState('networkidle')
-
-    await page.getByTestId('program-edit-roof-replacement').click()
+    const slug = `deactivate-${Date.now()}`
+    await createProgram(page, slug, 'Deactivate fixture')
+    await page.getByTestId(`program-edit-${slug}`).click()
     const modal = page.getByRole('dialog')
     await modal.getByTestId('program-form-active').click()
     await modal.getByTestId('program-form-save').click()
 
-    const row = page.getByTestId('program-row').filter({ hasText: 'Roof Replacement Pro' })
+    const row = page.getByTestId('program-row').filter({ hasText: 'Deactivate fixture' })
     await expect(row.getByTestId('program-inactive-badge')).toBeVisible()
   })
 

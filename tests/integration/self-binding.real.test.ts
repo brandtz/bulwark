@@ -6,6 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { eq, inArray } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
+import { TOTP } from 'otpauth'
 import { getDb } from '../../server/db/client'
 import { memberships, users } from '../../server/db/schema/users'
 import { organizations } from '../../server/db/schema/organizations'
@@ -72,6 +73,20 @@ d('self-bound personal data (WP-L07 S7)', () => {
     ]) await expect(call()).rejects.toBeInstanceOf(ForbiddenError)
     await expect(mfa.getStatus(id.alice)).resolves.toMatchObject({ enabled: false })
     await expect(new RealMfaService(() => null).getStatus(id.alice)).rejects.toBeInstanceOf(ForbiddenError)
+  })
+
+  it('MFA: a disabled authenticator can be enrolled again', async () => {
+    const mfa = new RealMfaService(as(id.alice))
+    const first = await mfa.setupTotp(id.alice)
+    const firstCode = new TOTP({ secret: first.secret, digits: 6, period: 30 }).generate()
+    expect(await mfa.confirmTotp(id.alice, firstCode)).toEqual({ confirmed: true })
+    await expect(mfa.setupTotp(id.alice)).rejects.toBeInstanceOf(ForbiddenError)
+    expect(await mfa.disable(id.alice, firstCode)).toEqual({ disabled: true })
+    const second = await mfa.setupTotp(id.alice)
+    expect(second.secret).not.toBe(first.secret)
+    const secondCode = new TOTP({ secret: second.secret, digits: 6, period: 30 }).generate()
+    expect(await mfa.confirmTotp(id.alice, secondCode)).toEqual({ confirmed: true })
+    expect(await mfa.getStatus(id.alice)).toMatchObject({ enabled: true })
   })
 
   it('account: cannot export or delete another user, not even as an org admin', async () => {

@@ -12,9 +12,8 @@
  *   - `confirmed_at` flips from null → timestamp once the user
  *     verifies their first code. Unconfirmed enrolments are pending
  *     and can be replaced by a fresh enroll attempt.
- *   - Soft delete (`deleted_at`) supports `forceMfaReset(userId)` —
- *     an admin can reset a user's MFA from /settings/users without
- *     hard-deleting history.
+ *   - `deleted_at` marks a disabled authenticator. The unique key still
+ *     covers that row, so a later enrolment reuses it with a new secret.
  *
  * # Decision cast down
  *   - Rejected: separate tables per MFA kind. Three identical join
@@ -43,7 +42,7 @@ export const userMfa = pgTable(
     ...auditColumns,
   },
   (t) => ({
-    /** A user can only have one live row per kind. Soft-deleted rows are dropped from the unique via partial index in app logic. */
+    /** One row per user and kind, including disabled authenticators. */
     userKindIdx: uniqueIndex('user_mfa_user_kind_unique').on(t.userId, t.kind),
   }),
 )

@@ -80,7 +80,11 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /tests[\\/]e2e[\\/]screens[\\/]/ },
+    // These specs exercise server-only Postgres/pg-boss endpoints. The mock
+    // lane has neither service; the real Chromium lane runs them in full.
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: process.env.BULWARK_BACKEND === 'mock'
+      ? /tests[\\/]e2e[\\/](screens[\\/]|(?:scheduled-jobs|storage-health)\.spec\.ts$)/
+      : /tests[\\/]e2e[\\/]screens[\\/]/ },
     { name: 'mobile-safari', use: { ...devices['iPhone 13'] }, testIgnore: /tests[\\/]e2e[\\/]screens[\\/]/ },
     { name: 'mobile-chrome', use: { ...devices['Pixel 7'] }, testIgnore: /tests[\\/]e2e[\\/]screens[\\/]/ },
     // Screen-contract suite (tests/e2e/screens) sets its own viewports per test and compares

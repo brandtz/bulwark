@@ -86,7 +86,10 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       await expect(pageCanvas(page)).toHaveCSS('background-color', 'rgb(245, 247, 248)')
       const lightScreenshot = await page.screenshot({ animations: 'disabled' })
 
-      await page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
+      // Theme is owned by the Nuxt preference plugin. Changing the DOM
+      // attribute directly races that plugin and can be overwritten.
+      await page.context().addCookies([{ name: 'bulwark.theme', value: 'dark', url: 'http://localhost:3000', sameSite: 'Lax' }])
+      await page.reload()
       await expect(primary).toHaveCSS('background-color', 'rgb(15, 118, 110)')
       await expect(card).toHaveCSS('background-color', 'rgb(31, 36, 43)')
       await expect(pageCanvas(page)).toHaveCSS('background-color', 'rgb(22, 27, 34)')
@@ -95,7 +98,8 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       expect(Buffer.compare(lightScreenshot, darkScreenshot)).not.toBe(0)
 
       for (const theme of ['light', 'dark'] as const) {
-        await page.evaluate((value) => { document.documentElement.dataset.theme = value }, theme)
+        await page.context().addCookies([{ name: 'bulwark.theme', value: theme, url: 'http://localhost:3000', sameSite: 'Lax' }])
+        await page.reload()
         const expectedCard = theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(31, 36, 43)'
         await expect(card).toHaveCSS('background-color', expectedCard)
         await expect(pageCanvas(page)).toHaveCSS('background-color', theme === 'light' ? 'rgb(245, 247, 248)' : 'rgb(22, 27, 34)')
@@ -104,7 +108,8 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
         for (const [density, height, padding] of [
           ['compact', '32px', '16px'], ['touch', '48px', '20px'], ['comfortable', '40px', '24px'],
         ]) {
-          await densityTarget.evaluate((element, value) => { element.dataset.density = value }, density!)
+          await page.context().addCookies([{ name: 'bulwark.density', value: density!, url: 'http://localhost:3000', sameSite: 'Lax' }])
+          await page.reload()
           await expect(densityTarget).toHaveCSS('--control-h', height!)
           await expect(densityTarget).toHaveCSS('--card-p', padding!)
           await expect(densityTarget).toHaveCSS('--touch-min', density === 'compact' ? '32px' : density === 'touch' ? '48px' : '40px')
