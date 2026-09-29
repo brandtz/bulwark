@@ -91,7 +91,7 @@
     {
       "id": "WP-A2",
       "title": "Restyle existing ui/ primitives to Packet A spec (names preserved)",
-      "lane": "DS", "phase": "0-foundation", "status": "ready", "size": "L",
+      "lane": "DS", "phase": "0-foundation", "status": "in-progress", "size": "L", "owner": "claude-code (2026-09-29)", "branch": "main (sliced commits)",
       "goal": "Every existing Bulwark* primitive matches components/SPEC.md props, variants, states, a11y and tokens; /dev/ui mirrors components/INDEX.html.",
       "scope": [
         "BulwarkButton, Input, Textarea, Select, MultiSelect, Toggle, PassFailToggle, DatePicker, SegmentedControl, SearchField, FilePicker, Card, KpiCard, JobCard, StatusBadge (data-hue driven), Avatar, EmptyState, Skeleton, TableSkeleton, Pagination, Breadcrumbs, Modal (→bottom sheet <768), Drawer, Tabs, Stepper, ToastHost/Toast, SignaturePad, Icon (Lucide set per tokens/ICONS.md), Toggle",
@@ -116,7 +116,7 @@
       ],
       "dependsOn": ["WP-A1"],
       "decisions": [],
-      "agentNotes": "Work component-by-component; commit per component. Preserve existing props (additive) so pages keep compiling; mark removed props @deprecated for one phase. 2026-09-26 (claude-code, from A1 Lighthouse): dark mode fails 4.5:1 for white text on legacy solid semantic fills — BulwarkButton destructive (bg #F0857A) and BulwarkAvatar success/error colors (#6FC594/#F0857A). Restyle these to Packet A (.bw-btn--destructive and avatar tokens) with a dark-safe foreground."
+      "agentNotes": "Work component-by-component; commit per component. Preserve existing props (additive) so pages keep compiling; mark removed props @deprecated for one phase. 2026-09-26 (claude-code, from A1 Lighthouse): dark mode fails 4.5:1 for white text on legacy solid semantic fills — BulwarkButton destructive (bg #F0857A) and BulwarkAvatar success/error colors (#6FC594/#F0857A). Restyle these to Packet A (.bw-btn--destructive and avatar tokens) with a dark-safe foreground. | 2026-09-29 (claude-code): claimed."
     },
     {
       "id": "WP-A3",
@@ -320,7 +320,7 @@
     {
       "id": "WP-X2",
       "title": "People/contacts model, permits, sessions, signatures, announcements, prefs",
-      "lane": "BE", "phase": "2-admin-core", "status": "in-progress", "size": "L", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
+      "lane": "BE", "phase": "2-admin-core", "status": "review", "size": "L", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
       "goal": "Schema + contracts + services for entities the received admin designs need that don't exist.",
       "scope": ["people + contacts join (ED-036) with dedupe migration", "permits + permit_jobs + jurisdictions catalog (ED-039)", "user_sessions (ED-015) + revoke", "signatures immutable table (ED-00D) referenced by inspections, quotes, change orders, deliverables", "platform_announcements (ED-007)", "org_settings.ui_history_days (ED-000); user_prefs (theme, density, trusted devices)", "saved_views.layout_json (ED-013)", "quote_line_items.catalog_item_id nullable + quotes.hidden_tiers (ED-045/047)"],
       "outOfScope": ["UI"],
@@ -330,7 +330,7 @@
       "tests": ["tests/integration/people-contacts.real.test.ts", "tests/integration/permits.real.test.ts", "tests/integration/signatures-immutable.test.ts", "tests/integration/sessions.real.test.ts", "tests/unit/tenant-firewall.test.ts (extend)"],
       "dependsOn": ["WP-X1"],
       "decisions": ["ED-036", "ED-039", "ED-015", "ED-00D", "ED-007", "ED-000", "ED-013", "ED-045", "ED-047"],
-      "agentNotes": "2026-09-28 (claude-code): corrected todo -> ready. WP-X1 is done and all four designs (AD-16, AD-19, SH-31, AD-32) are received, which satisfies registry rule 1. | 2026-09-28 (claude-code): migration 0021 was applied to prod via the Neon MCP (verified on a temporary branch; bookkeeping row recorded). It adds people (with the contacts person_id/is_billing join and a backfill deduped by org + lowercased email, tested), jurisdictions, permits, permit_jobs, user_sessions, append-only signatures, platform_announcements, announcement_dismissals, org_settings.ui_history_days, saved_views.layout_json and quotes.hidden_tiers. Quote line items are JSONB, so catalogItemId is a contract field, not a column. Next: contracts, services, mocks and policy for each."
+      "agentNotes": "2026-09-28 (claude-code): corrected todo -> ready. WP-X1 is done and all four designs (AD-16, AD-19, SH-31, AD-32) are received, which satisfies registry rule 1. | 2026-09-28 (claude-code): migration 0021 was applied to prod via the Neon MCP (verified on a temporary branch; bookkeeping row recorded). It adds people (with the contacts person_id/is_billing join and a backfill deduped by org + lowercased email, tested), jurisdictions, permits, permit_jobs, user_sessions, append-only signatures, platform_announcements, announcement_dismissals, org_settings.ui_history_days, saved_views.layout_json and quotes.hidden_tiers. Quote line items are JSONB, so catalogItemId is a contract field, not a column. Next: contracts, services, mocks and policy for each. | 2026-09-29 (claude-code): contracts, mocks, real services and policy for people, permits, sessions (+ revocation middleware), signatures (0022 append-only trigger) and announcements shipped in 8bbc154 + 1c3b08c; prod migrated to 0022. Gates: typecheck, lint, 723 unit/integration (real), sessions-revoke e2e green; CI real-backend e2e green. Trusted-device lifetime lives in security_policies.trusted_days (ED-056). Awaiting skeptic review."
     },
     {
       "id": "WP-X3",
