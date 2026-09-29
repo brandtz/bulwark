@@ -30,6 +30,7 @@
 // types.
 import type { BulwarkServices } from '../../shared/contracts/services'
 import { RealAuthService, type RealAuthSessionAdapter } from '../services/auth.real'
+import type { SessionUser } from '../../shared/contracts/auth'
 import { RealPropertyService } from '../services/property.real'
 import { RealClientService } from '../services/client.real'
 import { RealAssessmentService } from '../services/assessment.real'
@@ -166,6 +167,18 @@ class H3AuthSessionAdapter implements RealAuthSessionAdapter {
     if (!s.user) return
     const prev = s.user as SessionUserShape
     await setUserSession(this.event, { user: { ...prev, activeOrgOverride: id } }, sessionWriteConfig(prev))
+  }
+}
+
+/**
+ * The signed-in caller (active org + role) for routes outside the RPC
+ * dispatcher, or null. Same resolution as createRealServices.
+ */
+export async function resolveSessionUser(event: Event): Promise<SessionUser | null> {
+  try {
+    return (await new RealAuthService(new H3AuthSessionAdapter(event)).currentUser()) ?? null
+  } catch {
+    return null
   }
 }
 

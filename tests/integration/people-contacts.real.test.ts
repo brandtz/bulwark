@@ -84,6 +84,25 @@ d('people + contacts (WP-X2 / ED-036)', () => {
     await expect(persons.list({ organizationId: id.other })).rejects.toBeInstanceOf(TenantViolationError)
     await expect(persons.create({ organizationId: id.other, firstName: 'X' })).rejects.toBeInstanceOf(TenantViolationError)
     await expect(persons.get(randomUUID(), id.other)).rejects.toBeInstanceOf(TenantViolationError)
+    await expect(persons.findByEmail('a@b.test', id.other)).rejects.toBeInstanceOf(TenantViolationError)
+    await expect(persons.listProperties(randomUUID(), id.other)).rejects.toBeInstanceOf(TenantViolationError)
+    await expect(persons.update({ id: randomUUID(), organizationId: id.other, firstName: 'X' })).rejects.toBeInstanceOf(TenantViolationError)
+    await expect(persons.softDelete(randomUUID(), id.other)).rejects.toBeInstanceOf(TenantViolationError)
+    await expect(persons.attachToProperty({ organizationId: id.other, personId: randomUUID(), propertyId: randomUUID() })).rejects.toBeInstanceOf(TenantViolationError)
+  })
+
+  it("attachToProperty refuses another org's property under the caller's own org id", async () => {
+    const db = getDb()
+    const [foreign] = await db.insert(properties).values({ organizationId: id.other, addressLine1: '9 Z St', city: 'C', state: 'CA', postalCode: '0' }).returning()
+    try {
+      const persons = new RealPersonService(resolver)
+      const p = await persons.create({ organizationId: id.org, firstName: 'Cy', emails: [`cy-${tag}@example.test`] })
+      await expect(persons.attachToProperty({ organizationId: id.org, personId: p.id, propertyId: foreign!.id })).rejects.toThrow(/Property not found/u)
+      const rows = await db.select().from(contacts).where(eq(contacts.propertyId, foreign!.id))
+      expect(rows).toHaveLength(0)
+    } finally {
+      await db.delete(properties).where(eq(properties.id, foreign!.id))
+    }
   })
 
   afterAll(async () => {

@@ -18,6 +18,7 @@ import {
   FIXTURE_USER_FIELD,
   FIXTURE_USER_SUPER,
 } from '~~/shared/mocks/fixtures'
+import { assertMayAssignRole } from '~~/shared/utils/role-ceiling'
 
 const adminResolver: TenantResolver = () => ({
   userId: FIXTURE_USER_ADMIN.userId,
@@ -149,5 +150,31 @@ describe('MockUserService.transferOwnership', () => {
         newOwnerUserId: FIXTURE_USER_FIELD.userId,
       }),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('role ceiling (WP-L07 review)', () => {
+  it('org_admin cannot grant super_admin, by invite or setRole', async () => {
+    const svc = new MockUserService(adminResolver)
+    await expect(svc.invite({ organizationId: FIXTURE_ORG_ID, email: 'x@ceiling.test', role: 'super_admin', invitedByUserId: FIXTURE_USER_ADMIN.userId })).rejects.toThrow(/cannot grant super_admin/)
+    await expect(svc.setRole({ organizationId: FIXTURE_ORG_ID, userId: FIXTURE_USER_ADMIN.userId, role: 'super_admin' })).rejects.toThrow(/cannot grant super_admin/)
+  })
+
+  it('org_admin cannot change the owner (super_admin)', async () => {
+    const svc = new MockUserService(adminResolver)
+    await expect(svc.setRole({ organizationId: FIXTURE_ORG_ID, userId: FIXTURE_USER_SUPER.userId, role: 'viewer' })).rejects.toThrow(/cannot change a super_admin/)
+  })
+
+  it('org_admin may still grant roles up to its own rank', async () => {
+    const svc = new MockUserService(adminResolver)
+    await svc.setRole({ organizationId: FIXTURE_ORG_ID, userId: FIXTURE_USER_FIELD.userId, role: 'org_admin' })
+  })
+
+  it('assertMayAssignRole ranks roles', () => {
+    expect(() => assertMayAssignRole('org_manager', 'org_admin')).toThrow(/cannot grant org_admin/)
+    expect(() => assertMayAssignRole('org_manager', 'field', 'org_admin')).toThrow(/cannot change a org_admin/)
+    expect(() => assertMayAssignRole('org_manager', 'org_manager', 'field')).not.toThrow()
+    expect(() => assertMayAssignRole('super_admin', 'super_admin', 'viewer')).not.toThrow()
+    expect(() => assertMayAssignRole(null, 'viewer')).toThrow(/not a member/)
   })
 })

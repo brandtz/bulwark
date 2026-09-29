@@ -38,6 +38,7 @@ import { organizations } from '../db/schema/organizations'
 import { pendingInvites } from '../db/schema/pending_invites'
 import { getDb } from '../db/client'
 import { assertSameTenant, resolveActorUserId, type TenantResolver } from './_tenant'
+import { assertMayAssignRole } from '../../shared/utils/role-ceiling'
 import { withAudit } from './_tx'
 import { emit } from '../../shared/events/bus'
 import { userInvited, type UserInvitedPayload } from '../../shared/events/catalog'
@@ -58,6 +59,18 @@ function deriveStatus(userActive: boolean, membershipActive: boolean): UserAdmin
 }
 
 export class RealUserService implements IUserService {
+  /**
+   * The signed-in caller's role in `organizationId`, or `undefined` for trusted
+   * server code (no session), which is not subject to the role ceiling.
+   */
+  private async actorRole(organizationId: string): Promise<Role | null | undefined> {
+    const actorId = this.tenantResolver?.()?.userId
+    if (!actorId || actorId === 'system') return undefined
+    const [m] = await getDb().select({ role: memberships.role, isActive: memberships.isActive }).from(memberships)
+      .where(and(eq(memberships.userId, actorId), eq(memberships.organizationId, organizationId))).limit(1)
+    return m?.isActive ? (m.role as Role) : null
+  }
+
   constructor(
     private readonly tenantResolver?: TenantResolver,
     private readonly emailSender: typeof sendEmail = sendEmail,
@@ -156,6 +169,8 @@ export class RealUserService implements IUserService {
 
   async invite(input: InviteInput): Promise<InviteOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    const actorRole = await this.actorRole(input.organizationId)
+    if (actorRole !== undefined) assertMayAssignRole(actorRole, input.role)
     const email = input.email.toLowerCase()
     const rawToken = randomBytes(32).toString('hex')
     const tokenHash = sha256Hex(rawToken)
@@ -291,6 +306,7 @@ export class RealUserService implements IUserService {
 
   async setRole(input: SetRoleInput): Promise<void> {
     assertSameTenant(this.tenantResolver, input.organizationId)
+    const actorRole = await this.actorRole(input.organizationId)
     await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()
@@ -303,6 +319,7 @@ export class RealUserService implements IUserService {
         )
         .limit(1)
       if (!before) throw new Error('Membership not found')
+      if (actorRole !== undefined) assertMayAssignRole(actorRole, input.role, before.role as Role)
       await tx
         .update(memberships)
         .set({ role: input.role, updatedAt: new Date() })

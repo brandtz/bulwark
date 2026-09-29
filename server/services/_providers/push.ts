@@ -15,7 +15,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { getDb } from '../../db/client'
 import { pushSubscriptions } from '../../db/schema/push_subscriptions'
 import { log } from '../../utils/logger'
-import type { PushSendResult } from '../../../shared/contracts/push'
+import { isAllowedPushEndpoint, type PushSendResult } from '../../../shared/contracts/push'
 
 export interface VapidConfig {
   publicKey: string
@@ -50,6 +50,9 @@ type Fetcher = (url: string, init: { method: string, headers: Record<string, str
 
 /** Payload-less push to one endpoint. Returns the push service's status. */
 export async function sendPush(endpoint: string, cfg: VapidConfig, fetcher: Fetcher = fetch as unknown as Fetcher): Promise<number> {
+  // Re-checked at send time: rows stored before the allowlist existed must not
+  // turn into server-side requests to arbitrary hosts.
+  if (!isAllowedPushEndpoint(endpoint)) throw new Error('push endpoint is not on an allowed push service')
   const jwt = buildVapidJwt(new URL(endpoint).origin, cfg)
   const res = await fetcher(endpoint, {
     method: 'POST',

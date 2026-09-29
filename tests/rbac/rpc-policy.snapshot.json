@@ -142,16 +142,8 @@
         "stakeholder"
       ],
       "currentUser": "public",
-      "getAttempts": [
-        "super_admin",
-        "org_admin",
-        "org_manager"
-      ],
-      "getLockoutState": [
-        "super_admin",
-        "org_admin",
-        "org_manager"
-      ],
+      "getAttempts": "system",
+      "getLockoutState": "system",
       "login": "public",
       "logout": "public",
       "previewInvite": "public",

@@ -58,11 +58,11 @@ describe('authorizeRpc', () => {
     expect(authorizeRpc('auth', 'login', null)).toEqual({ allowed: true })
     expect(authorizeRpc('auth', 'resetPassword', null)).toEqual({ allowed: true })
     expect(authorizeRpc('property', 'list', null)).toMatchObject({ allowed: false, status: 401 })
-    expect(authorizeRpc('auth', 'getAttempts', null)).toMatchObject({ allowed: false, status: 401 })
+    expect(authorizeRpc('user', 'invite', null)).toMatchObject({ allowed: false, status: 401 })
   })
 
   it('never exposes system methods, not even to super_admin', () => {
-    for (const [svc, m] of [['account', 'purgeExpiredDeletions'], ['audit', 'record'], ['notification', 'enqueue'], ['search', 'index']] as const) {
+    for (const [svc, m] of [['account', 'purgeExpiredDeletions'], ['audit', 'record'], ['notification', 'enqueue'], ['search', 'index'], ['auth', 'getAttempts'], ['auth', 'getLockoutState']] as const) {
       expect(authorizeRpc(svc, m, 'super_admin')).toMatchObject({ allowed: false, status: 403 })
     }
   })

@@ -10,6 +10,7 @@ import { and, asc, eq, ilike, isNull, or, sql, type SQL } from 'drizzle-orm'
 import { getDb } from '../db/client'
 import { contacts } from '../db/schema/contacts'
 import { people, type PersonRow } from '../db/schema/people'
+import { properties } from '../db/schema/properties'
 import {
   PersonAttachInputSchema,
   PersonCreateInputSchema,
@@ -212,6 +213,12 @@ export class RealPersonService implements IPersonService {
     const person = await this.get(v.personId, v.organizationId)
     if (!person) throw new Error('Person not found')
     return await withAudit(async ({ tx, audit }) => {
+      // contacts.property_id has a single-column FK, so the org must be checked
+      // here or a contact row could reference another tenant's property.
+      const [property] = await tx.select({ id: properties.id }).from(properties).where(and(
+        eq(properties.id, v.propertyId), eq(properties.organizationId, v.organizationId), isNull(properties.deletedAt),
+      )).limit(1)
+      if (!property) throw new Error('Property not found')
       const [existing] = await tx.select({ id: contacts.id }).from(contacts).where(and(
         eq(contacts.organizationId, v.organizationId),
         eq(contacts.propertyId, v.propertyId),

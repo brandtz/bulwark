@@ -15,6 +15,7 @@ import { getDb } from '../../server/db/client'
 import { memberships, organizations, pushSubscriptions, users } from '../../server/db/schema'
 import { buildVapidJwt, sendPush, sendPushToUser, vapidConfig } from '../../server/services/_providers/push'
 import { RealPushService } from '../../server/services/push.real'
+import { PUSH_MAX_DEVICES_PER_USER } from '../../shared/contracts/push'
 
 const HAS_DB = !!process.env.DATABASE_URL
 const d = HAS_DB ? describe : describe.skip
@@ -43,12 +44,21 @@ describe('VAPID (WP-X3)', () => {
   it('sends a payload-less POST with the vapid authorization header', async () => {
     const cfg = vapidKeys()
     const fetcher = vi.fn().mockResolvedValue({ status: 201 })
-    expect(await sendPush('https://push.example.com/send/abc', cfg, fetcher)).toBe(201)
+    expect(await sendPush('https://fcm.googleapis.com/fcm/send/abc', cfg, fetcher)).toBe(201)
     const [url, init] = fetcher.mock.calls[0]!
-    expect(url).toBe('https://push.example.com/send/abc')
+    expect(url).toBe('https://fcm.googleapis.com/fcm/send/abc')
     expect(init.method).toBe('POST')
     expect(init.headers['content-length']).toBe('0')
     expect(init.headers.authorization).toMatch(new RegExp(`^vapid t=[\\w-]+\\.[\\w-]+\\.[\\w-]+, k=${cfg.publicKey}$`, 'u'))
+  })
+
+  it('refuses to send to anything but a known push service (SSRF)', async () => {
+    const cfg = vapidKeys()
+    const fetcher = vi.fn().mockResolvedValue({ status: 201 })
+    for (const url of ['https://127.0.0.1/x', 'https://localhost:8443/x', 'https://169.254.169.254/latest', 'https://fcm.googleapis.com:8443/x', 'https://evil.example/fcm.googleapis.com', 'https://fcm.googleapis.com.evil.example/x']) {
+      await expect(sendPush(url, cfg, fetcher)).rejects.toThrow(/not on an allowed push service/)
+    }
+    expect(fetcher).not.toHaveBeenCalled()
   })
 
   it('is disabled without keys', () => {
@@ -94,7 +104,7 @@ d('push subscriptions (WP-X3)', () => {
   })
 
   const as = (id: string) => new RealPushService(() => ({ organizationId: orgId, userId: id }))
-  const sub = (n: number) => ({ organizationId: orgId, endpoint: `https://push.example.com/send/${orgId}-${n}`, keys: { p256dh: 'BPk', auth: 'au' } })
+  const sub = (n: number) => ({ organizationId: orgId, endpoint: `https://fcm.googleapis.com/fcm/send/${orgId}-${n}`, keys: { p256dh: 'BPk', auth: 'au' } })
 
   it('subscribes, lists and unsubscribes only the caller\'s devices', async () => {
     const svc = as(userId)
@@ -109,11 +119,32 @@ d('push subscriptions (WP-X3)', () => {
     expect(await svc.listMine(orgId)).toHaveLength(1)
   })
 
-  it('re-subscribing an endpoint rebinds it (device changed hands) and rejects non-https', async () => {
+  it('a live endpoint cannot be taken over; a revoked one can be reclaimed (device changed hands)', async () => {
+    await expect(as(otherId).subscribe(sub(2))).rejects.toThrow(/registered to another account/)
+    expect(await as(userId).listMine(orgId)).toHaveLength(1)
+    await as(userId).unsubscribe({ organizationId: orgId, endpoint: sub(2).endpoint })
     await as(otherId).subscribe(sub(2))
     expect(await as(userId).listMine(orgId)).toHaveLength(0)
     expect(await as(otherId).listMine(orgId)).toHaveLength(1)
-    await expect(as(userId).subscribe({ ...sub(3), endpoint: 'http://push.example.com/x' })).rejects.toThrow(/^Invalid push subscription/)
+  })
+
+  it('rejects endpoints outside the push-service allowlist (SSRF)', async () => {
+    for (const endpoint of ['http://fcm.googleapis.com/x', 'https://127.0.0.1/x', 'https://10.0.0.5/x', 'https://localhost/x', 'https://push.example.com/x', 'https://fcm.googleapis.com:444/x']) {
+      await expect(as(userId).subscribe({ ...sub(3), endpoint })).rejects.toThrow(/^Invalid push subscription/)
+    }
+  })
+
+  it('caps live devices per user', async () => {
+    const svc = as(otherId)
+    const have = (await svc.listMine(orgId)).length
+    for (let n = 0; n < PUSH_MAX_DEVICES_PER_USER - have; n++) await svc.subscribe(sub(100 + n))
+    await expect(svc.subscribe(sub(99))).rejects.toThrow(/at most 10 devices/)
+    await svc.subscribe(sub(100)) // refreshing an existing device is still allowed
+  })
+
+  it('rate-limits test pushes per user', async () => {
+    await as(userId).sendTest(orgId)
+    await expect(as(userId).sendTest(orgId)).rejects.toThrow(/wait a moment/)
   })
 
   it('a 410 from the push service revokes the subscription', async () => {

@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: parsed.error.message })
   }
 
-  const authz = authorizePresignUpload(current.activeOrganizationId, parsed.data)
+  const authz = authorizePresignUpload(current.activeOrganizationId, parsed.data, current.userId)
   if (!authz.ok) {
     throw createError({ statusCode: authz.status, statusMessage: authz.message })
   }

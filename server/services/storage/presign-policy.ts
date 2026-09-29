@@ -9,7 +9,7 @@
  * always minted under the active org; a download is allowed only when both the
  * request's `organizationId` AND the key's tenant prefix match the active org.
  */
-import { buildStorageKey, parseStorageKey } from './keys'
+import { buildStagingKey, isStagingKey, parseStorageKey, stagingKeyBelongsTo } from './keys'
 import {
   StorageEntityKindSchema,
   validateUpload,
@@ -44,6 +44,7 @@ export type DownloadAuthz = { ok: true } | PresignDenial
 export function authorizePresignUpload(
   activeOrganizationId: string,
   input: PresignUploadInput,
+  userId: string,
 ): UploadAuthz {
   // Deliberate explicit comparison (not assertSameTenant): these standalone
   // endpoints map directly to HTTP status, so we return 403 here rather than
@@ -54,12 +55,12 @@ export function authorizePresignUpload(
   const v = validateUpload(input.entity, input.contentType, input.sizeBytes)
   if (!v.ok) return { ok: false, status: 400, message: v.reason }
   // tenantId is the ACTIVE org, never the client-sent value — defense in depth.
-  const key = buildStorageKey({
+  const key = buildStagingKey({
     tenantId: activeOrganizationId,
     entity: input.entity,
     entityId: input.entityId,
     contentType: input.contentType,
-  })
+  }, userId)
   return { ok: true, key }
 }
 
@@ -101,6 +102,7 @@ export type FinalizeAuthz = { ok: true; entity: StorageEntityKind } | PresignDen
 export function authorizeFinalize(
   activeOrganizationId: string,
   input: FinalizeUploadInput,
+  userId: string,
 ): FinalizeAuthz {
   if (input.organizationId !== activeOrganizationId) {
     return { ok: false, status: 403, message: 'Organization mismatch' }
@@ -114,6 +116,15 @@ export function authorizeFinalize(
     parsedEntity = parsed.entity
   } catch {
     return { ok: false, status: 400, message: 'Invalid object key' }
+  }
+  // Only the caller's own staged upload may be finalized; a finalized (persisted)
+  // key or someone else's staging key is refused, so finalize can never copy
+  // over or delete an object another member relies on.
+  if (!isStagingKey(input.key)) {
+    return { ok: false, status: 400, message: 'Not a staged upload (already finalized?)' }
+  }
+  if (!stagingKeyBelongsTo(input.key, userId)) {
+    return { ok: false, status: 403, message: 'Staged upload belongs to another user' }
   }
   const entity = StorageEntityKindSchema.safeParse(parsedEntity)
   if (!entity.success) {

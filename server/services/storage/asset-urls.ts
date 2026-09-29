@@ -12,7 +12,7 @@
  */
 import { StorageObjectKeySchema, type StorageEntityKind } from '../../../shared/contracts/storage'
 import { getStorage } from './index'
-import { parseStorageKey } from './keys'
+import { isStagingKey, parseStorageKey } from './keys'
 
 const READ_TTL_SECONDS = 60 * 60
 
@@ -23,6 +23,9 @@ export function isStorageKey(value: string | null | undefined): value is string 
 /** Throws (message starts with "Invalid" → HTTP 400) unless `value` is a usable key for this tenant + entity. */
 export async function assertOwnedAssetKey(value: string, organizationId: string, entity: StorageEntityKind): Promise<void> {
   if (!isStorageKey(value)) return // absolute URLs are guarded by assertStorableUrlOrKey
+  // A staged key has not passed finalize's size/type check and its presigned
+  // PUT may still be live; only finalized keys may be persisted.
+  if (isStagingKey(value)) throw new Error('Invalid asset: finalize the upload first')
   const parsed = parseStorageKey(value)
   if (parsed.tenantId !== organizationId) throw new Error('Invalid asset: object belongs to another organization')
   if (parsed.entity !== entity) throw new Error(`Invalid asset: expected a ${entity} upload`)

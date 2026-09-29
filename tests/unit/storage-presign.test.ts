@@ -13,10 +13,11 @@ import {
   authorizeFinalize,
   roleMayUpload,
 } from '~~/server/services/storage/presign-policy'
-import { buildStorageKey } from '~~/server/services/storage/keys'
-import { isStorageKey } from '~~/server/services/storage/asset-urls'
+import { buildStagingKey, buildStorageKey, isStagingKey, stagingKeyBelongsTo } from '~~/server/services/storage/keys'
+import { assertOwnedAssetKey, isStorageKey } from '~~/server/services/storage/asset-urls'
 
 const ORG = randomUUID()
+const USER = randomUUID()
 
 describe('authorizePresignUpload', () => {
   it('mints a key under the active org on a valid request', () => {
@@ -26,9 +27,14 @@ describe('authorizePresignUpload', () => {
       entityId: randomUUID(),
       contentType: 'image/jpeg',
       sizeBytes: 1024,
-    })
+    }, USER)
     expect(r.ok).toBe(true)
-    if (r.ok) expect(r.key.startsWith(`${ORG}/property_photo/`)).toBe(true)
+    if (r.ok) {
+      expect(r.key.startsWith(`${ORG}/property_photo/`)).toBe(true)
+      expect(isStagingKey(r.key)).toBe(true)
+      expect(stagingKeyBelongsTo(r.key, USER)).toBe(true)
+      expect(isStorageKey(r.key)).toBe(true)
+    }
   })
 
   it('403s when the requested org is not the active org', () => {
@@ -38,7 +44,7 @@ describe('authorizePresignUpload', () => {
       entityId: randomUUID(),
       contentType: 'image/jpeg',
       sizeBytes: 1024,
-    })
+    }, USER)
     expect(r).toEqual({ ok: false, status: 403, message: 'Organization mismatch' })
   })
 
@@ -49,7 +55,7 @@ describe('authorizePresignUpload', () => {
       entityId: randomUUID(),
       contentType: 'image/png',
       sizeBytes: 1024,
-    })
+    }, USER)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.status).toBe(400)
   })
@@ -61,7 +67,7 @@ describe('authorizePresignUpload', () => {
       entityId: randomUUID(),
       contentType: 'image/png',
       sizeBytes: 50 * 1024 * 1024,
-    })
+    }, USER)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.status).toBe(400)
   })
@@ -95,24 +101,46 @@ describe('authorizePresignDownload', () => {
 })
 
 describe('authorizeFinalize', () => {
-  it('resolves the entity for a valid in-org key', () => {
-    const key = buildStorageKey({ tenantId: ORG, entity: 'property_photo', entityId: randomUUID(), contentType: 'image/jpeg' })
-    const r = authorizeFinalize(ORG, { organizationId: ORG, key })
+  const staged = (tenantId = ORG, entity: 'property_photo' | 'document' = 'property_photo', user = USER) =>
+    buildStagingKey({ tenantId, entity, entityId: randomUUID(), contentType: entity === 'document' ? 'application/pdf' : 'image/jpeg' }, user)
+
+  it("resolves the entity for the caller's own staged key", () => {
+    const r = authorizeFinalize(ORG, { organizationId: ORG, key: staged() }, USER)
     expect(r.ok).toBe(true)
     if (r.ok) expect(r.entity).toBe('property_photo')
   })
 
   it('403s on org mismatch', () => {
-    const key = buildStorageKey({ tenantId: ORG, entity: 'document', entityId: randomUUID(), contentType: 'application/pdf' })
-    const r = authorizeFinalize(ORG, { organizationId: randomUUID(), key })
+    const r = authorizeFinalize(ORG, { organizationId: randomUUID(), key: staged(ORG, 'document') }, USER)
     expect(r).toEqual({ ok: false, status: 403, message: 'Organization mismatch' })
   })
 
   it('403s on a key from another tenant', () => {
-    const key = buildStorageKey({ tenantId: randomUUID(), entity: 'document', entityId: randomUUID(), contentType: 'application/pdf' })
-    const r = authorizeFinalize(ORG, { organizationId: ORG, key })
+    const r = authorizeFinalize(ORG, { organizationId: ORG, key: staged(randomUUID(), 'document') }, USER)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.status).toBe(403)
+  })
+
+  it('refuses a finalized (persisted) key, so finalize can never copy over or delete it', () => {
+    const persisted = buildStorageKey({ tenantId: ORG, entity: 'property_photo', entityId: randomUUID(), contentType: 'image/jpeg' })
+    expect(authorizeFinalize(ORG, { organizationId: ORG, key: persisted }, USER)).toEqual({ ok: false, status: 400, message: 'Not a staged upload (already finalized?)' })
+  })
+
+  it("refuses another user's staged key", () => {
+    expect(authorizeFinalize(ORG, { organizationId: ORG, key: staged(ORG, 'property_photo', randomUUID()) }, USER))
+      .toEqual({ ok: false, status: 403, message: 'Staged upload belongs to another user' })
+  })
+
+  it('refuses a staged key whose mac was tampered with', () => {
+    const key = staged().replace(/-([0-9a-f]{16})\./u, (_, mac: string) => `-${mac.startsWith('0') ? '1' : '0'}${mac.slice(1)}.`)
+    expect(authorizeFinalize(ORG, { organizationId: ORG, key }, USER)).toMatchObject({ ok: false, status: 403 })
+  })
+})
+
+describe('assertOwnedAssetKey', () => {
+  it('refuses to persist a staged key (finalize is mandatory)', async () => {
+    await expect(assertOwnedAssetKey(buildStagingKey({ tenantId: ORG, entity: 'property_photo', entityId: randomUUID(), contentType: 'image/jpeg' }, USER), ORG, 'property_photo'))
+      .rejects.toThrow(/finalize the upload first/)
   })
 })
 

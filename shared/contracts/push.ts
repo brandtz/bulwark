@@ -24,9 +24,34 @@ export const PushConfigSchema = z.object({
 })
 export type PushConfig = z.infer<typeof PushConfigSchema>
 
+/**
+ * Browser push services we will POST to. The server sends to the subscription
+ * endpoint, so an open URL would be an SSRF primitive (internal hosts, cloud
+ * metadata); only these hosts, over https on the default port, are accepted.
+ */
+export const PUSH_SERVICE_HOSTS: ReadonlyArray<{ host: string, subdomains: boolean }> = [
+  { host: 'fcm.googleapis.com', subdomains: false },
+  { host: 'push.services.mozilla.com', subdomains: true },
+  { host: 'notify.windows.com', subdomains: true },
+  { host: 'web.push.apple.com', subdomains: false },
+  { host: 'push.apple.com', subdomains: true },
+]
+
+export function isAllowedPushEndpoint(endpoint: string): boolean {
+  let url: URL
+  try { url = new URL(endpoint) } catch { return false }
+  if (url.protocol !== 'https:' || (url.port !== '' && url.port !== '443')) return false
+  if (url.username || url.password) return false
+  const host = url.hostname.toLowerCase()
+  return PUSH_SERVICE_HOSTS.some((h) => host === h.host || (h.subdomains && host.endsWith(`.${h.host}`)))
+}
+
+/** Live devices one user may register; beyond this, subscribe is refused. */
+export const PUSH_MAX_DEVICES_PER_USER = 10
+
 export const PushSubscribeInputSchema = z.object({
   organizationId: UuidSchema,
-  endpoint: z.string().url().max(2000).refine((u) => u.startsWith('https://'), 'Push endpoints must be https'),
+  endpoint: z.string().url().max(2000).refine(isAllowedPushEndpoint, 'Push endpoints must be an https URL on a known browser push service'),
   keys: z.object({
     p256dh: z.string().min(1).max(200),
     auth: z.string().min(1).max(100),

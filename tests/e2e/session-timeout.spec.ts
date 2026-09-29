@@ -52,6 +52,16 @@ test.describe('organization security policy', () => {
     expect(await denied.text()).toContain('MFA enrollment required')
     const allowed = await page.request.post(`${BASE}/api/services/securityPolicy/getMine`, { data: { args: [] } })
     expect(await allowed.json()).toMatchObject({ mfaEnrollmentRequired: true })
+    // Routes outside the RPC dispatcher are gated too (WP-L07 review P0).
+    for (const [method, url, data] of [
+      ['POST', '/api/storage/presign-download', { organizationId, key: `${organizationId}/photo/x/y.jpg` }],
+      ['GET', '/api/field/my-day', undefined],
+      ['GET', '/api/account/export', undefined],
+    ] as const) {
+      const res = method === 'POST' ? await page.request.post(`${BASE}${url}`, { data }) : await page.request.get(`${BASE}${url}`)
+      expect(res.status(), `${method} ${url}`).toBe(403)
+      expect(await res.text()).toContain('MFA enrollment required')
+    }
 
     await page.goto('/field/dashboard')
     await expect(page).toHaveURL(/\/profile\/security\?required=1/u, { timeout: 15_000 })

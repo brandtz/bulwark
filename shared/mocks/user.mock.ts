@@ -33,6 +33,7 @@ import type {
   UserStatus,
 } from '../contracts/user'
 import { assertSameTenant, type TenantResolver } from './tenant'
+import { assertMayAssignRole } from '../utils/role-ceiling'
 import { emit } from '../events/bus'
 import { userInvited, type UserInvitedPayload } from '../events/catalog'
 import type { Role } from '../contracts/_shared'
@@ -186,8 +187,25 @@ export class MockUserService implements IUserService {
     return { users: out }
   }
 
+  /** Current role of a fixture user in an org (overrides win), or null. */
+  private roleOf(userId: string | undefined, organizationId: string): Role | null {
+    const u = ALL_FIXTURE_USERS.find((x) => x.userId === userId)
+    const m = u?.memberships.find((mm) => mm.organizationId === organizationId)
+    if (!m) return null
+    const o = overridesStore.find((x) => x.id === userId && x.organizationId === organizationId)
+    return (o?.role ?? m.role) as Role
+  }
+
+  /** Role ceiling for the signed-in caller; trusted code (no session) is exempt. */
+  private checkCeiling(organizationId: string, grant: Role, targetUserId?: string) {
+    const actorId = this.resolver?.()?.userId
+    if (!actorId || actorId === 'system') return
+    assertMayAssignRole(this.roleOf(actorId, organizationId), grant, targetUserId ? this.roleOf(targetUserId, organizationId) : null)
+  }
+
   async invite(input: InviteInput): Promise<InviteOutput> {
     assertSameTenant(this.resolver, input.organizationId)
+    this.checkCeiling(input.organizationId, input.role)
     const email = input.email.toLowerCase()
     const open = invitesStore.find(
       (i) =>
@@ -281,6 +299,7 @@ export class MockUserService implements IUserService {
 
   async setRole(input: { organizationId: string; userId: string; role: Role }): Promise<void> {
     assertSameTenant(this.resolver, input.organizationId)
+    this.checkCeiling(input.organizationId, input.role, input.userId)
     upsertOverride({ id: input.userId, organizationId: input.organizationId, role: input.role })
   }
 

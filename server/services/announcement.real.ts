@@ -1,6 +1,10 @@
 /**
  * server/services/announcement.real.ts — RealAnnouncementService (WP-X2, ED-007).
- * Platform-wide (no tenant); writes are super_admin via the RPC policy.
+ * Platform-wide (no tenant). `super_admin` is an organization membership role
+ * (org owners hold it), so the RPC policy alone would let any tenant broadcast
+ * to every tenant. Writes and the admin list therefore also require a platform
+ * operator: a user whose email is in BULWARK_PLATFORM_ADMIN_EMAILS (comma list).
+ * Unset means nobody can write announcements.
  */
 import { and, desc, eq, gt, isNull, lte, notExists, or, sql } from 'drizzle-orm'
 import { getDb } from '../db/client'
@@ -11,7 +15,13 @@ import {
   type AnnouncementUpsertInput,
   type IAnnouncementService,
 } from '../../shared/contracts/announcement'
-import { resolveActorUserId, type TenantResolver } from './_tenant'
+import { users } from '../db/schema/users'
+import { log } from '../utils/logger'
+import { ForbiddenError, resolveActorUserId, type TenantResolver } from './_tenant'
+
+export function platformOperatorEmails(env: Record<string, string | undefined> = process.env): Set<string> {
+  return new Set((env.BULWARK_PLATFORM_ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean))
+}
 
 type Row = typeof platformAnnouncements.$inferSelect
 const toContract = (r: Row): Announcement => ({
@@ -31,6 +41,15 @@ export class RealAnnouncementService implements IAnnouncementService {
   private user(): string {
     const id = resolveActorUserId(this.tenantResolver)
     if (!id) throw new Error('Authentication required')
+    return id
+  }
+
+  /** Throws unless the caller is a platform operator (see file header). */
+  private async operator(): Promise<string> {
+    const id = this.user()
+    const allowed = platformOperatorEmails()
+    const [u] = allowed.size ? await getDb().select({ email: users.email }).from(users).where(eq(users.id, id)).limit(1) : []
+    if (!u || !allowed.has(u.email.toLowerCase())) throw new ForbiddenError('Forbidden: platform announcements are managed by platform operators only')
     return id
   }
 
@@ -54,12 +73,14 @@ export class RealAnnouncementService implements IAnnouncementService {
   }
 
   async list(): Promise<Announcement[]> {
+    await this.operator()
     const rows = await getDb().select().from(platformAnnouncements)
       .where(isNull(platformAnnouncements.deletedAt)).orderBy(desc(platformAnnouncements.createdAt))
     return rows.map(toContract)
   }
 
   async upsert(input: AnnouncementUpsertInput): Promise<Announcement> {
+    const actor = await this.operator()
     const parsed = AnnouncementUpsertInputSchema.safeParse(input)
     if (!parsed.success) throw new Error(`Invalid announcement: ${parsed.error.issues.map((i) => i.message).join('; ')}`)
     const v = parsed.data
@@ -76,15 +97,19 @@ export class RealAnnouncementService implements IAnnouncementService {
       const [row] = await db.update(platformAnnouncements).set(values)
         .where(and(eq(platformAnnouncements.id, v.id), isNull(platformAnnouncements.deletedAt))).returning()
       if (!row) throw new Error('Announcement not found')
+      log('info', 'announcement.updated', { announcementId: row.id, actorUserId: actor })
       return toContract(row)
     }
-    const [row] = await db.insert(platformAnnouncements).values({ ...values, createdByUserId: this.user() }).returning()
+    const [row] = await db.insert(platformAnnouncements).values({ ...values, createdByUserId: actor }).returning()
+    log('info', 'announcement.created', { announcementId: row!.id, actorUserId: actor })
     return toContract(row!)
   }
 
   async remove(id: string): Promise<void> {
+    const actor = await this.operator()
     const [row] = await getDb().update(platformAnnouncements).set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(and(eq(platformAnnouncements.id, id), isNull(platformAnnouncements.deletedAt))).returning({ id: platformAnnouncements.id })
     if (!row) throw new Error('Announcement not found')
+    log('info', 'announcement.removed', { announcementId: id, actorUserId: actor })
   }
 }

@@ -70,7 +70,9 @@ export const MIME_EXTENSION: Record<string, string> = {
 export const StorageObjectKeySchema = z
   .string()
   .regex(
-    /^[0-9a-fA-F-]{36}\/(property_photo|property_attachment|avatar|branding_logo|document)\/[0-9a-fA-F-]{36}\/[0-9a-fA-F-]{36}\.[a-z0-9]+$/,
+    // Filename: `{uuid}` for a finalized object, `s-{uuid}-{mac}` for a staged
+    // upload (WP-L02 review: staged keys are never persistable; see keys.ts).
+    /^[0-9a-fA-F-]{36}\/(property_photo|property_attachment|avatar|branding_logo|document)\/[0-9a-fA-F-]{36}\/(?:s-[0-9a-fA-F-]{36}-[0-9a-f]{16}|[0-9a-fA-F-]{36})\.[a-z0-9]+$/,
     'Invalid storage object key',
   )
 export type StorageObjectKey = z.infer<typeof StorageObjectKeySchema>

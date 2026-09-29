@@ -40,7 +40,9 @@ export const RPC_POLICY: Record<string, Record<string, RpcRule>> = {
     login: 'public', verifyMfa: 'public', logout: 'public', currentUser: 'public',
     requestPasswordReset: 'public', resetPassword: 'public', previewInvite: 'public', acceptInvite: 'public',
     switchActiveOrg: member, changePassword: member,
-    getAttempts: admin, getLockoutState: admin,
+    // Login history spans every tenant (auth_attempts has no org), so no RPC caller
+    // may read it; operators use the database or logs.
+    getAttempts: 'system', getLockoutState: 'system',
   },
   mfa: {
     getStatus: member, setupTotp: member, confirmTotp: member, verifyTotp: member, disable: member,
