@@ -8,7 +8,7 @@
  *   mark clean, or quarantine + notify org admins. Idempotent (only `pending`
  *   rows are processed), so a pg-boss retry after a partial failure is safe.
  */
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { getDb } from '../../db/client'
 import { memberships } from '../../db/schema/users'
 import { propertyAttachments } from '../../db/schema/property_attachments'
@@ -60,36 +60,68 @@ export interface ScanOutcome {
 export async function processAssetScan(ref: AssetRef, driver: ScanDriver = resolveScanDriver()): Promise<ScanOutcome> {
   const table = TABLES[ref.entity]
   const db = getDb()
-  const where = and(eq(table.id, ref.id), eq(table.organizationId, ref.organizationId))
+  const where = and(eq(table.id, ref.id), eq(table.organizationId, ref.organizationId), isNull(table.deletedAt))
   const [row] = await db.select().from(table).where(where).limit(1)
   if (!row) return { status: 'skipped' } // deleted meanwhile
-  if (row.scanStatus !== 'pending') return { status: row.scanStatus as ScanStatus }
+  const finishingQuarantine = row.scanStatus === 'infected' && row.scannedAt === null
+  if (row.scanStatus !== 'pending' && !finishingQuarantine) return { status: row.scanStatus as ScanStatus }
 
-  const mark = async (status: ScanStatus) => {
-    await db.update(table).set({ scanStatus: status, scannedAt: new Date() }).where(where)
+  // Finalized keys are immutable. Only approve the exact objects scanned;
+  // a thumbnail replacement must be handled by its own queued scan.
+  const sameObjects = and(where, eq(table.url, row.url), 'thumbnailUrl' in row
+    ? (row.thumbnailUrl === null ? isNull(propertyPhotos.thumbnailUrl) : eq(propertyPhotos.thumbnailUrl, row.thumbnailUrl))
+    : undefined)
+
+  // Only a still-pending row moves; a concurrent job or rescan cannot
+  // overwrite a verdict (e.g. infected → skipped).
+  const mark = async (status: ScanStatus): Promise<boolean> => {
+    const moved = await db.update(table).set({ scanStatus: status, scannedAt: status === 'infected' ? null : new Date() })
+      .where(and(sameObjects, eq(table.scanStatus, 'pending'))).returning({ id: table.id })
+    return moved.length > 0
   }
-  if (driver.name === 'none' || !isStorageKey(row.url)) {
+  const thumbnail = 'thumbnailUrl' in row && typeof row.thumbnailUrl === 'string' && isStorageKey(row.thumbnailUrl) ? row.thumbnailUrl : null
+  const keys = [...new Set([row.url, thumbnail].filter(isStorageKey))]
+  if (!finishingQuarantine && (driver.name === 'none' || keys.length === 0)) {
     await mark('skipped')
     return { status: 'skipped' }
   }
   const storage = getStorage()
-  const bytes = await storage.getObject(row.url)
-  if (!bytes) {
-    await mark('skipped')
-    return { status: 'skipped' }
+  // The photo thumbnail is a separate client upload: scan it with the photo.
+  let signature: string | undefined = finishingQuarantine ? 'unknown (quarantine retry)' : undefined
+  for (const key of finishingQuarantine ? [] : keys) {
+    const bytes = await storage.getObject(key)
+    if (!bytes) {
+      // Unreadable is not servable: withhold it (like pending) rather than skip it.
+      await mark('failed')
+      log('warn', 'asset_scan.missing_object', { entity: ref.entity, id: ref.id })
+      return { status: 'failed' }
+    }
+    const verdict = await driver.scan(bytes) // throws on scanner errors → job retries, row stays pending
+    if (!verdict.clean) {
+      signature = verdict.signature ?? 'unknown'
+      break
+    }
   }
-
-  const verdict = await driver.scan(bytes) // throws on scanner errors → job retries, row stays pending
-  if (verdict.clean) {
+  if (signature === undefined) {
     await mark('clean')
     return { status: 'clean' }
   }
 
-  const quarantinedAt = await storage.quarantineObject(row.url)
-  await mark('infected')
-  log('warn', 'asset_scan.infected', { entity: ref.entity, id: ref.id, signature: verdict.signature })
-  await notifyAdmins(ref, verdict.signature ?? 'unknown')
-  return { status: 'infected', signature: verdict.signature, quarantinedAt }
+  // Persist the verdict BEFORE moving objects. A partial move or notification
+  // failure must never turn known malware into a failed/unscanned asset.
+  // infected + scannedAt=null means cleanup is unfinished and must be retried.
+  if (!finishingQuarantine && !await mark('infected')) {
+    throw new Error('Asset changed during scan; retry required')
+  }
+  let quarantinedAt: string | undefined
+  for (const key of keys) {
+    if ((await storage.headObject(key)).exists) quarantinedAt = (await storage.quarantineObject(key)) ?? quarantinedAt
+  }
+  await notifyAdmins(ref, signature)
+  await db.update(table).set({ scannedAt: new Date() })
+    .where(and(sameObjects, eq(table.scanStatus, 'infected')))
+  log('warn', 'asset_scan.infected', { entity: ref.entity, id: ref.id, signature })
+  return { status: 'infected', signature, quarantinedAt }
 }
 
 async function notifyAdmins(ref: AssetRef, signature: string): Promise<void> {

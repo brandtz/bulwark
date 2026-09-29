@@ -15,11 +15,23 @@
  *     scanning is off.
  *   - A scanner error keeps the asset `pending` and the job retries; it is
  *     never treated as clean.
+ *   - WP-X3 review: the scan state only moves out of `pending` (every mark is
+ *     conditional), so a racing rescan can never overwrite `infected`. An
+ *     object that cannot be read is `failed` (withheld like `pending`), never
+ *     `skipped`. The photo thumbnail is scanned and quarantined with the photo.
+ *     `rescan` refuses infected (quarantined) and deleted assets.
+ *   - A pending asset can be explicitly requeued after enqueue failure or
+ *     exhausted retries. Duplicate jobs are safe; pending is not proof that
+ *     a live job exists. Thumbnail replacements reset scanning and verdicts
+ *     apply only to the immutable keys actually scanned.
+ *   - The infected verdict is durable before quarantine starts. An infected
+ *     row with no scannedAt timestamp retries cleanup and notification;
+ *     partially moved objects never become servable again.
  */
 import { z } from 'zod'
 import { UuidSchema } from './_shared'
 
-export const ScanStatusSchema = z.enum(['pending', 'clean', 'infected', 'skipped'])
+export const ScanStatusSchema = z.enum(['pending', 'clean', 'infected', 'skipped', 'failed'])
 export type ScanStatus = z.infer<typeof ScanStatusSchema>
 
 export const ScannedEntitySchema = z.enum(['property_photo', 'property_attachment'])

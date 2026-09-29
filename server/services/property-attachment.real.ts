@@ -103,7 +103,7 @@ export class RealPropertyAttachmentService implements IPropertyAttachmentService
           kind: input.kind ?? 'other',
           name: input.name,
           url: input.url,
-          uploadedByUserId: input.uploadedByUserId ?? this.actorUserId(),
+          uploadedByUserId: this.actorUserId() ?? input.uploadedByUserId ?? null,
           scanStatus,
         })
         .returning()

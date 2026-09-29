@@ -50,6 +50,6 @@ export const ASSET_UNAVAILABLE_URL = '/images/asset-unavailable.svg'
 
 export function isWithheld(scanStatus: string | undefined, uploadedByUserId: string | null, viewerUserId: string | null): boolean {
   if (scanStatus === 'infected') return true
-  if (scanStatus === 'pending') return !viewerUserId || viewerUserId !== uploadedByUserId
+  if (scanStatus === 'pending' || scanStatus === 'failed') return !viewerUserId || viewerUserId !== uploadedByUserId
   return false
 }

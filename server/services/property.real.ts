@@ -51,7 +51,7 @@ import {
 import { emit } from '../../shared/events/bus'
 import { propertyCreated } from '../../shared/events/catalog'
 import { RealStatusPipelineService } from './status-pipeline.real'
-import { signAssetUrl } from './storage/asset-urls'
+import { isWithheld, signAssetUrl } from './storage/asset-urls'
 import { keysetCursor, pageWindow } from './_pagination'
 
 export class RealPropertyService implements IPropertyService {
@@ -376,7 +376,8 @@ export class RealPropertyService implements IPropertyService {
         sections: (sectionsByBuilding.get(b.id) ?? []).map(dbBuildingSectionToContract),
       })),
       contacts: contactRows.map(dbContactToContract),
-      primaryPhotoUrl: await signAssetUrl(photoRows[0]?.url ?? null), // WP-L02: key → signed URL
+      // WP-L02 key → signed URL; WP-X3: never a photo this viewer may not see (infected, or unscanned and not theirs).
+      primaryPhotoUrl: await signAssetUrl(photoRows.find((p) => !isWithheld(p.scanStatus, p.uploadedByUserId, this.actorUserId()))?.url ?? null),
     }
   }
 }

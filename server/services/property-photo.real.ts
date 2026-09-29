@@ -143,7 +143,7 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
           thumbnailUrl: input.thumbnailUrl ?? null,
           caption: input.caption ?? null,
           takenAt: input.takenAt ? new Date(input.takenAt) : null,
-          uploadedByUserId: input.uploadedByUserId ?? this.actorUserId(),
+          uploadedByUserId: this.actorUserId() ?? input.uploadedByUserId ?? null,
           sortOrder: input.sortOrder ?? 0,
           scanStatus,
         })
@@ -165,18 +165,29 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
   async update(input: PropertyPhotoUpdateInput): Promise<PropertyPhoto> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     assertStorableUrlOrKey(input.thumbnailUrl)
-    return await withAudit(async ({ tx, audit }) => {
+    if (input.thumbnailUrl) await assertOwnedAssetKey(input.thumbnailUrl, input.organizationId, 'property_photo')
+    let enqueue = false
+    const updated = await withAudit(async ({ tx, audit }) => {
       const [before] = await tx
         .select()
         .from(propertyPhotos)
         .where(and(eq(propertyPhotos.id, input.id), eq(propertyPhotos.organizationId, input.organizationId)))
         .limit(1)
+        .for('update')
       if (!before || before.deletedAt) throw new Error('Photo not found')
+      const thumbnailChanged = input.thumbnailUrl !== undefined && input.thumbnailUrl !== before.thumbnailUrl
+      if (thumbnailChanged && before.scanStatus === 'infected') throw new Error('Invalid photo: quarantined; upload a clean copy instead')
       const patch: Partial<typeof propertyPhotos.$inferInsert> = { updatedAt: new Date() }
       if (input.buildingId !== undefined) patch.buildingId = input.buildingId ?? null
       if (input.sectionId !== undefined) patch.sectionId = input.sectionId ?? null
       if (input.caption !== undefined) patch.caption = input.caption ?? null
       if (input.thumbnailUrl !== undefined) patch.thumbnailUrl = input.thumbnailUrl ?? null
+      if (thumbnailChanged) {
+        patch.scanStatus = initialScanStatus()
+        patch.scannedAt = null
+        patch.uploadedByUserId = this.actorUserId()
+        enqueue = patch.scanStatus === 'pending'
+      }
       if (input.takenAt !== undefined) patch.takenAt = input.takenAt ? new Date(input.takenAt) : null
       if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder
       const [after] = await tx
@@ -195,6 +206,8 @@ export class RealPropertyPhotoService implements IPropertyPhotoService {
       })
       return signPhoto(this.actorUserId(), dbPropertyPhotoToContract(after!))
     })
+    if (enqueue) await enqueueAssetScan({ organizationId: input.organizationId, entity: 'property_photo', id: input.id })
+    return updated
   }
 
   async softDelete(id: string, organizationId: string): Promise<void> {
