@@ -265,6 +265,11 @@ export class MockAuthService implements IAuthService {
 
   async acceptInvite(input: AcceptInviteInput): Promise<AuthResult> {
     const p = verifyToken(input.token, 'invite')
+    // Mirrors the real guard: an existing account accepts only while signed in as itself.
+    const known = userByEmail[p.email.toLowerCase()]
+    if (known && this.adapter.getActivePersonaEmail() !== p.email.toLowerCase()) {
+      throw new Error('Invalid invite: this email already has a Bulwark account. Sign in to that account (or reset its password), then open the invite link again.')
+    }
     // For mock: synthesize a SessionUser. Real backend creates the row,
     // sends a verification email, etc.
     const role = p.role ?? 'field'

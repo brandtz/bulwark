@@ -9,7 +9,7 @@
  *     teardown so running both in one vitest run keeps the pool alive.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { getDb } from '../../server/db/client'
 import { users, memberships } from '../../server/db/schema/users'
@@ -270,6 +270,29 @@ d('RealAuthService (E11-S3)', () => {
     const db = getDb()
     await db.delete(memberships).where(eq(memberships.userId, result.user.userId))
     await db.delete(users).where(eq(users.id, result.user.userId))
+  })
+
+  it('an invite for an existing account cannot take it over (WP-X2 re-review P0)', async () => {
+    // Earlier tests rotate this user's password; pin a known one.
+    await getDb().update(users).set({ passwordHash: await bcrypt.hash(password, 4) }).where(eq(users.id, userId))
+    const token = await mintInviteToken({ email, organizationId: orgIdB, organizationName: 'E11-S3 Org B', role: 'viewer' })
+    const anon = new InMemoryAuthSessionAdapter()
+    const attacker = new RealAuthService(anon)
+    await expect(attacker.acceptInvite({ token, fullName: 'Attacker', password: 'Hijack!2345' }))
+      .rejects.toThrow(/already has a Bulwark account/u)
+    expect(await anon.getActiveUserId()).toBeNull()
+    // The owner's password still works; the attacker's does not.
+    await expect(new RealAuthService(new InMemoryAuthSessionAdapter()).login({ email, password: 'Hijack!2345' })).rejects.toThrow(/Invalid email or password/u)
+    const owner = new InMemoryAuthSessionAdapter()
+    const ownerSvc = new RealAuthService(owner)
+    expect((await ownerSvc.login({ email, password })).kind).toBe('session')
+    // Signed in as that account, the same (unconsumed) invite is accepted without touching the password.
+    const accepted = await ownerSvc.acceptInvite({ token, fullName: 'Ignored', password: 'Ignored!2345' })
+    expect(accepted.user.userId).toBe(userId)
+    const [u] = await getDb().select().from(users).where(eq(users.id, userId))
+    expect(u!.fullName).toBe('Test User')
+    expect(await bcrypt.compare(password, u!.passwordHash!)).toBe(true)
+    await getDb().update(memberships).set({ role: 'field' }).where(and(eq(memberships.userId, userId), eq(memberships.organizationId, orgIdB)))
   })
 
   it('previewInvite() rejects garbage tokens', async () => {

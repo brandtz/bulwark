@@ -185,20 +185,12 @@ export class RealAuthService implements IAuthService {
     const email = input.email.toLowerCase()
     const ipAddress = opts?.ipAddress ?? null
 
-    // Pre-flight lockout check with the user's organization thresholds
-    // (WP-L07 S2); unknown emails use the defaults, so the response shape
-    // does not reveal whether the account exists.
-    const [known] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)
-    const policy = known ? await loadPolicyForUser(known.id) : null
-    const lock = await this.getLockoutState({ email }, policy ?? undefined)
-    if (lock.locked) {
-      await db.insert(authAttempts).values({ email, ipAddress, success: false, reason: 'locked' })
-      incCounter(COUNTERS.authFailuresTotal)
-      const retryAfterSeconds = Math.max(1, Math.ceil(((lock.until ?? Date.now()) - Date.now()) / 1000))
-      const err = new Error('account_locked') as Error & { retryAfterSeconds?: number }
-      err.retryAfterSeconds = retryAfterSeconds
-      throw err
-    }
+    // Pre-flight lockout (WP-L07 review): one platform-wide threshold for
+    // every email, known or not, so the lock itself cannot reveal whether an
+    // account exists. The organization's own (possibly stricter) threshold
+    // is applied only after a correct password, below.
+    const lock = await this.getLockoutState({ email })
+    if (lock.locked) await this.refuseLocked(email, ipAddress, lock)
 
     const [row] = await db.select().from(users).where(eq(users.email, email)).limit(1)
     // Constant-ish-time: always run a bcrypt compare so timing doesn't
@@ -213,7 +205,14 @@ export class RealAuthService implements IAuthService {
       throw new Error('Invalid email or password')
     }
 
-    // Password OK — check MFA status BEFORE issuing the session.
+    // Password OK: now the org's lockout thresholds (ED-056) apply.
+    const policy = await loadPolicyForUser(row.id)
+    if (policy) {
+      const orgLock = await this.getLockoutState({ email }, policy)
+      if (orgLock.locked) await this.refuseLocked(email, ipAddress, orgLock)
+    }
+
+    // Check MFA status BEFORE issuing the session.
     const mfa = new RealMfaService()
     const status = await mfa.getStatus(row.id)
     if (status.enabled) {
@@ -239,6 +238,10 @@ export class RealAuthService implements IAuthService {
     if (!user || !user.isActive) {
       throw new Error('Account not found or inactive')
     }
+    // The step-up code is guessable too: the same lockout guards it
+    // (WP-L07 review), counted on the account's email.
+    const mfaLock = await this.getLockoutState({ email: user.email }, (await loadPolicyForUser(user.id)) ?? undefined)
+    if (mfaLock.locked) await this.refuseLocked(user.email, ipAddress, mfaLock)
     const mfa = new RealMfaService()
     let ok = (await mfa.verifyTotp(payload.userId, code)).ok
     let usedBackup = false
@@ -410,29 +413,32 @@ export class RealAuthService implements IAuthService {
   async acceptInvite(input: AcceptInviteInput): Promise<AuthResult> {
     // W5-3 / ADR-0037: Zod-parse at the boundary (unauthenticated entry).
     input = AcceptInviteInputSchema.parse(input)
+    const db = getDb()
+    // Account-takeover guard (WP-X2 re-review P0): an invite proves only that an
+    // admin typed this email, not that the person opening the link owns it. When
+    // the email already has an account, the invite is accepted only by that
+    // account, signed in, and never sets its password. Checked before the token
+    // is consumed, so a refused attempt leaves the invite usable.
+    const preview = await this.previewInvite(input.token)
+    const [existing] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, preview.email.toLowerCase()))
+      .limit(1)
+    if (existing && (await this.adapter.getActiveUserId()) !== existing.id) {
+      throw new Error('Invalid invite: this email already has a Bulwark account. Sign in to that account (or reset its password), then open the invite link again.')
+    }
+
     // W2-4: opaque-token path uses pending_invites; legacy JWT fallback.
     const opaque = await tryConsumeOpaqueInvite(input.token)
     const p: InvitePayload = opaque
       ?? (await verifyTokenOfKind<InvitePayload>(input.token, 'invite'))
-    const db = getDb()
-    const passwordHash = await RealAuthService.hashPassword(input.password)
-
-    // Upsert the user, then ensure a membership row exists.
-    const [existing] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, p.email.toLowerCase()))
-      .limit(1)
 
     let userId: string
     if (existing) {
-      const [updated] = await db
-        .update(users)
-        .set({ fullName: input.fullName, passwordHash, isActive: true })
-        .where(eq(users.id, existing.id))
-        .returning({ id: users.id })
-      userId = updated!.id
+      userId = existing.id
     } else {
+      const passwordHash = await RealAuthService.hashPassword(input.password)
       const [inserted] = await db
         .insert(users)
         .values({ email: p.email.toLowerCase(), fullName: input.fullName, passwordHash, isActive: true })
@@ -519,6 +525,16 @@ export class RealAuthService implements IAuthService {
     }
   }
 
+  /** Record a refused (locked) attempt and throw `account_locked` with a retry hint. */
+  private async refuseLocked(email: string, ipAddress: string | null, lock: LockoutState): Promise<never> {
+    await getDb().insert(authAttempts).values({ email, ipAddress, success: false, reason: 'locked' })
+    incCounter(COUNTERS.authFailuresTotal)
+    const retryAfterSeconds = Math.max(1, Math.ceil(((lock.until ?? Date.now()) - Date.now()) / 1000))
+    const err = new Error('account_locked') as Error & { retryAfterSeconds?: number }
+    err.retryAfterSeconds = retryAfterSeconds
+    throw err
+  }
+
   // --- W2-5: attempt log + lockout state ----------------------------------
   async getAttempts(input: GetAttemptsInput): Promise<{ attempts: AuthAttemptRow[] }> {
     const db = getDb()
@@ -570,7 +586,9 @@ export class RealAuthService implements IAuthService {
     for (const r of rows) {
       if (r.success) break
       // Treat 'mfa_required' as a non-counting waypoint (password was correct).
-      if (r.reason === 'mfa_required') continue
+      // Refused-while-locked attempts are not new guesses; counting them would
+      // extend the lock forever for as long as someone keeps knocking.
+      if (r.reason === 'mfa_required' || r.reason === 'locked') continue
       failures++
       lastFailureAt = lastFailureAt ?? r.occurredAt
     }
