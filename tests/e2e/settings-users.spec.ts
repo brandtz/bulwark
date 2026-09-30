@@ -4,7 +4,7 @@
  * link opens the invitation; non-admins cannot reach the page.
  */
 import { test, expect } from '@playwright/test'
-import { signIn } from './_helpers'
+import { signIn, waitForHydration } from './_helpers'
 
 test.describe('Settings — users invite', () => {
   test.beforeEach(async ({ context }, testInfo) => {
@@ -16,6 +16,7 @@ test.describe('Settings — users invite', () => {
   test('admin invite without an email provider shows the copyable-link fallback, and the link opens the invite', async ({ page, browser }) => {
     await signIn(page.context(), 'drew@bulwark.demo')
     await page.goto('/settings/users')
+    await waitForHydration(page) // a click before hydration is dropped (the modal never opens)
     await page.getByTestId('users-invite-button').click()
     const invitee = `settings-invite-${Date.now()}@bulwark.demo`
     await page.getByTestId('invite-modal').getByLabel(/email/i).fill(invitee)

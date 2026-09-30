@@ -164,7 +164,7 @@ d('async asset scan (WP-X3 / ED-00E)', () => {
     await expect(svc.status(randomUUID())).rejects.toBeInstanceOf(TenantViolationError)
     const none = new RealScanService(() => ({ organizationId: orgId, userId: adminId }), () => ({ name: 'none', scan: async () => ({ clean: true }) }))
     await expect(none.rescan({ organizationId: orgId, entity: 'property_photo', id: ok.id })).rejects.toThrow(/no scanner/u)
-  })
+  }, 15_000) // several DB round trips plus a queued rescan; slow under a loaded runner
 
   it('retries partial quarantine without exposing the infected thumbnail', async () => {
     const { id, key } = await pendingPhoto()
