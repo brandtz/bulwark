@@ -16,6 +16,8 @@ test.describe('delivery health panel', () => {
 
   let sql: ReturnType<typeof postgres>
   let organizationId: string
+  let parkedProviderIds: string[] = []
+  let createdProviderId: string | null = null
 
   test.beforeAll(async ({ browser }) => {
     sql = postgres(process.env.DATABASE_URL!, { max: 1 })
@@ -25,12 +27,20 @@ test.describe('delivery health panel', () => {
     organizationId = (await me.json()).activeOrganizationId
     await context.close()
     expect(organizationId).toBeTruthy()
+    // Both banner states are asserted deterministically: park any active email/SMS
+    // provider for the duration of the spec (restored in afterAll).
+    parkedProviderIds = (await sql<Array<{ id: string }>>`
+      update provider_configs set is_active = false
+      where organization_id = ${organizationId} and kind in ('email', 'sms') and is_active
+      returning id`).map((r) => r.id)
     await sql`
       insert into message_deliveries (organization_id, channel, provider, recipient_hash, status, error, event_type, attempt)
       values (${organizationId}, 'email', 'resend', 'hash', 'failed', ${`${MARKER}: HTTP 503`}, 'quote.sent', 3)`
   })
 
   test.afterAll(async () => {
+    if (createdProviderId) await sql`delete from provider_configs where id = ${createdProviderId}`
+    if (parkedProviderIds.length) await sql`update provider_configs set is_active = true where id in ${sql(parkedProviderIds)}`
     await sql`delete from message_deliveries where error like ${`${MARKER}%`}`
     await sql.end()
   })
@@ -45,14 +55,21 @@ test.describe('delivery health panel', () => {
     await expect(panel.getByTestId('delivery-health-failures')).toContainText(`${MARKER}: HTTP 503`)
     await expect(panel.getByTestId('delivery-health-failures')).toContainText('3 attempts')
 
-    const providers = await page.request.post('/api/services/providerConfig/list', { data: { args: [organizationId] } })
-    const active = new Set(((await providers.json()).rows as Array<{ kind: string, isActive: boolean }>)
-      .filter((r) => r.isActive).map((r) => r.kind))
-    for (const channel of ['email', 'sms']) {
-      const banner = panel.locator(`[data-testid="delivery-health-unconfigured"][data-channel="${channel}"]`)
-      if (active.has(channel)) await expect(banner).toHaveCount(0)
-      else await expect(banner).toContainText('provider is configured')
-    }
+    // Neither channel is configured (beforeAll parked any active rows): both banners.
+    const banner = (channel: string) => panel.locator(`[data-testid="delivery-health-unconfigured"][data-channel="${channel}"]`)
+    await expect(banner('email')).toContainText('provider is configured')
+    await expect(banner('sms')).toContainText('provider is configured')
+
+    // Configure SMS through the real API: its banner goes, email's stays.
+    const upsert = await page.request.post('/api/services/providerConfig/upsert', {
+      data: { args: [{ organizationId, kind: 'sms', provider: 'twilio', config: { accountSid: 'ACe2e', authToken: 'e2e-token', from: '+15555550100' } }] },
+    })
+    expect(upsert.status()).toBe(200)
+    createdProviderId = (await upsert.json()).id
+    await page.reload()
+    await expect(panel).toBeVisible()
+    await expect(banner('sms')).toHaveCount(0)
+    await expect(banner('email')).toContainText('provider is configured')
   })
 
   test('field role is refused with 403 and cannot read failures', async ({ browser }) => {
