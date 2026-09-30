@@ -1,40 +1,51 @@
 /**
- * tests/e2e/homeowner-invoice.spec.ts — W4-2 (deferred from W3-4 /
- * EH-O / ADR-0032).
+ * tests/e2e/homeowner-invoice.spec.ts — homeowner invoice list → detail
+ * (W4-2 / EH-O / ADR-0032; self-scoped reads WP-L07).
  *
- * # Status: SKIPPED
- *   - `/homeowner/invoices/[id]` is not yet a page (W3-4 handoff
- *     "Known follow-ups" calls the detail pages out as stubs). The
- *     list page `/homeowner/invoices` ships and renders rows, but the
- *     read-only invoice render + payment-history list this spec is
- *     supposed to cover live on the missing detail page.
- *   - Unskip once the detail page lands with `data-testid` hooks for
- *     the totals block and the payment list.
+ * The detail page existed but was unreachable until 2026-09-29: invoices.vue
+ * shadowed invoices/[id].vue (see tests/unit/page-nesting.test.ts), and this
+ * spec was skipped as "not shipped", which hid it.
  *
- * # Planned flow once unskipped
- *   1. Seed the homeowner + linked property + invoice graph.
- *   2. Homeowner logs in, opens `/homeowner/invoices`, clicks the first
- *      row → routes to `/homeowner/invoices/[id]`.
- *   3. Asserts totals block renders (read-only — no edit affordances).
- *   4. Asserts payment-history list renders (even if empty state).
+ *   - The homeowner opens /homeowner/invoices, clicks a row and lands on the
+ *     read-only detail: number, total, line items, no edit controls.
+ *   - An invoice id that is not theirs shows the empty state.
+ *   - Payment history and Pay online belong to the client-portal redesign
+ *     (WP-F2), not this legacy page.
  */
 import { test, expect } from '@playwright/test'
-import { signIn } from './_helpers'
-import { HOMEOWNER_PORTAL_FIXTURE } from '../setup/seed-homeowner-portal'
+import { signIn, waitForHydration } from './_helpers'
+import { seedHomeownerPortal, HOMEOWNER_PORTAL_FIXTURE } from '../setup/seed-homeowner-portal'
 
 test.describe('Homeowner invoice detail (W4-2 / EH-O)', () => {
-  test('homeowner views invoice read-only with payment history', async ({ page }) => {
-    test.skip(
-      true,
-      'TODO: unskip once /homeowner/invoices/[id] ships (W3-4 follow-up — detail pages were stubs).',
-    )
+  test.beforeAll(async () => {
+    test.skip(process.env.BULWARK_BACKEND !== 'real', 'real-backend only — needs homeowner_users seed')
+    await seedHomeownerPortal()
+  })
 
+  test('homeowner opens a read-only invoice from the list', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'desktop-only flow')
     await signIn(page.context(), HOMEOWNER_PORTAL_FIXTURE.email)
     await page.goto('/homeowner/invoices')
-    const firstRow = page.locator('[data-testid^="ho-invoice-"]').first()
-    await firstRow.click()
-    await expect(page.getByTestId('homeowner-invoice-detail')).toBeVisible()
-    await expect(page.getByTestId('homeowner-invoice-totals')).toBeVisible()
-    await expect(page.getByTestId('homeowner-invoice-payments')).toBeVisible()
+    await waitForHydration(page)
+    await expect(page.getByTestId('homeowner-invoices')).toBeVisible()
+    const firstRow = page.locator('[data-testid^="ho-invoice-"]').filter({ has: page.locator('a') }).first()
+    await expect(firstRow).toBeVisible()
+    await firstRow.locator('a').click()
+    await page.waitForURL(/\/homeowner\/invoices\/[\w-]+$/u)
+    await waitForHydration(page)
+
+    const detail = page.getByTestId('homeowner-invoice-detail')
+    await expect(detail).toBeVisible()
+    await expect(page.getByTestId('ho-invoice-number')).toHaveText(/\S/u)
+    await expect(page.getByTestId('ho-invoice-total')).toHaveText(/\$\s?[\d,]+/u)
+    await expect(page.getByTestId('ho-invoice-line').first()).toBeVisible()
+    // Read-only: no inputs or edit/delete controls for the homeowner.
+    await expect(detail.locator('input, textarea, select')).toHaveCount(0)
+    await expect(detail.getByRole('button', { name: /edit|delete|void|record payment/iu })).toHaveCount(0)
+
+    await page.goto('/homeowner/invoices/00000000-0000-4000-8000-00000000dead')
+    await waitForHydration(page)
+    await expect(page.getByTestId('ho-invoice-empty')).toBeVisible()
+    await expect(page.getByTestId('ho-invoice-line')).toHaveCount(0)
   })
 })

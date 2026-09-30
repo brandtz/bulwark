@@ -1,5 +1,5 @@
 <!--
-  app/pages/homeowner/quotes.vue — list quotes scoped to the
+  app/pages/homeowner/quotes/index.vue — list quotes scoped to the
   homeowner's properties (W3-4 / EH-O / ADR-0032). Opening a quote
   navigates to /homeowner/quotes/[id] which emits
   `homeowner.quote_viewed` on first paint.

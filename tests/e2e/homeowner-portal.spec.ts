@@ -8,18 +8,17 @@
  *   - Homeowner logs in, lands on `/homeowner`, sees their property
  *     count > 0 and a working "My properties →" link.
  *   - Navigates to `/homeowner/properties` and sees the property card.
- *   - The deeper "open a quote, see Accept CTA" assertion is skipped
- *     because `/homeowner/quotes/[id]` is not yet shipped (see W3-4
- *     handoff "Known follow-ups" — detail pages are stubs).
+ *   - Lists their quotes and opens one (self-scoped reads, WP-L07). The
+ *     detail page was unreachable until 2026-09-29: quotes.vue shadowed
+ *     quotes/[id].vue (see tests/unit/page-nesting.test.ts).
  *
  * # Decisions (ADR-0007 / ADR-0032)
  *   - Real-backend only — the `homeowner` role enum, `homeowner_users`
  *     table, and the demo persona are all DB-side.
- *   - We only assert what's wired today; the spec re-enables the
- *     Accept-CTA assertion once W4-1 ships the homeowner quote detail.
+ *   - The Accept CTA belongs to the client-portal redesign (WP-F2).
  */
 import { test, expect } from '@playwright/test'
-import { signIn } from './_helpers'
+import { signIn, waitForHydration } from './_helpers'
 import { seedHomeownerPortal, HOMEOWNER_PORTAL_FIXTURE } from '../setup/seed-homeowner-portal'
 
 test.describe('Homeowner portal landing (W4-2 / EH-O)', () => {
@@ -42,12 +41,29 @@ test.describe('Homeowner portal landing (W4-2 / EH-O)', () => {
     await expect(page.getByTestId('homeowner-properties')).toBeVisible()
     const card = page.getByTestId(`ho-property-${HOMEOWNER_PORTAL_FIXTURE.propertyId}`)
     await expect(card).toBeVisible()
+  })
 
-    // Open-a-quote + Accept CTA is the next layer; quote detail page
-    // for the homeowner portal hasn't shipped yet.
-    test.skip(
-      true,
-      'TODO: open-a-quote + Accept CTA assertion waits on /homeowner/quotes/[id] (W3-4 follow-up).',
-    )
+  // WP-L07 S7: homeowner reads are self-scoped (listMyQuotes/getMyQuote). The
+  // Accept CTA belongs to the client-portal redesign (WP-F2).
+  test('homeowner lists and opens only quotes on their own property', async ({ page }) => {
+    await page.goto('/homeowner/quotes')
+    await waitForHydration(page)
+    await expect(page.getByTestId('homeowner-quotes')).toBeVisible()
+    const first = page.locator('[data-testid^="ho-quote-"]').filter({ has: page.locator('a') }).first()
+    await expect(first).toBeVisible()
+    await first.locator('a').click()
+    await page.waitForURL(/\/homeowner\/quotes\/[\w-]+$/u)
+    await waitForHydration(page)
+    await expect(page.getByTestId('homeowner-quote-detail')).toBeVisible()
+    await expect(page.getByTestId('ho-quote-number')).toHaveText(/\S/u)
+    await expect(page.getByTestId('ho-quote-total')).toHaveText(/\$\s?[\d,]+/u)
+    await expect(page.getByTestId('ho-quote-line').first()).toBeVisible()
+
+    // A quote id that is not theirs (here: one that does not exist) shows the
+    // empty state, never another customer's quote or an error page.
+    await page.goto('/homeowner/quotes/00000000-0000-4000-8000-00000000dead')
+    await waitForHydration(page)
+    await expect(page.getByTestId('ho-quote-empty')).toBeVisible()
+    await expect(page.getByTestId('ho-quote-line')).toHaveCount(0)
   })
 })

@@ -1,5 +1,5 @@
 <!--
-  app/pages/homeowner/invoices.vue — invoices scoped to the
+  app/pages/homeowner/invoices/index.vue — invoices scoped to the
   homeowner's properties (W3-4 / EH-O / ADR-0032).
 -->
 <script setup lang="ts">
