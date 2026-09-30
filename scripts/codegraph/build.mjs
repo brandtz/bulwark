@@ -525,7 +525,7 @@ function workPackagesReport() {
   const wps = [...nodes.values()].filter((n) => n.type === 'workPackage')
   if (!wps.length) return '# Work packages\n\n(none — agents/program/work-packages.json missing)'
   const phases = [...new Set(wps.map((w) => w.phase))].sort()
-  const lines = ['# Work packages (generated view — source of truth is agents/program/work-packages.json)', '', `${wps.length} packages · ${wps.filter((w) => w.status === 'done').length} done · ${wps.filter((w) => w.status === 'in-progress').length} in progress · ${wps.filter((w) => w.status === 'ready').length} ready · ${wps.filter((w) => w.status === 'blocked').length} blocked`, '']
+  const lines = ['# Work packages (generated view — source of truth is agents/program/work-packages.json)', '', `${wps.length} packages · ${wps.filter((w) => w.status === 'done').length} done · ${wps.filter((w) => w.status === 'review').length} in review · ${wps.filter((w) => w.status === 'in-progress').length} in progress · ${wps.filter((w) => w.status === 'ready').length} ready · ${wps.filter((w) => w.status === 'todo').length} todo · ${wps.filter((w) => w.status === 'blocked').length} blocked`, '']
   for (const ph of phases) {
     lines.push(`## Phase ${ph}`, '', '| WP | Title | Lane | Status | Size | Designs (received/total) | Depends on | Blocks |', '|---|---|---|---|---|---|---|---|')
     for (const w of wps.filter((x) => x.phase === ph).sort((a, b) => a.id.localeCompare(b.id))) {
@@ -538,7 +538,8 @@ function workPackagesReport() {
   }
   // ready-now computation
   const done = new Set(wps.filter((w) => w.status === 'done').map((w) => w.id.replace('wp:', '')))
-  const readyNow = wps.filter((w) => w.status !== 'done' && w.status !== 'in-progress' && (w.dependsOn ?? []).every((d) => done.has(d)) && ((w.designs ?? []).every((d) => nodes.get(`design:${d}`)?.status === 'received') || w.designAhead))
+  // Only unclaimed work: in-progress/review/done packages are already underway or finished.
+  const readyNow = wps.filter((w) => (w.status === 'todo' || w.status === 'ready' || w.status === 'blocked') && (w.dependsOn ?? []).every((d) => done.has(d)) && ((w.designs ?? []).every((d) => nodes.get(`design:${d}`)?.status === 'received') || w.designAhead))
   lines.push('## Startable now (all deps done, designs received or designAhead)', '', ...readyNow.map((w) => `- ${w.id.replace('wp:', '')} — ${w.title} [${w.lane}]`))
   return lines.join('\n')
 }

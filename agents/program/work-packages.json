@@ -107,7 +107,8 @@
         "Visual: Playwright screenshot of /dev/ui per component section matches design specimen within 0.5% pixel diff at 1440 light and dark (baseline generated from design HTML, see tests/e2e/screens/_visual.ts)",
         "axe: zero serious/critical violations on /dev/ui light+dark",
         "Keyboard: every interactive primitive operable via keyboard map in SPEC (Tabs arrows, Modal focus trap + Esc, Select type-ahead) — e2e keyboard tests",
-        "No consumer page breaks: pnpm typecheck + full e2e suite green"
+        "No consumer page breaks: pnpm typecheck + full e2e suite green",
+        "Drawer: focus trap, Esc and focus restore e2e (template: modal test in tests/e2e/a11y-focus.spec.ts; ED-063)"
       ],
       "tests": [
         "tests/unit/ui-spec-parity.test.ts — parses components/SPEC.md Props tables and asserts each existing component declares them",
@@ -115,7 +116,7 @@
         "tests/e2e/screens/visual-primitives.spec.ts — screenshot per section vs design specimen"
       ],
       "dependsOn": ["WP-A1"],
-      "decisions": [],
+      "decisions": ["ED-063"],
       "agentNotes": "Work component-by-component; commit per component. Preserve existing props (additive) so pages keep compiling; mark removed props @deprecated for one phase. 2026-09-26 (claude-code, from A1 Lighthouse): dark mode fails 4.5:1 for white text on legacy solid semantic fills — BulwarkButton destructive (bg #F0857A) and BulwarkAvatar success/error colors (#6FC594/#F0857A). Restyle these to Packet A (.bw-btn--destructive and avatar tokens) with a dark-safe foreground. | 2026-09-29 (claude-code): claimed."
     },
     {
@@ -240,22 +241,22 @@
     {
       "id": "WP-Q2",
       "title": "Persona × route × action matrix and adversarial test standards",
-      "lane": "QA", "phase": "0-foundation", "status": "review", "size": "M", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
+      "lane": "QA", "phase": "0-foundation", "status": "done", "size": "M", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
       "goal": "Expand persona-matrix.spec.ts from routes to actions: for every write action in received SPECs (Actions table → Permission column), assert the permitted role can and every other role cannot (UI absent AND API 403).",
       "scope": ["Generate matrix data from codegraph (design actions + roles) into tests/e2e/_matrix.generated.json via scripts/codegraph/export-matrix.mjs", "API-level negative tests hitting /api/services/<svc>/<method> as wrong role and wrong tenant", "Mutation-ish guard: a test that flips one permission in the mock and asserts the matrix catches it (proves tests aren't tautological)"],
       "outOfScope": [],
       "designs": [],
-      "files": ["tests/e2e/persona-matrix.spec.ts", "tests/e2e/_matrix.generated.json", "scripts/codegraph/export-matrix.mjs", "tests/integration/tenant-firewall-matrix.test.ts", "scripts/security/rpc-policy-snapshot.mjs", "tests/rbac/**", "tests/unit/rpc-policy-snapshot.test.ts", "tests/e2e/rbac-matrix.spec.ts", ".github/workflows/codegraph.yml", ".github/workflows/security.yml"],
+      "files": ["tests/e2e/persona-matrix.spec.ts", "tests/e2e/_matrix.generated.json", "scripts/codegraph/export-matrix.mjs", "tests/integration/tenant-firewall-matrix.test.ts", "scripts/security/rpc-policy-snapshot.mjs", "tests/rbac/**", "tests/unit/rpc-policy-snapshot.test.ts", "tests/e2e/rbac-matrix.spec.ts", ".github/workflows/codegraph.yml", ".github/workflows/security.yml", "scripts/codegraph/scaffold-screen-test.mjs"],
       "acceptance": ["Matrix covers 100% of actions in received SPECs (codegraph check)", "Deliberately weakening a role gate in a branch makes ≥1 matrix test fail (documented in test file)"],
       "tests": ["as scope"],
       "dependsOn": ["WP-Q1"],
       "decisions": [],
-      "agentNotes": "2026-09-28 (claude-code). Design matrix: export-matrix.mjs parses the Actions table of all 175 received SPECs, 1,075 actions (946 role- or capability-gated), and normalizes the Permission column (manager+, field+, client->homeowner, owner->org_admin with a note, capabilities, pre-auth conditions) into tests/e2e/_matrix.generated.json. --check (CI codegraph job) fails on an unrecognized permission word or a stale file, so 100% of actions stay in the matrix. API matrix: tests/rbac/rpc-policy.snapshot.json is a committed, reviewed snapshot of the 267-method RPC policy. tests/e2e/rbac-matrix.spec.ts calls every method as each of the 8 personas plus anonymous and requires 401/403 for every pair the snapshot denies (denials fire before service code, so no side effects), plus 11 wrong-tenant calls into the other demo org (403). Not tautological: expectations come from the snapshot, not rpc-policy.ts. tests/unit/rpc-policy-snapshot.test.ts fails on any policy drift, and its mutation test adds viewer to user.invite and shows both the diff and the HTTP matrix catch it (documented in the file). UI absence per action belongs to each SCR screen-contract spec, which reads its rows from the generated matrix."
+      "agentNotes": "2026-09-28 (claude-code). Design matrix: export-matrix.mjs parses the Actions table of all 175 received SPECs, 1,075 actions (946 role- or capability-gated), and normalizes the Permission column (manager+, field+, client->homeowner, owner->org_admin with a note, capabilities, pre-auth conditions) into tests/e2e/_matrix.generated.json. --check (CI codegraph job) fails on an unrecognized permission word or a stale file, so 100% of actions stay in the matrix. API matrix: tests/rbac/rpc-policy.snapshot.json is a committed, reviewed snapshot of the 267-method RPC policy. tests/e2e/rbac-matrix.spec.ts calls every method as each of the 8 personas plus anonymous and requires 401/403 for every pair the snapshot denies (denials fire before service code, so no side effects), plus 11 wrong-tenant calls into the other demo org (403). Not tautological: expectations come from the snapshot, not rpc-policy.ts. tests/unit/rpc-policy-snapshot.test.ts fails on any policy drift, and its mutation test adds viewer to user.invite and shows both the diff and the HTTP matrix catch it (documented in the file). UI absence per action belongs to each SCR screen-contract spec, which reads its rows from the generated matrix. | 2026-09-29 (claude-code): review -> done. Skeptic P1s closed: IDOR shape (own org id + another org's real record id) now tested for org_admin, org_manager, field and viewer, reads and a write (rbac-matrix.spec). The design matrix feeds every scaffolded screen test: each action names its permitted and refused roles (scaffold-screen-test.mjs), and screen:audit already rejects unresolved action tests. Matrix --check runs where the gitignored SPECs exist; CI uses the committed JSON (0447c56). Mutation run documented in rpc-policy-snapshot.test.ts."
     },
     {
       "id": "WP-Q3",
       "title": "Real-backend e2e green-up (20 pre-existing chromium failures)",
-      "lane": "QA", "phase": "1-shared", "status": "in-progress", "size": "M", "owner": "claude-code (2026-09-27)", "branch": "wp/WP-Q3-release-ci",
+      "lane": "QA", "phase": "1-shared", "status": "done", "size": "M", "owner": "claude-code (2026-09-27)", "branch": "wp/WP-Q3-release-ci",
       "goal": "The CI e2e job runs in mock mode, so real-backend regressions went unnoticed. Make the chromium suite green against the real backend and a built server, then add a real-backend e2e CI job.",
       "scope": ["Triage and fix the 20 failures measured on 2026-09-27 at 70bf04a (identical before and after WP-L07): dashboard charts, field check-in, launch/quote happy paths, inspection-dynamic, invoice partial payments, invoices-list (seed dates drift: sent invoices age into overdue), property-depth, quote preview/revise/tiers/list, reports CSV, settings inspection-templates/numbering/trades, storage-presign (dev fs upload route on a built server), work-order-create", "Make seed dates relative to 'now' where specs depend on status buckets", "Add a CI job running the real-backend chromium suite on Postgres + built server"],
       "outOfScope": ["Screen-contract per-state specs (SCR WPs)"],
@@ -265,7 +266,7 @@
       "tests": ["tests/e2e/** (chromium, real backend)"],
       "dependsOn": ["WP-Q1"],
       "decisions": [],
-      "agentNotes": "Created 2026-09-27 by claude-code from the WP-L07 baseline comparison. Failure list and first error per spec recorded in that session; app bugs already fixed under L07: reporting.revenueTrend GROUP BY and /api/field/my-day Date param (dashboard spec still fails on another cause). | 2026-09-27 progress (claude-code). App bugs fixed: (1) chart components never resolved because pathPrefix is false, so <ChartsDonut> etc. rendered nothing; files renamed, with the regression gate tests/unit/component-resolution.test.ts; (2) <PropertyPropertyDepthNav> in 6 pages, same cause; (3) useLabel SSR 500 on /admin/reports/[slug] (state ref resolved in setup); (4) BulwarkModal/Drawer dropped attrs such as data-testid and aria (inheritAttrs:false plus v-bind on the dialog; A2 should note this); (5) field job + settings/jobs SSR fetches lost cookies (useRequestFetch); (6) the dispatcher now logs rpc.unhandled. Seed: dates relative to now, a paid invoice gets a payment row, org_settings and trades reset on reseed. Test fixes: stale selectors, hydration races (waitForHydration), year-bound fixtures. Skips on a built server only, and only for dev-only surfaces: storage-presign (/api/_dev/uploads route) and _debug-persona (persona quick-pick); both still run in the dev lane. CI: new e2e-real job (Postgres + seed + built server + moto S3 stand-in for R2). property-depth.spec and storage-presign.spec moved to WP-L02 files (overlap guard). waitForHydration now waits for nuxtApp.isHydrating === false: pages with async setup hydrate inside Suspense, and clicks before that are dropped. This was the settings-inspection-templates full-suite failure (Start clicked, no request sent). | 2026-09-28: moved to review. The local built chromium suite passed 193 with 0 failures (21 skips: mobile-only, dev-only, env-gated), and the CI e2e-real job passed at 22bbeaf (moto S3 stand-in; the runner needed actions/setup-python because system pip is externally managed). Needs a skeptic review by a different agent. | 2026-09-29: CI on main had four real and sixteen mock failures. The real browser failures came from an MFA test fixture that left a required policy active; that fixture now enrols its admin before enabling policy, and a genuine disabled-MFA re-enrolment defect was fixed with a database regression test. Programs tests create their own fixtures, theme tests use cookie-backed preferences, subcontractor expectations reflect each backend's seed. Mock-only Postgres/pg-boss specs move to the real lane (ED-062). Targeted real Chromium: 14/14 passed; full real and mock CI reruns pending. Modal/Drawer globs handed to active WP-A2; no new Q3 edits there."
+      "agentNotes": "Created 2026-09-27 by claude-code from the WP-L07 baseline comparison. Failure list and first error per spec recorded in that session; app bugs already fixed under L07: reporting.revenueTrend GROUP BY and /api/field/my-day Date param (dashboard spec still fails on another cause). | 2026-09-27 progress (claude-code). App bugs fixed: (1) chart components never resolved because pathPrefix is false, so <ChartsDonut> etc. rendered nothing; files renamed, with the regression gate tests/unit/component-resolution.test.ts; (2) <PropertyPropertyDepthNav> in 6 pages, same cause; (3) useLabel SSR 500 on /admin/reports/[slug] (state ref resolved in setup); (4) BulwarkModal/Drawer dropped attrs such as data-testid and aria (inheritAttrs:false plus v-bind on the dialog; A2 should note this); (5) field job + settings/jobs SSR fetches lost cookies (useRequestFetch); (6) the dispatcher now logs rpc.unhandled. Seed: dates relative to now, a paid invoice gets a payment row, org_settings and trades reset on reseed. Test fixes: stale selectors, hydration races (waitForHydration), year-bound fixtures. Skips on a built server only, and only for dev-only surfaces: storage-presign (/api/_dev/uploads route) and _debug-persona (persona quick-pick); both still run in the dev lane. CI: new e2e-real job (Postgres + seed + built server + moto S3 stand-in for R2). property-depth.spec and storage-presign.spec moved to WP-L02 files (overlap guard). waitForHydration now waits for nuxtApp.isHydrating === false: pages with async setup hydrate inside Suspense, and clicks before that are dropped. This was the settings-inspection-templates full-suite failure (Start clicked, no request sent). | 2026-09-28: moved to review. The local built chromium suite passed 193 with 0 failures (21 skips: mobile-only, dev-only, env-gated), and the CI e2e-real job passed at 22bbeaf (moto S3 stand-in; the runner needed actions/setup-python because system pip is externally managed). Needs a skeptic review by a different agent. | 2026-09-29: CI on main had four real and sixteen mock failures. The real browser failures came from an MFA test fixture that left a required policy active; that fixture now enrols its admin before enabling policy, and a genuine disabled-MFA re-enrolment defect was fixed with a database regression test. Programs tests create their own fixtures, theme tests use cookie-backed preferences, subcontractor expectations reflect each backend's seed. Mock-only Postgres/pg-boss specs move to the real lane (ED-062). Targeted real Chromium: 14/14 passed; full real and mock CI reruns pending. Modal/Drawer globs handed to active WP-A2; no new Q3 edits there. | 2026-09-29 (claude-code): in-progress -> done. Acceptance met on the real lane: full built-server chromium run 229 passed / 2 failed / 18 skipped (skips are mobile-only, dev-only or env-gated); both failures fixed and re-verified on a fresh build (settings-users waited on hydration; the new IDOR spec now creates its own fixtures). e2e-real runs on every push to main. The mock lane cannot be reproduced on a built server, so its state is read from CI after this push; if still red it gets its own WP (Q3 skeptic P1-2). App bugs from this pass have regression tests (MFA re-enrolment, wildfire template bootstrap)."
     },
     {
       "id": "WP-O1",
@@ -320,7 +321,7 @@
     {
       "id": "WP-X2",
       "title": "People/contacts model, permits, sessions, signatures, announcements, prefs",
-      "lane": "BE", "phase": "2-admin-core", "status": "review", "size": "L", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
+      "lane": "BE", "phase": "2-admin-core", "status": "done", "size": "L", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
       "goal": "Schema + contracts + services for entities the received admin designs need that don't exist.",
       "scope": ["people + contacts join (ED-036) with dedupe migration", "permits + permit_jobs + jurisdictions catalog (ED-039)", "user_sessions (ED-015) + revoke", "signatures immutable table (ED-00D) referenced by inspections, quotes, change orders, deliverables", "platform_announcements (ED-007)", "org_settings.ui_history_days (ED-000); user_prefs (theme, density, trusted devices)", "saved_views.layout_json (ED-013)", "quote_line_items.catalog_item_id nullable + quotes.hidden_tiers (ED-045/047)"],
       "outOfScope": ["UI"],
@@ -330,25 +331,45 @@
       "tests": ["tests/integration/people-contacts.real.test.ts", "tests/integration/permits.real.test.ts", "tests/integration/signatures-immutable.test.ts", "tests/integration/sessions.real.test.ts", "tests/unit/tenant-firewall.test.ts (extend)"],
       "dependsOn": ["WP-X1"],
       "decisions": ["ED-036", "ED-039", "ED-015", "ED-00D", "ED-007", "ED-000", "ED-013", "ED-045", "ED-047"],
-      "agentNotes": "2026-09-28 (claude-code): corrected todo -> ready. WP-X1 is done and all four designs (AD-16, AD-19, SH-31, AD-32) are received, which satisfies registry rule 1. | 2026-09-28 (claude-code): migration 0021 was applied to prod via the Neon MCP (verified on a temporary branch; bookkeeping row recorded). It adds people (with the contacts person_id/is_billing join and a backfill deduped by org + lowercased email, tested), jurisdictions, permits, permit_jobs, user_sessions, append-only signatures, platform_announcements, announcement_dismissals, org_settings.ui_history_days, saved_views.layout_json and quotes.hidden_tiers. Quote line items are JSONB, so catalogItemId is a contract field, not a column. Next: contracts, services, mocks and policy for each. | 2026-09-29 (claude-code): contracts, mocks, real services and policy for people, permits, sessions (+ revocation middleware), signatures (0022 append-only trigger) and announcements shipped in 8bbc154 + 1c3b08c; prod migrated to 0022. Gates: typecheck, lint, 723 unit/integration (real), sessions-revoke e2e green; CI real-backend e2e green. Trusted-device lifetime lives in security_policies.trusted_days (ED-056). Awaiting skeptic review. | 2026-09-29 (claude-code) skeptic review REWORK addressed. P0 announcements -> platform-operator allowlist (ED-057, c2c5e86). P1-1 tenant-firewall unit matrix extended (person/permit/signature + X3 + getMany) and real cross-tenant reads/writes + IDOR-shape tests for permits/people. P1-2 attachToProperty checks the property's org. P1-3 permits aligned to AD-19 (ED-061, migration 0023: statuses + transition table, scope, pdf_attachment_id, permit_inspections with schedule/record-result). P1-4 permit/person writes manager+. P1-5 AppAnnouncements + the four layout hunks: kept (shell rendering is part of ED-007 acceptance) with tests/e2e/announcements.spec.ts; globs widened to cover them and noted on WP-A5. P2 fixed: signature test asserts append-only, session.real comment, ensurePersonForContact race (on conflict + re-select), permit.create ignores deleted properties, announcement.dismiss validates id, hiddenTiers rule (own tier never hidden, no repeats; send-time editing -> WP-B5), hiddenTiers/uiHistoryDays/layout tests. P2 kept: fixtures relative dates are deliberate (mock-lane overdue fix). Deferred with note: server-computed documentHash (P2-14) -> the e-sign consumers (WP-B5/F2) must hash the rendered document server-side; mock contact.create personId parity (P2-10); contact.update re-link/person propagation (P2-7)."
+      "agentNotes": "2026-09-28 (claude-code): corrected todo -> ready. WP-X1 is done and all four designs (AD-16, AD-19, SH-31, AD-32) are received, which satisfies registry rule 1. | 2026-09-28 (claude-code): migration 0021 was applied to prod via the Neon MCP (verified on a temporary branch; bookkeeping row recorded). It adds people (with the contacts person_id/is_billing join and a backfill deduped by org + lowercased email, tested), jurisdictions, permits, permit_jobs, user_sessions, append-only signatures, platform_announcements, announcement_dismissals, org_settings.ui_history_days, saved_views.layout_json and quotes.hidden_tiers. Quote line items are JSONB, so catalogItemId is a contract field, not a column. Next: contracts, services, mocks and policy for each. | 2026-09-29 (claude-code): contracts, mocks, real services and policy for people, permits, sessions (+ revocation middleware), signatures (0022 append-only trigger) and announcements shipped in 8bbc154 + 1c3b08c; prod migrated to 0022. Gates: typecheck, lint, 723 unit/integration (real), sessions-revoke e2e green; CI real-backend e2e green. Trusted-device lifetime lives in security_policies.trusted_days (ED-056). Awaiting skeptic review. | 2026-09-29 (claude-code) skeptic review REWORK addressed. P0 announcements -> platform-operator allowlist (ED-057, c2c5e86). P1-1 tenant-firewall unit matrix extended (person/permit/signature + X3 + getMany) and real cross-tenant reads/writes + IDOR-shape tests for permits/people. P1-2 attachToProperty checks the property's org. P1-3 permits aligned to AD-19 (ED-061, migration 0023: statuses + transition table, scope, pdf_attachment_id, permit_inspections with schedule/record-result). P1-4 permit/person writes manager+. P1-5 AppAnnouncements + the four layout hunks: kept (shell rendering is part of ED-007 acceptance) with tests/e2e/announcements.spec.ts; globs widened to cover them and noted on WP-A5. P2 fixed: signature test asserts append-only, session.real comment, ensurePersonForContact race (on conflict + re-select), permit.create ignores deleted properties, announcement.dismiss validates id, hiddenTiers rule (own tier never hidden, no repeats; send-time editing -> WP-B5), hiddenTiers/uiHistoryDays/layout tests. P2 kept: fixtures relative dates are deliberate (mock-lane overdue fix). Deferred with note: server-computed documentHash (P2-14) -> the e-sign consumers (WP-B5/F2) must hash the rendered document server-side; mock contact.create personId parity (P2-10); contact.update re-link/person propagation (P2-7). | 2026-09-29 (claude-code): review -> done. Skeptic REWORK addressed (c2c5e86, 0304181); re-verified. Open P2 carried to consumers: server-computed documentHash for e-sign (WP-B5/F2)."
     },
     {
       "id": "WP-X3",
       "title": "IGeoService (Mapbox + none), IScanService (async AV), IPushService scaffold",
-      "lane": "BE", "phase": "2-admin-core", "status": "review", "size": "M", "owner": "codex (2026-09-29)", "branch": "wp/WP-X3-scan-review-fixes",
+      "lane": "BE", "phase": "2-admin-core", "status": "done", "size": "M", "owner": "codex (2026-09-29)", "branch": "wp/WP-X3-scan-review-fixes",
       "goal": "Provider-pattern services behind sealed provider configs; fail-closed with 'none' drivers so the app runs without keys.",
       "scope": ["geo.autocomplete/geocode/staticMap/route; providerConfig kind 'geo'", "scan.enqueue on finalize; status on asset rows; quarantine path", "push.subscribe/unsubscribe/send (Web Push VAPID) + notification channel column"],
       "outOfScope": ["Map UI beyond MapPanel none-state"],
       "designs": ["AD-11", "AD-18", "SH-32"],
       "files": ["shared/contracts/geo.ts", "shared/contracts/scan.ts", "shared/contracts/push.ts", "server/services/geo.real.ts", "server/services/scan.real.ts", "server/services/push.real.ts", "server/services/_providers/**", "shared/mocks/geo.mock.ts", "shared/mocks/scan.mock.ts", "shared/mocks/push.mock.ts", "server/jobs/**", "shared/contracts/provider-config.ts", "shared/contracts/services.ts", "server/db/schema/push_subscriptions.ts", "server/db/schema/property_photos.ts", "server/db/schema/property_attachments.ts", "server/db/schema/jobs.ts", "server/db/migrations/**", "server/services/storage/**", "server/services/property-photo.real.ts",
         "server/services/property.real.ts",
-        "tests/integration/asset-scan.real.test.ts", "server/services/property-attachment.real.ts", "server/services/audit.real.ts", "server/services/_subscribers/notification-subscriber.ts", "shared/contracts/job.ts", "shared/contracts/property-photo.ts", "shared/contracts/property-attachment.ts", "shared/contracts/notification-subscription.ts", "app/composables/usePushNotifications.ts", "app/pages/profile/notifications.vue", "app/pages/settings/providers.vue", "public/sw.js", "public/images/**", "server/utils/rpc-policy.ts", "server/utils/security-headers.ts", "tests/rbac/rpc-policy.snapshot.json", ".env.example"],
+        "tests/integration/asset-scan.real.test.ts", "server/services/property-attachment.real.ts", "server/services/audit.real.ts", "server/services/_subscribers/notification-subscriber.ts", "shared/contracts/job.ts", "shared/contracts/property-photo.ts", "shared/contracts/property-attachment.ts", "shared/contracts/notification-subscription.ts", "app/composables/usePushNotifications.ts", "app/pages/profile/notifications.vue", "app/pages/settings/providers.vue", "public/sw.js", "public/images/**", "server/utils/rpc-policy.ts", "server/utils/security-headers.ts", "tests/rbac/rpc-policy.snapshot.json", ".env.example",
+        "server/api/geo/**",
+        "tests/e2e/geo-none.spec.ts"],
       "acceptance": ["With no geo key, autocomplete returns [] and UI shows free-text address (e2e)", "Infected fixture (EICAR string) → quarantined + admin notification; clean file → status clean (integration with stub scanner)", "Push send with expired subscription prunes it (unit)"],
       "tests": ["tests/unit/geo-none-driver.test.ts", "tests/integration/scan-pipeline.test.ts",
-        "tests/integration/asset-scan.real.test.ts", "tests/unit/push.test.ts"],
+        "tests/integration/asset-scan.real.test.ts", "tests/unit/push.test.ts",
+        "tests/e2e/geo-none.spec.ts",
+        "tests/unit/geo.test.ts (proxy path)",
+        "tests/e2e/profile-account.spec.ts (push hidden without VAPID)"],
       "dependsOn": ["WP-X1"],
       "decisions": ["ED-00C", "ED-00E", "ED-016"],
-      "agentNotes": "2026-09-29 (codex): resumed scan rework; fixed missing test imports, retry recovery, durable infected verdict across partial quarantine, and thumbnail mutation/scanning. Expanded files for property primary-photo withholding and scan regressions. Focused independent review clean; full WP-X3 still needs geo token proxy, none-driver UI evidence and full acceptance re-review. See agents/handoffs/2026-09-29-CODEX-RESUME.md. | 2026-09-28 (claude-code): corrected todo -> ready (WP-X1 done; AD-11, AD-18 and SH-32 received), then claimed. Decisions: ED-00C (Mapbox behind IGeoService, none driver), ED-00E (async scan, scanning badge for others, infected -> quarantine + admin notification), ED-016 (push as a 4th channel). | 2026-09-28 (claude-code) done. GEO (90ed647): Mapbox or none driver; Mapbox errors degrade to the none answer; Settings > Providers Geo section; CSP img-src adds api.mapbox.com. SCAN (ED-00E): migration 0020 (applied to prod via the Neon MCP) adds scan_status/scanned_at, the asset_scan job kind and push_subscriptions. Photo/attachment create sets pending and enqueues asset_scan when CLAMD_HOST is set, otherwise skipped. The clamd INSTREAM driver needs no dependency; a scanner error keeps the asset pending and the job retries (5x). Infected -> object moved to quarantine/<key>, row infected, org admins get an error notification. Reads: pending assets go only to the uploader, infected to nobody (placeholder /images/asset-unavailable.svg); scan.status/rescan are admin-only. Found and fixed: RealAuditService.record wrote the SYSTEM_USER_ID sentinel into a uuid column, which crashed any system-context audit; normalized at the choke point. PUSH (ED-016): VAPID ES256 via node:crypto and payload-less pushes (no RFC 8291 encryption needed); the SW shows a generic alert and opens /notifications; 404/410 revokes; channels.push is an optional JSONB flag, so no column is needed. The Push column and device card show only when VAPID keys are set. Ops: set CLAMD_HOST, VAPID_* and MAPBOX_ACCESS_TOKEN (all documented in .env.example) to turn the features on."
+      "agentNotes": "2026-09-29 (codex): resumed scan rework; fixed missing test imports, retry recovery, durable infected verdict across partial quarantine, and thumbnail mutation/scanning. Expanded files for property primary-photo withholding and scan regressions. Focused independent review clean; full WP-X3 still needs geo token proxy, none-driver UI evidence and full acceptance re-review. See agents/handoffs/2026-09-29-CODEX-RESUME.md. | 2026-09-28 (claude-code): corrected todo -> ready (WP-X1 done; AD-11, AD-18 and SH-32 received), then claimed. Decisions: ED-00C (Mapbox behind IGeoService, none driver), ED-00E (async scan, scanning badge for others, infected -> quarantine + admin notification), ED-016 (push as a 4th channel). | 2026-09-28 (claude-code) done. GEO (90ed647): Mapbox or none driver; Mapbox errors degrade to the none answer; Settings > Providers Geo section; CSP img-src adds api.mapbox.com. SCAN (ED-00E): migration 0020 (applied to prod via the Neon MCP) adds scan_status/scanned_at, the asset_scan job kind and push_subscriptions. Photo/attachment create sets pending and enqueues asset_scan when CLAMD_HOST is set, otherwise skipped. The clamd INSTREAM driver needs no dependency; a scanner error keeps the asset pending and the job retries (5x). Infected -> object moved to quarantine/<key>, row infected, org admins get an error notification. Reads: pending assets go only to the uploader, infected to nobody (placeholder /images/asset-unavailable.svg); scan.status/rescan are admin-only. Found and fixed: RealAuditService.record wrote the SYSTEM_USER_ID sentinel into a uuid column, which crashed any system-context audit; normalized at the choke point. PUSH (ED-016): VAPID ES256 via node:crypto and payload-less pushes (no RFC 8291 encryption needed); the SW shows a generic alert and opens /notifications; 404/410 revokes; channels.push is an optional JSONB flag, so no column is needed. The Push column and device card show only when VAPID keys are set. Ops: set CLAMD_HOST, VAPID_* and MAPBOX_ACCESS_TOKEN (all documented in .env.example) to turn the features on. | 2026-09-29 (claude-code): review -> done. Closed remaining P1s. Static maps: geo.staticMap returned a Mapbox URL with the secret token to every member role (portals included); it now returns a same-origin /api/geo/static-map path, the route fetches the image server-side for the session's active org, and CSP no longer lists api.mapbox.com. None-driver acceptance: tests/e2e/geo-none.spec.ts (status disabled, autocomplete [], proxy 404/400/401, free-text intake creates a property). Scan state machine and thumbnail scanning fixed in 28a244d (Codex focused review SAFE-TO-MERGE). Autocomplete UI arrives with WP-B2, which must keep the free-text path when geo is disabled."
+    },
+    {
+      "id": "WP-X4",
+      "title": "RPC input validation at the dispatcher (contract schemas → 400 with field errors)",
+      "lane": "BE", "phase": "1-shared", "status": "todo", "size": "L",
+      "goal": "Every RPC method's arguments are parsed against its shared/contracts zod schema before service code runs, so malformed input is a 400 with field-level issues the screens can render, never a database 500.",
+      "scope": ["A method → args-schema map beside rpc-policy.ts (shared/contracts own the schemas); the dispatcher parses and rejects before calling the service", "400 body carries zod issues as { path, message } for form field errors; screens map them onto BulwarkField errors", "Coverage gate like the RPC policy: every mutating method has a schema, unclassified = test failure; reads may opt out with a reason", "Remove ad-hoc per-service parse() where the boundary now covers it; keep service-level invariants that are not shape checks"],
+      "outOfScope": ["Changing any contract shape (a mismatch found here is a finding against the owning WP)"],
+      "designs": [],
+      "files": ["server/api/services/**", "server/utils/rpc-validation.ts", "server/utils/rpc-policy.ts", "tests/unit/rpc-validation*.test.ts", "tests/e2e/rpc-validation.spec.ts"],
+      "acceptance": ["client.create with no phone answers 400 naming the phone field (today: 500 from the NOT NULL column)", "Every mutating RPC method has an args schema (static coverage test fails on a new unvalidated method)", "A malformed call never reaches the database: planted-invalid calls across services return 400 and write no audit row", "Valid calls are unchanged: full real-backend e2e green"],
+      "tests": ["tests/unit/rpc-validation.test.ts", "tests/e2e/rpc-validation.spec.ts"],
+      "dependsOn": [],
+      "decisions": [],
+      "agentNotes": "2026-09-29 (claude-code): registered from the release pass. The dispatcher forwards raw args; only 4 of 50 real services parse their input, so bad input reaches Postgres and returns 500 (seen: client.create with phone null). Screens need field errors, so this runs alongside A2/A3, before the first forms (B2 intake, B1 client create). The rpc.unhandled log now scrubs Drizzle params (names/emails/phones) via scrubText."
     },
 
     {
@@ -555,23 +576,23 @@
 
     {
       "id": "WP-D1",
-      "title": "Field portal core: My Day, properties, jobs list, job detail, slot sheet, check-in (FD-01…FD-16) — pending design",
-      "lane": "SCR", "phase": "4-portals", "status": "blocked", "size": "L",
+      "title": "Field portal core: My Day, properties, jobs list, job detail, slot sheet, check-in (FD-01…FD-16)",
+      "lane": "SCR", "phase": "4-portals", "status": "todo", "size": "L",
       "goal": "Mobile-first field surfaces on the field shell; tablet two-pane; thumb-zone CTAs.",
       "scope": ["Await Packet D SPECs (or architect-approved ahead SPECs)", "Merge /field/dashboard into /field", "Reuse AD-43 sheet and AD-21 renderer in field chrome"],
       "outOfScope": ["Time clock / materials (WP-H4/H3)"],
       "designs": ["FD-01", "FD-03", "FD-04", "FD-10", "FD-11", "FD-14", "FD-15", "FD-16"],
       "files": ["app/pages/field/**", "app/layouts/field.vue", "app/components/field/**"],
-      "acceptance": ["All primary CTAs within bottom 30% at 390 (e2e boundingBox assertions)", "All targets ≥48px (axe target-size + custom check)", "Tablet 1024 two-pane for jobs list/detail"],
+      "acceptance": ["All primary CTAs within bottom 30% at 390 (e2e boundingBox assertions)", "All targets ≥48px (axe target-size + custom check)", "Tablet 1024 two-pane for jobs list/detail", "CI runs the mobile-chrome and mobile-safari Playwright projects and a mobile Lighthouse preset on the field routes (ED-063)"],
       "tests": ["tests/e2e/screens/FD-*", "tests/e2e/field-*.spec.ts updated"],
       "dependsOn": ["WP-A5", "WP-B6", "WP-B4"],
-      "decisions": [],
-      "agentNotes": "Blocked on design; unblocks automatically when D SPECs land or architect writes ahead SPECs."
+      "decisions": ["ED-063"],
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All Packet D designs are received; waits only on dependencies."
     },
     {
       "id": "WP-D2",
       "title": "Field inspection capture, photo capture, sync queue, offline states, PWA (FD-12, FD-13, FD-20, FD-21, FD-22)",
-      "lane": "SCR", "phase": "4-portals", "status": "blocked", "size": "L",
+      "lane": "SCR", "phase": "4-portals", "status": "todo", "size": "L",
       "goal": "Camera-first photo capture with phase tags and upload queue; real sync queue with conflict resolution; PWA manifest/service worker (EH-M).",
       "scope": [],
       "outOfScope": [],
@@ -581,12 +602,12 @@
       "tests": ["tests/e2e/screens/FD-12…FD-22", "tests/unit/offline-queue.test.ts extended (ordering, retry backoff, conflict merge)"],
       "dependsOn": ["WP-D1", "WP-A4", "WP-X3"],
       "decisions": ["ED-008", "ED-018"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-E1",
-      "title": "Subcontractor portal (SB-01…SB-09) — pending design",
-      "lane": "SCR", "phase": "4-portals", "status": "blocked", "size": "M",
+      "title": "Subcontractor portal (SB-01…SB-09)",
+      "lane": "SCR", "phase": "4-portals", "status": "todo", "size": "M",
       "goal": "Sub home, jobs (scoped, no $), job detail, slot update, quote requests + bids, documents upload (presign), profile/team, invite landing.",
       "scope": [], "outOfScope": ["Availability (WP-H2)", "Sub invoices (optional)"],
       "designs": ["SB-01", "SB-02", "SB-03", "SB-04", "SB-05", "SB-06", "SB-07", "SB-08", "SB-09"],
@@ -595,12 +616,12 @@
       "tests": ["tests/e2e/screens/SB-*", "tests/e2e/sub-portal.spec.ts, sub-coi-upload.spec.ts updated"],
       "dependsOn": ["WP-A5", "WP-B6"],
       "decisions": ["ED-011", "ED-018", "ED-00F"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-F1",
-      "title": "Client portal core: magic-link, home, projects, progress, documents, profile (HO-01…HO-06, HO-30) — pending design",
-      "lane": "SCR", "phase": "4-portals", "status": "blocked", "size": "L",
+      "title": "Client portal core: magic-link, home, projects, progress, documents, profile (HO-01…HO-06, HO-30)",
+      "lane": "SCR", "phase": "4-portals", "status": "todo", "size": "L",
       "goal": "Contractor-branded client portal on the client shell.",
       "scope": [], "outOfScope": [],
       "designs": ["HO-01", "HO-02", "HO-03", "HO-04", "HO-05", "HO-06", "HO-30"],
@@ -609,12 +630,12 @@
       "tests": ["tests/e2e/screens/HO-*", "tests/e2e/homeowner-portal.spec.ts updated"],
       "dependsOn": ["WP-A5", "WP-S1"],
       "decisions": ["ED-00F", "ED-00G"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-F2",
       "title": "Client quote acceptance (tiers, e-sign, deposit), invoices + pay online, payment result, change-order approval, service request (HO-10…HO-22, HO-31, HO-32)",
-      "lane": "SCR", "phase": "4-portals", "status": "blocked", "size": "L",
+      "lane": "SCR", "phase": "4-portals", "status": "todo", "size": "L",
       "goal": "FL-2b/FL-4b/FL-9b client halves.",
       "scope": [], "outOfScope": [],
       "designs": ["HO-10", "HO-11", "HO-20", "HO-21", "HO-22", "HO-31", "HO-32"],
@@ -623,27 +644,27 @@
       "tests": ["tests/e2e/screens/HO-10…HO-32", "tests/integration/quote-acceptance.test.ts", "tests/e2e/homeowner-invoice.spec.ts updated"],
       "dependsOn": ["WP-F1", "WP-B5", "WP-B8", "WP-L14"],
       "decisions": ["ED-00D"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies. | 2026-09-29 (claude-code): the legacy homeowner invoice detail shows number, total and lines only; payment history and Pay online are this WP's (the old W4-2 spec expected them)."
     },
     {
       "id": "WP-G1",
-      "title": "External stakeholder portal + admin access grants (EX-01…EX-05 / ST-24) — pending design",
+      "title": "External stakeholder portal + admin access grants (EX-01…EX-05 / ST-24)",
       "lane": "SCR", "phase": "4-portals", "status": "blocked", "size": "M",
       "goal": "Generalized L15: stakeholder role + kinds, links (org|property scope), read-only shell, portfolio matrix, property read view, exports, admin grant UI.",
       "scope": ["Absorbs L15-S2..S6"], "outOfScope": ["Adjuster writes (WP-I2)"],
-      "designs": ["EX-01", "EX-02", "EX-03", "EX-04", "EX-05"],
+      "designs": ["EX-01", "EX-02", "EX-03", "EX-04", "EX-05", "ST-24"],
       "files": ["app/pages/insurer/**", "app/pages/portal/**", "app/layouts/stakeholder.vue", "app/middleware/stakeholder-role.ts", "app/pages/settings/stakeholders.vue", "shared/contracts/stakeholder*.ts", "server/services/stakeholder*.ts", "shared/mocks/stakeholder*.ts", "server/db/schema/stakeholder_links.ts"],
       "acceptance": ["No write endpoint reachable by stakeholder role (service-level test enumerates all methods)", "Property outside link set → 403 even with valid id (integration)", "DOM scan: zero create/edit/delete controls"],
       "tests": ["tests/e2e/screens/EX-*", "tests/integration/stakeholder-scope.test.ts", "persona matrix extended"],
       "dependsOn": ["WP-A5", "WP-X1", "WP-B9"],
       "decisions": [],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): stays blocked on design ST-24 (moved here from WP-C3); EX-01…EX-05 are received."
     },
 
     {
       "id": "WP-C1",
-      "title": "Settings hub + organization/workflow pages (ST-01…ST-06, ST-13, ST-14, ST-25) — pending design",
-      "lane": "SCR", "phase": "5-settings", "status": "blocked", "size": "L",
+      "title": "Settings hub + organization/workflow pages (ST-01…ST-06, ST-13, ST-14, ST-25)",
+      "lane": "SCR", "phase": "5-settings", "status": "todo", "size": "L",
       "goal": "Settings shell adoption; company, branding (accent contrast warning, live preview), labels, pipeline editor (TransitionEditor + versions), trades, numbering, tax jurisdictions.",
       "scope": [], "outOfScope": [],
       "designs": ["ST-01", "ST-02", "ST-03", "ST-04", "ST-05", "ST-06", "ST-13", "ST-14", "ST-25"],
@@ -652,12 +673,12 @@
       "tests": ["tests/e2e/screens/ST-01…ST-25", "tests/e2e/settings-*.spec.ts updated", "tests/integration/pipeline-versioning.test.ts"],
       "dependsOn": ["WP-A4", "WP-A5", "WP-X1"],
       "decisions": ["ED-027", "ED-033"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-C2",
-      "title": "Programs, inspection template builder, rules & standards (ST-07, ST-08, ST-12) — pending design",
-      "lane": "SCR", "phase": "5-settings", "status": "blocked", "size": "XL",
+      "title": "Programs, inspection template builder, rules & standards (ST-07, ST-08, ST-12)",
+      "lane": "SCR", "phase": "5-settings", "status": "todo", "size": "XL",
       "goal": "The generality engine UI: three-pane template builder with live preview, evaluator rules, versioning/publish; program detail; rule sets with test-against-sample.",
       "scope": ["Split: C2a programs, C2b builder, C2c rules"], "outOfScope": [],
       "designs": ["ST-07", "ST-08", "ST-12"],
@@ -666,26 +687,26 @@
       "tests": ["tests/e2e/screens/ST-07, ST-08, ST-12", "tests/e2e/settings-inspection-templates.spec.ts, settings-programs.spec.ts updated", "tests/integration/template-versioning.test.ts"],
       "dependsOn": ["WP-C1", "WP-B4"],
       "decisions": ["ED-035", "ED-041"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-C3",
-      "title": "Document templates, users & roles, permissions, security policy, stakeholder access, integrations (ST-09, ST-10, ST-11, ST-15, ST-16, ST-17, ST-23, ST-24, ST-26, ST-27) — pending design",
-      "lane": "SCR", "phase": "5-settings", "status": "blocked", "size": "XL",
+      "title": "Document templates, users & roles, permissions, security policy, integrations (ST-09, ST-10, ST-11, ST-15, ST-16, ST-17, ST-23, ST-26, ST-27)",
+      "lane": "SCR", "phase": "5-settings", "status": "todo", "size": "XL",
       "goal": "Team/access/integrations settings incl. MFA policy, session timeout, lockout (EH-I), message templates, delivery log (L03).",
       "scope": ["Split: C3a users/permissions/security, C3b integrations/webhooks/api keys/payments card, C3c doc templates/messages/delivery log"], "outOfScope": [],
-      "designs": ["ST-09", "ST-10", "ST-11", "ST-15", "ST-16", "ST-17", "ST-23", "ST-24", "ST-26", "ST-27"],
+      "designs": ["ST-09", "ST-10", "ST-11", "ST-15", "ST-16", "ST-17", "ST-23", "ST-26", "ST-27"],
       "files": ["app/pages/settings/templates.vue", "app/pages/settings/users.vue", "app/pages/settings/permissions.vue", "app/pages/settings/api-keys.vue", "app/pages/settings/providers.vue", "app/pages/settings/webhooks.vue", "app/pages/settings/security.vue", "app/pages/settings/messages.vue", "app/pages/settings/deliveries.vue", "server/services/user.real.ts", "server/services/permission.real.ts", "server/services/provider-config.real.ts", "server/services/webhook.real.ts", "server/services/api-key.real.ts", "shared/contracts/security-policy.ts", "server/services/security-policy.real.ts"],
       "acceptance": ["MFA=required with grace: user without MFA is redirected to enrol after grace expiry (e2e clock)", "API key shown once; second view masked (e2e)", "Delivery log shows failed send with provider error and resend works (integration with failing provider stub)"],
       "tests": ["tests/e2e/screens/ST-09…ST-27", "tests/e2e/settings-*.spec.ts updated", "tests/integration/security-policy.test.ts"],
       "dependsOn": ["WP-C1", "WP-S3", "WP-L03"],
       "decisions": ["ED-001", "ED-015", "ED-00G"],
-      "agentNotes": "2026-09-26 (claude-code): WP-L03 mounted <DeliveryHealthPanel> on app/pages/settings/providers.vue (single section). Keep it when ST-17/ST-27 replace this page."
+      "agentNotes": "2026-09-26 (claude-code): WP-L03 mounted <DeliveryHealthPanel> on app/pages/settings/providers.vue (single section). Keep it when ST-17/ST-27 replace this page. | 2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies. | 2026-09-29 (claude-code): ST-24 (stakeholder access grants, not received) moved to WP-G1, which owns admin access grants; C3's remaining designs are all received. | 2026-09-29 (claude-code): bug for ST-15 (users & roles): on /settings/users the role <select> has no stakeholder option, so a stakeholder member (Irene Shah, seed) shows a blank role; saving that row could change their role. Seen in a release-pass e2e screenshot."
     },
     {
       "id": "WP-C4",
-      "title": "Audit log, saved views admin, feature flags, scheduled jobs, billing (ST-18…ST-21, ST-28) — pending design",
-      "lane": "SCR", "phase": "5-settings", "status": "blocked", "size": "M",
+      "title": "Audit log, saved views admin, feature flags, scheduled jobs, billing (ST-18…ST-21, ST-28)",
+      "lane": "SCR", "phase": "5-settings", "status": "todo", "size": "M",
       "goal": "System pages restyle with DataTable + diff viewer.",
       "scope": [], "outOfScope": [],
       "designs": ["ST-18", "ST-19", "ST-20", "ST-21", "ST-28"],
@@ -694,13 +715,13 @@
       "tests": ["tests/e2e/screens/ST-18…ST-28", "tests/e2e/scheduled-jobs.spec.ts updated"],
       "dependsOn": ["WP-C1"],
       "decisions": [],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
 
     {
       "id": "WP-H1",
-      "title": "Price book & estimating module (PB-01…PB-11) — schema + services + screens — pending design",
-      "lane": "BE", "phase": "6-modules", "status": "blocked", "size": "XL",
+      "title": "Price book & estimating module (PB-01…PB-11) — schema + services + screens",
+      "lane": "BE", "phase": "6-modules", "status": "todo", "size": "XL",
       "goal": "catalog_items, assemblies, cost_codes, markup_rules; CSV import; catalog picker wired into quote builder (fills ED-045 slot).",
       "scope": ["Split: H1a schema/services, H1b list/detail/import screens, H1c assemblies+rules, H1d picker in AD-30"], "outOfScope": [],
       "designs": ["PB-01", "PB-02", "PB-03", "PB-04", "PB-05", "PB-10", "PB-11"],
@@ -709,12 +730,12 @@
       "tests": ["tests/unit/pricebook-math.test.ts", "tests/integration/pricebook.real.test.ts", "tests/e2e/screens/PB-*"],
       "dependsOn": ["WP-B5", "WP-X1"],
       "decisions": ["ED-045"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-H2",
-      "title": "Crew roster + scheduling & dispatch (AD-63, SC-01…SC-06, SB-10) — pending design",
-      "lane": "BE", "phase": "6-modules", "status": "blocked", "size": "XL",
+      "title": "Crew roster + scheduling & dispatch (AD-63, SC-01…SC-06, SB-10)",
+      "lane": "BE", "phase": "6-modules", "status": "todo", "size": "XL",
       "goal": "teams, team_members, schedule_events, availability, sub blackout; BulwarkScheduler wired; conflict detection server-side; client appointment notifications (MSG-07).",
       "scope": ["Split: H2a schema/services + conflict engine, H2b calendar screens, H2c availability/map/notifications"], "outOfScope": [],
       "designs": ["AD-63", "SC-01", "SC-02", "SC-03", "SC-04", "SC-05", "SC-06", "SB-10", "AD-44"],
@@ -723,12 +744,12 @@
       "tests": ["tests/unit/schedule-conflicts.test.ts (property-based intervals)", "tests/integration/schedule.real.test.ts", "tests/e2e/screens/SC-*, AD-63"],
       "dependsOn": ["WP-B6", "WP-A4"],
       "decisions": ["ED-051", "ED-050"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-H3",
-      "title": "Vendors, materials & purchase orders (PO-01…PO-05, FD-31) — pending design",
-      "lane": "BE", "phase": "6-modules", "status": "blocked", "size": "L",
+      "title": "Vendors, materials & purchase orders (PO-01…PO-05, FD-31)",
+      "lane": "BE", "phase": "6-modules", "status": "todo", "size": "L",
       "goal": "vendors, purchase_orders, po_lines, work_order_materials; receive flow (field); vendor invoice → actual cost.",
       "scope": [], "outOfScope": [],
       "designs": ["PO-01", "PO-02", "PO-03", "PO-04", "PO-05", "FD-31"],
@@ -737,12 +758,12 @@
       "tests": ["tests/integration/purchase-orders.real.test.ts", "tests/e2e/screens/PO-*"],
       "dependsOn": ["WP-H1", "WP-B6"],
       "decisions": ["ED-052"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-H4",
-      "title": "Time tracking (TT-01…TT-03, FD-30) — pending design",
-      "lane": "BE", "phase": "6-modules", "status": "blocked", "size": "L",
+      "title": "Time tracking (TT-01…TT-03, FD-30)",
+      "lane": "BE", "phase": "6-modules", "status": "todo", "size": "L",
       "goal": "time_entries, labor_rates, OT rules; field clock; admin timesheets approve/export.",
       "scope": [], "outOfScope": [],
       "designs": ["TT-01", "TT-02", "TT-03", "FD-30"],
@@ -751,12 +772,12 @@
       "tests": ["tests/unit/overtime-rules.test.ts", "tests/integration/time-entries.real.test.ts", "tests/e2e/screens/TT-*, FD-30"],
       "dependsOn": ["WP-H2", "WP-D1"],
       "decisions": ["ED-053"],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-H5",
-      "title": "Job costing (JC-01…JC-03) — pending design",
-      "lane": "BE", "phase": "6-modules", "status": "blocked", "size": "M",
+      "title": "Job costing (JC-01…JC-03)",
+      "lane": "BE", "phase": "6-modules", "status": "todo", "size": "M",
       "goal": "Cost rollups by cost code: estimated (quote) / committed (PO+scheduled labor) / actual (received PO + time); variance alerts; report + dashboard widgets.",
       "scope": [], "outOfScope": [],
       "designs": ["JC-01", "JC-02", "JC-03"],
@@ -765,12 +786,12 @@
       "tests": ["tests/unit/job-cost-rollup.test.ts", "tests/e2e/screens/JC-*"],
       "dependsOn": ["WP-H3", "WP-H4"],
       "decisions": [],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-H6",
-      "title": "Warranty & service tickets (WR-01…WR-04, HO-31) — pending design",
-      "lane": "BE", "phase": "6-modules", "status": "blocked", "size": "L",
+      "title": "Warranty & service tickets (WR-01…WR-04, HO-31)",
+      "lane": "BE", "phase": "6-modules", "status": "todo", "size": "L",
       "goal": "tickets, ticket_events; warranty terms on program/job; client request form; schedule from ticket; convert to quote.",
       "scope": [], "outOfScope": [],
       "designs": ["WR-01", "WR-02", "WR-03", "WR-04"],
@@ -779,7 +800,7 @@
       "tests": ["tests/integration/tickets.real.test.ts", "tests/e2e/screens/WR-*"],
       "dependsOn": ["WP-H2", "WP-F2"],
       "decisions": [],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
 
     {
@@ -788,13 +809,13 @@
       "lane": "BE", "phase": "7-docs-longterm", "status": "blocked", "size": "L",
       "goal": "Template-per-kind under server/services/pdf/templates with VARIABLES.md as schema; stamps; Letter+A4; snapshot tests.",
       "scope": [], "outOfScope": [],
-      "designs": [],
+      "designs": ["DOC-01", "DOC-02", "DOC-03", "DOC-04", "DOC-05", "DOC-06", "DOC-07", "DOC-08", "DOC-09", "DOC-10", "DOC-11", "DOC-12"],
       "files": ["server/services/pdf/**", "server/services/_providers/pdf*.ts", "tests/fixtures/pdf/**"],
       "acceptance": ["Every template renders with SAMPLE-DATA for two accents; PDF text extraction contains all required fields; no external network during render (integration sandbox)"],
       "tests": ["tests/integration/pdf-templates.test.ts (pdf-parse text assertions + page count)"],
       "dependsOn": ["WP-B9", "WP-B8"],
       "decisions": [],
-      "agentNotes": "Design IDs DOC-* are not in codegraph as screens; track via this WP."
+      "agentNotes": "Design IDs DOC-* are not in codegraph as screens; track via this WP. | 2026-09-29 (claude-code): stays blocked on design: Packet J (DOC-01…DOC-12) not returned. | 2026-09-29 (claude-code): DOC-01…DOC-12 listed in designs so codegraph shows the real blocker (0/12 received) instead of offering J1 as startable."
     },
     {
       "id": "WP-J2",
@@ -802,18 +823,18 @@
       "lane": "BE", "phase": "7-docs-longterm", "status": "blocked", "size": "M",
       "goal": "Template registry keyed by event×channel with variables, defaults from design, tenant overrides via labels; fail-loud delivery (ADR-0002).",
       "scope": [], "outOfScope": [],
-      "designs": [],
+      "designs": ["MSG-01", "MSG-02", "MSG-03", "MSG-04", "MSG-05", "MSG-06", "MSG-07", "MSG-08", "MSG-09", "MSG-10", "MSG-11", "MSG-12", "MSG-13", "MSG-14", "MSG-15", "MSG-16", "MSG-17"],
       "files": ["server/services/comms/**", "shared/notifications/**", "shared/labels/**"],
       "acceptance": ["Rendering with a missing required variable fails loudly in prod mode, renders placeholder in dev (unit)", "Dark-mode email snapshot passes litmus-style checks (no black-on-black)"],
       "tests": ["tests/unit/notification-templates.test.ts extended to all 17"],
       "dependsOn": ["WP-L03"],
       "decisions": [],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): stays blocked on design: Packet J (MSG-01…MSG-17) not returned. | 2026-09-29 (claude-code): MSG-01…MSG-17 listed in designs so codegraph shows the real blocker (0/17 received)."
     },
     {
       "id": "WP-I1",
-      "title": "Program packs gallery/install/export (PK-01…PK-03), rebate evidence checklist (RB-01), generalized deliverable editor (GN-01) — pending design",
-      "lane": "BE", "phase": "7-docs-longterm", "status": "blocked", "size": "XL",
+      "title": "Program packs gallery/install/export (PK-01…PK-03), rebate evidence checklist (RB-01), generalized deliverable editor (GN-01)",
+      "lane": "BE", "phase": "7-docs-longterm", "status": "todo", "size": "XL",
       "goal": "Pack format (JSON bundle: template+rules+deliverable template+trades+starter items), install wizard with trade mapping, export.",
       "scope": [], "outOfScope": [],
       "designs": ["PK-01", "PK-02", "PK-03", "RB-01", "GN-01"],
@@ -822,7 +843,7 @@
       "tests": ["tests/integration/pack-install.test.ts", "tests/e2e/screens/PK-*"],
       "dependsOn": ["WP-C2", "WP-B9"],
       "decisions": [],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): blocked -> todo. All designs received (codegraph); waits only on dependencies."
     },
     {
       "id": "WP-I2",
@@ -836,64 +857,64 @@
       "tests": ["tests/integration/claims.real.test.ts", "tests/e2e/screens/CL-*"],
       "dependsOn": ["WP-G1", "WP-B5"],
       "decisions": [],
-      "agentNotes": ""
+      "agentNotes": "2026-09-29 (claude-code): stays blocked on design: AD-80, AD-81 (leads) and FD-40 (audio notes) not received; CL-01…CL-03 are."
     },
     {
       "id": "WP-L02",
       "title": "L02 Asset uploads on the storage service (photos, attachments, avatars, logos)",
-      "lane": "HRD", "phase": "1-shared", "status": "review", "size": "M", "owner": "claude-code (2026-09-27)", "branch": "main (sliced commits)",
+      "lane": "HRD", "phase": "1-shared", "status": "done", "size": "M", "owner": "claude-code (2026-09-27)", "branch": "main (sliced commits)",
       "goal": "Per agents/epics/L02-asset-uploads.md: every asset write goes presign -> PUT -> finalize (etag-bound) -> persist key; reads get short-lived signed URLs. Found missing from the registry on 2026-09-27: the admin photo page still posts data: URLs, which the storage guard rejects, so photo upload is broken in every environment.",
       "scope": ["As epic (S1-S4): finalize returns and owning services verify the object etag (gap 3.1.8)", "Shared client upload composable (presign/PUT/finalize) used by property photos, property attachments, avatar and branding logo", "Owning services persist keys and map them to signed GET URLs on read", "Backfill script for legacy data:/local:// rows (dry-run default)"], "outOfScope": ["Inspection photo-field values (gap 3.1.9, Wave 3)", "Insurer entity-scoped downloads (L15)"], "designs": [],
       "files": ["server/services/storage/**", "server/api/storage/**", "server/services/property-photo.real.ts", "server/services/property-attachment.real.ts", "server/api/account/avatar.post.ts", "shared/contracts/storage.ts", "shared/contracts/property-photo.ts", "shared/contracts/property-attachment.ts", "app/composables/useUpload.ts", "app/pages/admin/properties/[id]/photos.vue", "app/pages/admin/properties/[id]/attachments.vue", "app/pages/settings/branding.vue", "scripts/storage-backfill.mjs", "tests/unit/use-upload.test.ts", "tests/integration/storage-*.test.ts", "tests/e2e/property-depth.spec.ts", "tests/e2e/storage-presign.spec.ts", "app/pages/field/jobs/[woId]/photos.vue", "app/pages/profile/index.vue", "server/services/storage/asset-urls.ts", "server/services/storage/backfill.ts", "server/services/label.real.ts", "server/services/auth.real.ts", "server/services/user.real.ts", "server/services/account.real.ts", "server/jobs/r2.ts", "shared/contracts/auth.ts", "shared/contracts/account.ts", "shared/contracts/user.ts", "shared/contracts/label.ts", "tests/integration/storage-backfill.real.test.ts", "tests/unit/storage-presign.test.ts", "server/utils/security-headers.ts", "tests/unit/security-headers.test.ts", "server/services/property.real.ts", "server/services/storage/index.ts", "tests/e2e/field-photo-capture.spec.ts", "tests/e2e/storage-health.spec.ts"],
       "acceptance": ["Per epic", "Admin photo upload works end to end on a real storage driver; tests/e2e/property-depth.spec.ts photo step passes", "No service persists a data: or local:// asset URL in production (guard test)"],
-      "tests": ["tests/integration/storage-*.test.ts", "tests/e2e/property-depth.spec.ts"],
-      "dependsOn": [], "decisions": [], "agentNotes": "Registered 2026-09-27 by claude-code during WP-Q3: property-depth.spec photo step fails because app/pages/admin/properties/[id]/photos.vue uploads via FileReader.readAsDataURL and propertyPhoto.create rejects data: URLs (assertStorableUrlOrKey). No client code calls /api/storage/presign-upload anywhere. | 2026-09-27 implementation (claude-code): S1 photos (admin + field; offline captures held in memory and retried on `online`, durable blob queue deferred to WP-D2), S2 attachments, S3 avatars (endpoint takes {key}; key must name the caller and an org they belong to; data-URL path dropped; session/user/export map key to signed URL; avatarUrl contracts relaxed from .url() to min(1) because fs signed URLs are relative), S4 branding logo upload (raster only, SVG excluded by policy; the page sends logoUrl only when changed so a signed URL is never echoed back and persisted), S5 scripts/storage-backfill.mjs (dry-run default, --apply, --org, remote DB needs --confirm-remote and the r2 driver; unrecoverable local:// and blob: rows are nulled or soft-deleted). NEW-1 closed by copy-on-finalize: finalize copies the staged object to a never-presigned key and verifies the COPY (HEAD after copy), so a racing PUT cannot change what is persisted. P1-1: owning services map keys to signed URLs only after their own tenant and entity checks (assertOwnedAssetKey on write). The legacy report no longer flags avatars as intentional-inline. COI docs and deliverables are not migrated (L11 owns them; their reads do not sign keys yet). PROD BLOCKER: the R2 bucket has NO CORS configuration (GetBucketCors returned NoSuchCORSConfiguration on 2026-09-27), so browser PUTs to presigned URLs fail until a rule allows PUT (content-type header) from the app origin. Found during e2e: (a) a built server started without NODE_ENV chose the fs driver, because selectStorageDriverName read NODE_ENV off the process.env object and Nitro only inlines the literal; it now reads the literal. (b) CSP img-src/connect-src were 'self' only, which blocked the presigned PUT and signed-URL images; security-headers now adds just the configured bucket origins (endpoint and bucket virtual host). (c) property.getWithDepth returned the raw key as primaryPhotoUrl; it is now signed. field-photo-capture.spec now asserts the tile count grows (seeded photos had masked failed uploads). | 2026-09-28: moved to review. Deployed at d0d1704 (prod live, /api/ready ok). Photo upload is green end to end in the built e2e and in CI e2e-real against an S3 stand-in. PROD ACTION REQUIRED before uploads work in production: add an R2 bucket CORS rule allowing PUT (header content-type) from https://bulwark-chi.vercel.app. Avatar upload in prod moved from data URLs to storage, so it also waits on that rule. Needs a skeptic review. | 2026-09-28: R2 CORS rule set by claude-code on bucket bulwark-compliance-docs (PUT/GET/HEAD from https://bulwark-chi.vercel.app and http://localhost:3000, header content-type, 1h max-age). A browser preflight returns 204 in both URL styles. Assumption: this is the bucket prod uses (the Vercel connector cannot read env vars to confirm)."
+      "tests": ["tests/integration/storage-*.test.ts", "tests/e2e/property-depth.spec.ts", "tests/integration/storage-backfill.real.test.ts (held rows)", "tests/e2e/property-attachments.spec.ts"],
+      "dependsOn": [], "decisions": [], "agentNotes": "Registered 2026-09-27 by claude-code during WP-Q3: property-depth.spec photo step fails because app/pages/admin/properties/[id]/photos.vue uploads via FileReader.readAsDataURL and propertyPhoto.create rejects data: URLs (assertStorableUrlOrKey). No client code calls /api/storage/presign-upload anywhere. | 2026-09-27 implementation (claude-code): S1 photos (admin + field; offline captures held in memory and retried on `online`, durable blob queue deferred to WP-D2), S2 attachments, S3 avatars (endpoint takes {key}; key must name the caller and an org they belong to; data-URL path dropped; session/user/export map key to signed URL; avatarUrl contracts relaxed from .url() to min(1) because fs signed URLs are relative), S4 branding logo upload (raster only, SVG excluded by policy; the page sends logoUrl only when changed so a signed URL is never echoed back and persisted), S5 scripts/storage-backfill.mjs (dry-run default, --apply, --org, remote DB needs --confirm-remote and the r2 driver; unrecoverable local:// and blob: rows are nulled or soft-deleted). NEW-1 closed by copy-on-finalize: finalize copies the staged object to a never-presigned key and verifies the COPY (HEAD after copy), so a racing PUT cannot change what is persisted. P1-1: owning services map keys to signed URLs only after their own tenant and entity checks (assertOwnedAssetKey on write). The legacy report no longer flags avatars as intentional-inline. COI docs and deliverables are not migrated (L11 owns them; their reads do not sign keys yet). PROD BLOCKER: the R2 bucket has NO CORS configuration (GetBucketCors returned NoSuchCORSConfiguration on 2026-09-27), so browser PUTs to presigned URLs fail until a rule allows PUT (content-type header) from the app origin. Found during e2e: (a) a built server started without NODE_ENV chose the fs driver, because selectStorageDriverName read NODE_ENV off the process.env object and Nitro only inlines the literal; it now reads the literal. (b) CSP img-src/connect-src were 'self' only, which blocked the presigned PUT and signed-URL images; security-headers now adds just the configured bucket origins (endpoint and bucket virtual host). (c) property.getWithDepth returned the raw key as primaryPhotoUrl; it is now signed. field-photo-capture.spec now asserts the tile count grows (seeded photos had masked failed uploads). | 2026-09-28: moved to review. Deployed at d0d1704 (prod live, /api/ready ok). Photo upload is green end to end in the built e2e and in CI e2e-real against an S3 stand-in. PROD ACTION REQUIRED before uploads work in production: add an R2 bucket CORS rule allowing PUT (header content-type) from https://bulwark-chi.vercel.app. Avatar upload in prod moved from data URLs to storage, so it also waits on that rule. Needs a skeptic review. | 2026-09-28: R2 CORS rule set by claude-code on bucket bulwark-compliance-docs (PUT/GET/HEAD from https://bulwark-chi.vercel.app and http://localhost:3000, header content-type, 1h max-age). A browser preflight returns 204 in both URL styles. Assumption: this is the bucket prod uses (the Vercel connector cannot read env vars to confirm). | 2026-09-29 (claude-code): review -> done. Skeptic P1s closed: P1-1..3 in b68b46e (HTTP staging-key rules on both drivers, real photo load, useUpload unit). P1-4: the backfill no longer destroys recoverable bytes; a data: URL the policy rejects is held in place and logged for review (storage-backfill.real.test)."
     },
 
     {
       "id": "WP-L03",
       "title": "L03 Comms hardening (fail-loud, message_deliveries ledger)",
-      "lane": "HRD", "phase": "1-shared", "status": "review", "size": "M", "owner": "claude-code (2026-09-26)",
+      "lane": "HRD", "phase": "1-shared", "status": "done", "size": "M", "owner": "claude-code (2026-09-26)",
       "goal": "Per agents/epics/L03-comms-hardening.md; provides the delivery log ST-27 and communication log AD-05 read from.",
       "scope": ["As epic"], "outOfScope": [],
       "designs": [],
       "files": ["server/services/_providers/email*.ts", "server/services/_providers/sms*.ts", "server/services/_providers/delivery-ledger.ts", "server/services/_subscribers/notification-subscriber.ts", "server/db/schema/message_deliveries.ts", "server/db/migrations/**", "server/services/comms/**", "server/utils/metrics.ts", "shared/contracts/delivery.ts", "shared/contracts/index.ts", "shared/events/catalog.ts", "shared/notifications/dispatch.ts", "tests/integration/comms-failloud.test.ts", "tests/unit/notification-subscriber.test.ts", "shared/mocks/comms.mock.ts", "shared/mocks/factory.ts", "shared/contracts/services.ts", "server/utils/services-factory.ts", "shared/mocks/tenant.ts", "server/services/_tenant.ts", "server/api/services/[service]/[method].post.ts", "app/components/comms/**", "app/pages/settings/providers.vue", "tests/unit/comms-*.test.ts", "tests/integration/comms-health.real.test.ts", "tests/e2e/comms-health.spec.ts"],
       "acceptance": ["Per epic acceptance (agents/epics/L03-comms-hardening.md S1-S4)"],
-      "tests": ["tests/integration/comms-failloud.test.ts", "tests/unit/notification-subscriber.test.ts", "tests/unit/comms-provider-contract.test.ts", "tests/unit/comms-health.mock.test.ts", "tests/integration/comms-health.real.test.ts", "tests/e2e/comms-health.spec.ts"],
+      "tests": ["tests/integration/comms-failloud.test.ts", "tests/unit/notification-subscriber.test.ts", "tests/unit/comms-provider-contract.test.ts", "tests/unit/comms-health.mock.test.ts", "tests/integration/comms-health.real.test.ts", "tests/e2e/comms-health.spec.ts", "tests/integration/notification-wiring.real.test.ts"],
       "dependsOn": [],
       "decisions": [],
-      "agentNotes": "2026-09-26: started after WP-SH01. Slice 1 adds migration 0017/message_deliveries with HMAC recipient hashes, provider statuses, event/entity context, and per-attempt rows. Email/SMS adapters now throw for transactional production failures and return explicit fan-out failures; notification subscriber audits outcomes, increments the comms failure metric, and emits a non-recursive comms.delivery_failed event. SMS fan-out no longer sends the user's email address to Twilio; it records missing phone as failed. Local localhost:5432/bulwark_dev migration applied; focused integration tests pass 3/3 and fan-out unit tests pass 4/4; lint and drizzle-kit check pass. Admin delivery-health panel, bounded retries/provider contract tests, and production-key acceptance remain open. 2026-09-26 (claude-code): S3+S4 implemented. comms.deliveryHealth (real+mock, contract with per-channel counts) is admin-only via new ForbiddenError -> HTTP 403 in the RPC dispatcher; DeliveryHealthPanel on settings/providers shows per-channel sent/not-sent/failed, unconfigured-provider banners and recent failures. Resend/Twilio calls moved into typed clients (server/services/comms/*-client.ts) with pinned endpoints, 10s timeouts and bounded retries (Resend: 429/5xx/network with Idempotency-Key; Twilio: 429/503 only, never a possibly-sent 500/lost response); attempt counts land in the ledger. Also fixed a live bug: notification-subscriber email/SMS sinks referenced an undefined eventType (ReferenceError on every fan-out send; caught by typecheck). Tests: comms-provider-contract 8, comms-health mock 2, comms-health.real 5, comms-failloud 3, e2e comms-health 2 (admin panel; field 403). Remaining acceptance: sponsor real-key staging smoke (test email + SMS reach 'sent'; key removed shows failure in panel)."
+      "agentNotes": "2026-09-26: started after WP-SH01. Slice 1 adds migration 0017/message_deliveries with HMAC recipient hashes, provider statuses, event/entity context, and per-attempt rows. Email/SMS adapters now throw for transactional production failures and return explicit fan-out failures; notification subscriber audits outcomes, increments the comms failure metric, and emits a non-recursive comms.delivery_failed event. SMS fan-out no longer sends the user's email address to Twilio; it records missing phone as failed. Local localhost:5432/bulwark_dev migration applied; focused integration tests pass 3/3 and fan-out unit tests pass 4/4; lint and drizzle-kit check pass. Admin delivery-health panel, bounded retries/provider contract tests, and production-key acceptance remain open. 2026-09-26 (claude-code): S3+S4 implemented. comms.deliveryHealth (real+mock, contract with per-channel counts) is admin-only via new ForbiddenError -> HTTP 403 in the RPC dispatcher; DeliveryHealthPanel on settings/providers shows per-channel sent/not-sent/failed, unconfigured-provider banners and recent failures. Resend/Twilio calls moved into typed clients (server/services/comms/*-client.ts) with pinned endpoints, 10s timeouts and bounded retries (Resend: 429/5xx/network with Idempotency-Key; Twilio: 429/503 only, never a possibly-sent 500/lost response); attempt counts land in the ledger. Also fixed a live bug: notification-subscriber email/SMS sinks referenced an undefined eventType (ReferenceError on every fan-out send; caught by typecheck). Tests: comms-provider-contract 8, comms-health mock 2, comms-health.real 5, comms-failloud 3, e2e comms-health 2 (admin panel; field 403). Remaining acceptance: sponsor real-key staging smoke (test email + SMS reach 'sent'; key removed shows failure in panel). | 2026-09-29 (claude-code): review -> done. Skeptic P1s closed: subscriber wiring proven end to end (tests/integration/notification-wiring.real.test.ts: event -> subscriber -> in-app row, failed email/SMS ledger rows, per-channel audit, comms.delivery_failed; inactive members and other orgs get nothing); comms-health banners asserted in both states deterministically. OPEN SPONSOR ITEM (needs real provider keys): staging smoke, a test email and SMS reach sent, and removing a key shows the failure in the panel."
     },
     {
       "id": "WP-L06",
       "title": "L06 Data layer (indexes, race-safe numbering, N+1, cursor pagination)",
-      "lane": "HRD", "phase": "2-admin-core", "status": "review", "size": "M", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
+      "lane": "HRD", "phase": "2-admin-core", "status": "done", "size": "M", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
       "goal": "Per agents/epics/L06-data-layer.md; DataTable 'Load more' cursor mode depends on it.",
       "scope": ["As epic"], "outOfScope": [], "designs": [],
       "files": ["server/db/migrations/**", "server/services/_row-mappers.ts", "server/services/*.real.ts", "shared/contracts/_shared.ts", "server/db/schema/**", "server/services/_numbering.ts", "server/services/_pagination.ts", "shared/utils/pagination.ts", "shared/contracts/audit.ts", "shared/contracts/notification.ts", "shared/contracts/property.ts", "shared/mocks/audit.mock.ts", "shared/mocks/notification.mock.ts", "shared/mocks/property.mock.ts", "shared/mocks/quote.mock.ts", "shared/mocks/invoice.mock.ts", "shared/mocks/work-order.mock.ts", "server/utils/rpc-policy.ts", "app/pages/admin/quotes/index.vue", "app/pages/admin/invoices/index.vue", "app/pages/admin/invoices/new.vue", "app/pages/admin/work-orders/index.vue", "app/pages/admin/work-orders/new.vue", "app/pages/admin/compliance/index.vue", "docs/DATA_LAYER.md", "tests/unit/pagination.test.ts", "tests/integration/data-layer-indexes.test.ts", "tests/integration/n-plus-one.test.ts"],
-      "acceptance": ["Per epic"], "tests": ["tests/integration/pagination-cursor.test.ts", "tests/integration/numbering-race.test.ts (parallel inserts, no duplicates)"],
-      "dependsOn": [], "decisions": [], "agentNotes": "2026-09-28 (claude-code): S1-S5 implemented; see docs/DATA_LAYER.md. Migration 0019_l06_data_layer: org_number_counters plus 33 indexes, including per-org UNIQUE on quote, invoice and work-order numbers; idempotent (IF NOT EXISTS), with a down file. S2: allocateDocumentNumber inside the create tx (counter row lock, seeded from the legacy COUNT, skips taken numbers) plus withNumberRetry on the UNIQUE backstop; 12 concurrent creates give distinct consecutive numbers. S3: page cap 1000 plus a keyset cursor (afterCreatedAt/afterId -> nextCursor) on property/quote/invoice/workOrder list, audit.filter and notification.listForUser; the cursor carries the DB microsecond timestamp (a millisecond cursor duplicated rows sharing a millisecond, caught by the integration test); the audit CSV export walks the cursor. S4: property.getMany replaces per-row property.get RPC loops on 6 list pages; job.getMany for compliance reconcile. S5: EXPLAIN-backed index test. The prod migration must be applied BEFORE the code deploys (create paths need org_number_counters). | 2026-09-28: Copilot applied migration 0019 in prod and pushed c175ade. Prod serves the L06 bundle (property.getMany present in the live chunks); CI green, including e2e-real. Moved to review; needs a skeptic review."
+      "acceptance": ["Per epic"], "tests": ["tests/integration/pagination-cursor.test.ts", "tests/integration/numbering-race.test.ts (parallel inserts, no duplicates)", "tests/integration/pagination-cursor.test.ts (all keyset lists + export)", "tests/e2e/compliance-list.spec.ts"],
+      "dependsOn": [], "decisions": [], "agentNotes": "2026-09-28 (claude-code): S1-S5 implemented; see docs/DATA_LAYER.md. Migration 0019_l06_data_layer: org_number_counters plus 33 indexes, including per-org UNIQUE on quote, invoice and work-order numbers; idempotent (IF NOT EXISTS), with a down file. S2: allocateDocumentNumber inside the create tx (counter row lock, seeded from the legacy COUNT, skips taken numbers) plus withNumberRetry on the UNIQUE backstop; 12 concurrent creates give distinct consecutive numbers. S3: page cap 1000 plus a keyset cursor (afterCreatedAt/afterId -> nextCursor) on property/quote/invoice/workOrder list, audit.filter and notification.listForUser; the cursor carries the DB microsecond timestamp (a millisecond cursor duplicated rows sharing a millisecond, caught by the integration test); the audit CSV export walks the cursor. S4: property.getMany replaces per-row property.get RPC loops on 6 list pages; job.getMany for compliance reconcile. S5: EXPLAIN-backed index test. The prod migration must be applied BEFORE the code deploys (create paths need org_number_counters). | 2026-09-28: Copilot applied migration 0019 in prod and pushed c175ade. Prod serves the L06 bundle (property.getMany present in the live chunks); CI green, including e2e-real. Moved to review; needs a skeptic review. | 2026-09-29 (claude-code): review -> done. Skeptic P1s closed: compliance list batches property.getMany under its 500-id cap; cursor walks tested on quote, invoice, work order, audit filter and notifications, plus the audit CSV export across its 1000-row page (pagination-cursor.test); real UNIQUE-conflict retry test already present (numbering-race)."
     },
     {
       "id": "WP-L07",
       "title": "L07 Security hardening (CSRF, MFA policy, lockout, session timeout, SAST)",
-      "lane": "HRD", "phase": "2-admin-core", "status": "review", "size": "L", "owner": "claude-code (2026-09-26)", "branch": "main (sliced commits)",
+      "lane": "HRD", "phase": "2-admin-core", "status": "done", "size": "L", "owner": "claude-code (2026-09-26)", "branch": "main (sliced commits)",
       "goal": "Per agents/epics/L07-security-hardening.md + ADR-0006; backs ST-23 and SH-01 lockout states.",
       "scope": ["As epic + security_policies table", "S7 (added 2026-09-26, P0 from SH01/L03 reviews): server-side RBAC — deny-by-default RPC role policy, homeowner/sub portal self-scoping, server-derived audit actors"], "outOfScope": [], "designs": [],
-      "files": ["server/middleware/**", "server/utils/**", "server/db/schema/security_policies.ts", "shared/contracts/security-policy.ts", "server/services/security-policy.real.ts", "shared/mocks/security-policy.mock.ts", ".github/workflows/security.yml", "server/api/services/[service]/[method].post.ts", "server/services/homeowner.real.ts", "shared/contracts/homeowner.ts", "shared/mocks/homeowner.mock.ts", "server/services/subcontractor.real.ts", "server/services/quote.real.ts", "server/services/user.real.ts", "app/pages/homeowner/**", "app/plugins/csrf*.ts", "app/composables/useService.ts", "app/plugins/services.ts", "scripts/security/**", "docs/CONVENTIONS.md", "docs/BULWARK_TECH.md", "docs/BULWARK_HANDOFF.md", "server/db/schema/user_mfa.ts", "tests/unit/rpc-policy.test.ts", "tests/unit/audit-gate.test.ts", "tests/unit/env-guard.test.ts", "tests/integration/homeowner-portal.real.test.ts", "tests/integration/portal-scoping.real.test.ts", "tests/integration/tenant-firewall-coverage.test.ts", "tests/integration/csrf.test.ts", "tests/integration/lockout.test.ts", "tests/e2e/rbac.spec.ts", "tests/e2e/csrf.spec.ts", "tests/e2e/session-timeout.spec.ts", "server/services/_caller.ts", "server/services/api-key.real.ts", "server/services/feature-flag.real.ts", "server/services/reporting.real.ts", "server/services/work-order.real.ts", "shared/mocks/factory.ts", "app/utils/csrf.ts", "app/composables/useOfflineQueue.ts", "agents/program/ENGINEERING-DECISIONS.md", "tests/e2e/_helpers.ts", "tests/e2e/auth.spec.ts", "tests/e2e/sub-coi-upload.spec.ts", "tests/integration/date-param-regressions.real.test.ts", "server/services/mfa.real.ts", "server/services/account.real.ts", "server/services/notification.real.ts", "server/services/notification-subscription.real.ts", "server/services/saved-view.real.ts", "tests/integration/self-binding.real.test.ts", "server/plugins/env-guard.ts", "server/api/ready.get.ts", "server/services/permission.real.ts", ".env.example", "tests/integration/tenant-gaps.real.test.ts", "package.json", "pnpm-lock.yaml", "app/middleware/mfa-required.global.ts", "app/pages/settings/security.vue", "app/pages/settings/index.vue", "app/pages/profile/**", "app/pages/login.vue", "server/db/schema/index.ts", "server/db/migrations/**", "server/services/auth.real.ts", "shared/contracts/services.ts", "scripts/db-seed.mjs", "tests/unit/security-enforcement.test.ts", "tests/integration/security-policy.real.test.ts"],
+      "files": ["server/middleware/**", "server/utils/**", "server/db/schema/security_policies.ts", "shared/contracts/security-policy.ts", "server/services/security-policy.real.ts", "shared/mocks/security-policy.mock.ts", ".github/workflows/security.yml", "server/api/services/[service]/[method].post.ts", "server/services/homeowner.real.ts", "shared/contracts/homeowner.ts", "shared/mocks/homeowner.mock.ts", "server/services/subcontractor.real.ts", "server/services/quote.real.ts", "server/services/user.real.ts", "app/pages/homeowner/**", "app/plugins/csrf*.ts", "app/composables/useService.ts", "app/plugins/services.ts", "scripts/security/**", "docs/CONVENTIONS.md", "docs/BULWARK_TECH.md", "docs/BULWARK_HANDOFF.md", "server/db/schema/user_mfa.ts", "tests/unit/rpc-policy.test.ts", "tests/unit/audit-gate.test.ts", "tests/unit/env-guard.test.ts", "tests/integration/homeowner-portal.real.test.ts", "tests/integration/portal-scoping.real.test.ts", "tests/integration/tenant-firewall-coverage.test.ts", "tests/integration/csrf.test.ts", "tests/integration/lockout.test.ts", "tests/e2e/rbac.spec.ts", "tests/e2e/csrf.spec.ts", "tests/e2e/session-timeout.spec.ts", "server/services/_caller.ts", "server/services/api-key.real.ts", "server/services/feature-flag.real.ts", "server/services/reporting.real.ts", "server/services/work-order.real.ts", "shared/mocks/factory.ts", "app/utils/csrf.ts", "app/composables/useOfflineQueue.ts", "agents/program/ENGINEERING-DECISIONS.md", "tests/e2e/_helpers.ts", "tests/e2e/auth.spec.ts", "tests/e2e/sub-coi-upload.spec.ts", "tests/integration/date-param-regressions.real.test.ts", "server/services/mfa.real.ts", "server/services/account.real.ts", "server/services/notification.real.ts", "server/services/notification-subscription.real.ts", "server/services/saved-view.real.ts", "tests/integration/self-binding.real.test.ts", "server/plugins/env-guard.ts", "server/api/ready.get.ts", "server/services/permission.real.ts", ".env.example", "tests/integration/tenant-gaps.real.test.ts", "package.json", "pnpm-lock.yaml", "app/middleware/mfa-required.global.ts", "app/pages/settings/security.vue", "app/pages/settings/index.vue", "app/pages/profile/**", "app/pages/login.vue", "server/db/schema/index.ts", "server/db/migrations/**", "server/services/auth.real.ts", "shared/contracts/services.ts", "scripts/db-seed.mjs", "tests/unit/security-enforcement.test.ts", "tests/integration/security-policy.real.test.ts", "app/pages/homeowner/quotes/index.vue", "app/pages/homeowner/invoices/index.vue"],
       "acceptance": ["Per epic (S1-S6)", "S7: every RPC method is classified in server/utils/rpc-policy.ts (unclassified = test failure); non-admins get 403 on admin/system methods; portal roles cannot call whole-org staff reads; homeowner/sub portal reads and writes are bound to the session identity"],
-      "tests": ["tests/unit/rpc-policy.test.ts", "tests/integration/homeowner-portal.real.test.ts", "tests/integration/portal-scoping.real.test.ts", "tests/e2e/rbac.spec.ts", "tests/integration/csrf.test.ts", "tests/integration/lockout.test.ts", "tests/e2e/session-timeout.spec.ts"],
-      "dependsOn": [], "decisions": ["ED-001", "ED-002", "ED-015"], "agentNotes": "2026-09-27 (claude-code): S7 RBAC + S1 CSRF + S6 docs shipped. S7: server/utils/rpc-policy.ts classifies all ~330 contract methods (deny by default, ED-055) and the dispatcher enforces it before service code; homeowner portal moved to self-scoped listMy*/getMy* reads; subcontractor methods bind to the session user/own company and subs only see/answer quotes on properties where they hold a slot (ED-054); audit/invited-by actors come from the session. S1: double-submit CSRF for authenticated sessions + cross-origin Origin refusal for all unsafe /api calls; SSR uses a server-only internal token. Tests: rpc-policy 10, homeowner-portal 5, portal-scoping 5, csrf 7, e2e rbac 6 + csrf 2. Full real-backend chromium e2e: 172 pass, no regressions vs pre-L07 baseline (same 20 pre-existing failures, now WP-Q3). Also fixed two live 500s (reporting.revenueTrend GROUP BY; /api/field/my-day Date param). 2026-09-27 (cont.): a second RPC audit found personal-data services taking any userId from the caller — MFA (setupTotp/confirmTotp/generateBackupCodes for another account = second-factor takeover), account export/deletion (any user, any tenant), notifications, notification subscriptions and saved views. All now bind to the session user (admin override only for subscriptions and saved views); tests/integration/self-binding.real.test.ts + e2e rbac personal-data block. 2026-09-27 (cont. 2): S3 tenant-firewall coverage gate shipped (static, CI) and closed two cross-tenant gaps (workOrder startSlot/completeSlot via mutateSlot; permission.getEffectivePermissions). S4 production config guard shipped (report mode; prod /api/ready reports configOk:true, so BULWARK_ENV_GUARD=enforce can be set in Vercel). S5: nuxt 3.21.4->3.21.11, drizzle-orm 0.36->0.45.3 (identifier-escaping SQL injection advisory), drizzle-kit 0.31, vue aligned to 3.5.43 (a duplicate Vue broke template types), pnpm.overrides pin patched same-major transitives; prod audit 33 high/4 critical -> 0 unaccepted (extract-zip allowlisted, expires 2026-12-31); .github/workflows/security.yml runs the audit gate + RPC policy + tenant coverage on push, PR and weekly. Full chromium e2e on the upgraded build: 173 pass, failing set unchanged (WP-Q3). 2026-09-27 (cont. 3): S2 shipped — migration 0018 security_policies (applied locally; sponsor applies to Neon), securityPolicy service (get/update/mfaRoster admin, getMine member), dispatcher enforcement of required MFA and idle timeout (ED-056), per-org lockout thresholds and trusted-device lifetime, ED-001 (idle timeout disables Keep me signed in), /settings/security admin page, mfa-required.global.ts routing, /login idle notice. Also fixed: /profile/security, /profile/data and /profile/notifications were unreachable (pages/profile.vue shadowed its children; moved to profile/index.vue); sign-in now replaces rather than merges the session (nuxt-auth-utils setUserSession defu-merged the old cookie, leaking persistence and the idle clock into a new sign-in). Tests: security-policy.real 5, security-enforcement 5, e2e session-timeout 3 (incl. real 5-minute idle with background polling), auth remember-me regression. Full chromium e2e 173 pass, failing set = WP-Q3 baseline. All seven stories are implemented; status review pending an independent skeptic review (playbook section 5)."
+      "tests": ["tests/unit/rpc-policy.test.ts", "tests/integration/homeowner-portal.real.test.ts", "tests/integration/portal-scoping.real.test.ts", "tests/e2e/rbac.spec.ts", "tests/integration/csrf.test.ts", "tests/integration/lockout.test.ts", "tests/e2e/session-timeout.spec.ts", "tests/e2e/profile-account.spec.ts", "tests/e2e/homeowner-portal.spec.ts (quotes list/detail)", "tests/e2e/homeowner-invoice.spec.ts", "tests/unit/page-nesting.test.ts"],
+      "dependsOn": [], "decisions": ["ED-001", "ED-002", "ED-015"], "agentNotes": "2026-09-27 (claude-code): S7 RBAC + S1 CSRF + S6 docs shipped. S7: server/utils/rpc-policy.ts classifies all ~330 contract methods (deny by default, ED-055) and the dispatcher enforces it before service code; homeowner portal moved to self-scoped listMy*/getMy* reads; subcontractor methods bind to the session user/own company and subs only see/answer quotes on properties where they hold a slot (ED-054); audit/invited-by actors come from the session. S1: double-submit CSRF for authenticated sessions + cross-origin Origin refusal for all unsafe /api calls; SSR uses a server-only internal token. Tests: rpc-policy 10, homeowner-portal 5, portal-scoping 5, csrf 7, e2e rbac 6 + csrf 2. Full real-backend chromium e2e: 172 pass, no regressions vs pre-L07 baseline (same 20 pre-existing failures, now WP-Q3). Also fixed two live 500s (reporting.revenueTrend GROUP BY; /api/field/my-day Date param). 2026-09-27 (cont.): a second RPC audit found personal-data services taking any userId from the caller — MFA (setupTotp/confirmTotp/generateBackupCodes for another account = second-factor takeover), account export/deletion (any user, any tenant), notifications, notification subscriptions and saved views. All now bind to the session user (admin override only for subscriptions and saved views); tests/integration/self-binding.real.test.ts + e2e rbac personal-data block. 2026-09-27 (cont. 2): S3 tenant-firewall coverage gate shipped (static, CI) and closed two cross-tenant gaps (workOrder startSlot/completeSlot via mutateSlot; permission.getEffectivePermissions). S4 production config guard shipped (report mode; prod /api/ready reports configOk:true, so BULWARK_ENV_GUARD=enforce can be set in Vercel). S5: nuxt 3.21.4->3.21.11, drizzle-orm 0.36->0.45.3 (identifier-escaping SQL injection advisory), drizzle-kit 0.31, vue aligned to 3.5.43 (a duplicate Vue broke template types), pnpm.overrides pin patched same-major transitives; prod audit 33 high/4 critical -> 0 unaccepted (extract-zip allowlisted, expires 2026-12-31); .github/workflows/security.yml runs the audit gate + RPC policy + tenant coverage on push, PR and weekly. Full chromium e2e on the upgraded build: 173 pass, failing set unchanged (WP-Q3). 2026-09-27 (cont. 3): S2 shipped — migration 0018 security_policies (applied locally; sponsor applies to Neon), securityPolicy service (get/update/mfaRoster admin, getMine member), dispatcher enforcement of required MFA and idle timeout (ED-056), per-org lockout thresholds and trusted-device lifetime, ED-001 (idle timeout disables Keep me signed in), /settings/security admin page, mfa-required.global.ts routing, /login idle notice. Also fixed: /profile/security, /profile/data and /profile/notifications were unreachable (pages/profile.vue shadowed its children; moved to profile/index.vue); sign-in now replaces rather than merges the session (nuxt-auth-utils setUserSession defu-merged the old cookie, leaking persistence and the idle clock into a new sign-in). Tests: security-policy.real 5, security-enforcement 5, e2e session-timeout 3 (incl. real 5-minute idle with background polling), auth remember-me regression. Full chromium e2e 173 pass, failing set = WP-Q3 baseline. All seven stories are implemented; status review pending an independent skeptic review (playbook section 5). | 2026-09-29 (claude-code): review -> done. Skeptic P0s and P1s closed (c2c5e86, 2ab566c: role ceiling, system-only login history, policy outside the dispatcher, lockout without enumeration, MFA step-up lockout, SAST gate); MFA re-enrolment defect fixed in 03b43f9. | 2026-09-29 (claude-code): release-pass coverage for pages L07 changed: profile-account.spec (/profile/notifications, /profile/data: own-data export, typed delete confirmation), homeowner-portal + homeowner-invoice specs. Found and fixed: the homeowner quote and invoice DETAIL pages were unreachable (quotes.vue / invoices.vue shadowed their [id] children, same bug class as /profile); their specs had been skipped as \"not shipped\". Guard: tests/unit/page-nesting.test.ts."
     },
     {
       "id": "WP-L08",
       "title": "L08 Observability (Sentry, metrics, health) + L09 a11y gates + L10 perf budgets in CI",
-      "lane": "HRD", "phase": "2-admin-core", "status": "review", "size": "M", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
+      "lane": "HRD", "phase": "2-admin-core", "status": "done", "size": "M", "owner": "claude-code (2026-09-28)", "branch": "main (sliced commits)",
       "goal": "Per epics L08/L09/L10; axe + Lighthouse budgets become CI gates used by every SCR WP.",
       "scope": ["As epics"], "outOfScope": [], "designs": [],
-      "files": ["server/plugins/**", "server/utils/logger*.ts", ".github/workflows/**", "lighthouserc.*", "server/utils/metrics.ts", "server/utils/error-tracking.ts", "server/utils/migration-drift.ts", "server/plugins/error-tracking.ts", "server/middleware/request-context.ts", "server/api/metrics.get.ts", "server/api/ready.get.ts", "server/api/services/[service]/[method].post.ts", "server/jobs/worker.ts", "server/utils/cron-auth.ts", "server/services/_providers/delivery-ledger.ts", "docs/RUNBOOK.md", "tests/unit/observability.test.ts", "tests/e2e/observability.spec.ts", "tests/e2e/a11y.spec.ts", "lighthouserc.cjs", ".github/workflows/ci.yml", "tests/integration/perf.test.ts", "app/assets/css/legacy-compat.css", "scripts/perf/lhci-session.mjs", ".gitignore", "app/layouts/field.vue", "app/plugins/route-focus.client.ts", "app/composables/useFocusTrap.ts", "app/components/ui/BulwarkModal.vue", "app/components/ui/BulwarkDrawer.vue", "app/pages/sub/cois.vue", "app/pages/settings/users.vue", "app/pages/profile/index.vue", "server/services/storage/r2-driver.ts", "server/utils/security-headers.ts", "server/middleware/02.security-headers.ts", "docs/A11Y.md", "tests/e2e/field-tabs.spec.ts", "tests/e2e/a11y-focus.spec.ts", "tests/e2e/a11y-async-errors.spec.ts", "tests/e2e/screens/_contract.ts", "tests/unit/r2-signing.test.ts", "tests/unit/security-headers.test.ts", "tests/e2e/sub-coi-upload.spec.ts"],
-      "acceptance": ["Per epics"], "tests": ["as epics"],
-      "dependsOn": ["WP-Q1"], "decisions": [], "agentNotes": "2026-09-28 (claude-code) observability slice: error tracking via Sentry envelopes over fetch (no SDK; no-op without SENTRY_DSN; scrubbed with the logger redactor; deduped; covers the RPC dispatcher, the Nitro 5xx hook and the worker), /api/ready migration-drift check (503 when the DB is behind the bundled journal), per-route latency histograms with p50/p95, Prometheus text at /api/metrics?format=prometheus with BULWARK_METRICS_BEARER, auth-failure and delivery counters, docs/RUNBOOK.md. Next: the L09 axe gate and L10 Lighthouse/latency gates. | Gates slice: tests/e2e/a11y.spec.ts runs axe on 9 surfaces (login, 404, admin dashboard/list/detail, settings, field, sub, homeowner) in BOTH themes; serious or critical fails. It caught a real bug: in dark theme the legacy text-primary foreground (#0F766E) was about 2.6:1 on dark surfaces; fixed in legacy-compat.css (Packet A teal fg; A2 should remove it). The lighthouse CI job (lighthouserc.cjs, LHCI 0.15.1, session cookie via scripts/perf/lhci-session.mjs) covers the 10 busiest signed-in routes. Local baseline: perf 0.90-0.97, a11y 1.0, best-practices 0.96, JS 351-540 KB. Floors: a11y 0.95, best-practices 0.9, perf 0.7, JS 700 KB, total 1.25 MB. tests/integration/perf.test.ts is the L10-S2 harness (400 properties and quotes; every primary read p95 under 100 ms against a 200 ms budget). CI: the mock e2e job had been cancelled at its 30-min timeout on every push; now chromium-only with a 40-min limit. Remaining in scope: L09-S1 field tab routing, S3 focus/landmarks, S4 form/async-error affordances; L10-S3/S4 payload and caching. | 2026-09-28 remaining stories. L09-S1: field tabs were three links to /field/check-in; now My Day + Check in always, Inspect/Photos only inside a job and pointing at that job, Notes hidden (no page), explicit aria-current. L09-S3: BulwarkModal/Drawer claimed a focus trap they did not have; useFocusTrap adds initial focus, a Tab trap and restore; aria-labelledby used a title-derived id that broke on spaces (now useId); route-focus.client.ts moves focus to the page h1 after navigation; the ad-hoc invite overlay became a BulwarkModal and its Role select got a label. L09-S4: COI upload had no error handling at all (unhandled rejection); invite was toast-only; avatar had no retry. All three now show a role=alert error plus Try again with the same input. docs/A11Y.md records the gates, patterns and a MANUAL keyboard + screen-reader pass that is still to be done by a human. L10-S3: data-driven, no change warranted (every route inside budget). L10-S4: HTML private,no-cache and API private,no-store (the platform sent public); R2 signed downloads are signed against a fixed 30-minute window, so the URL is stable and browser-cacheable (response-cache-control private,max-age,immutable). Mock CI lane: a11y failures came only from the nuxt-devtools overlay, now excluded. Known flake class: roughly 20 older specs wait on networkidle instead of waitForHydration (sub-coi-upload fixed); convert when touched."
+      "files": ["server/plugins/**", "server/utils/logger*.ts", ".github/workflows/**", "lighthouserc.*", "server/utils/metrics.ts", "server/utils/error-tracking.ts", "server/utils/migration-drift.ts", "server/plugins/error-tracking.ts", "server/middleware/request-context.ts", "server/api/metrics.get.ts", "server/api/ready.get.ts", "server/api/services/[service]/[method].post.ts", "server/jobs/worker.ts", "server/utils/cron-auth.ts", "server/services/_providers/delivery-ledger.ts", "docs/RUNBOOK.md", "tests/unit/observability.test.ts", "tests/e2e/observability.spec.ts", "tests/e2e/a11y.spec.ts", "lighthouserc.cjs", ".github/workflows/ci.yml", "tests/integration/perf.test.ts", "app/assets/css/legacy-compat.css", "scripts/perf/lhci-session.mjs", ".gitignore", "app/layouts/field.vue", "app/plugins/route-focus.client.ts", "app/composables/useFocusTrap.ts", "app/components/ui/BulwarkModal.vue", "app/components/ui/BulwarkDrawer.vue", "app/pages/sub/cois.vue", "app/pages/settings/users.vue", "app/pages/profile/index.vue", "server/services/storage/r2-driver.ts", "server/utils/security-headers.ts", "server/middleware/02.security-headers.ts", "docs/A11Y.md", "tests/e2e/field-tabs.spec.ts", "tests/e2e/a11y-focus.spec.ts", "tests/e2e/a11y-async-errors.spec.ts", "tests/e2e/screens/_contract.ts", "tests/unit/r2-signing.test.ts", "tests/unit/security-headers.test.ts", "tests/e2e/sub-coi-upload.spec.ts", "server/services/auth.real.ts", "tests/integration/migration-drift.real.test.ts"],
+      "acceptance": ["Per epics"], "tests": ["as epics", "tests/integration/migration-drift.real.test.ts", "tests/e2e/a11y-focus.spec.ts (skip link, aria-invalid)"],
+      "dependsOn": ["WP-Q1"], "decisions": ["ED-063"], "agentNotes": "2026-09-28 (claude-code) observability slice: error tracking via Sentry envelopes over fetch (no SDK; no-op without SENTRY_DSN; scrubbed with the logger redactor; deduped; covers the RPC dispatcher, the Nitro 5xx hook and the worker), /api/ready migration-drift check (503 when the DB is behind the bundled journal), per-route latency histograms with p50/p95, Prometheus text at /api/metrics?format=prometheus with BULWARK_METRICS_BEARER, auth-failure and delivery counters, docs/RUNBOOK.md. Next: the L09 axe gate and L10 Lighthouse/latency gates. | Gates slice: tests/e2e/a11y.spec.ts runs axe on 9 surfaces (login, 404, admin dashboard/list/detail, settings, field, sub, homeowner) in BOTH themes; serious or critical fails. It caught a real bug: in dark theme the legacy text-primary foreground (#0F766E) was about 2.6:1 on dark surfaces; fixed in legacy-compat.css (Packet A teal fg; A2 should remove it). The lighthouse CI job (lighthouserc.cjs, LHCI 0.15.1, session cookie via scripts/perf/lhci-session.mjs) covers the 10 busiest signed-in routes. Local baseline: perf 0.90-0.97, a11y 1.0, best-practices 0.96, JS 351-540 KB. Floors: a11y 0.95, best-practices 0.9, perf 0.7, JS 700 KB, total 1.25 MB. tests/integration/perf.test.ts is the L10-S2 harness (400 properties and quotes; every primary read p95 under 100 ms against a 200 ms budget). CI: the mock e2e job had been cancelled at its 30-min timeout on every push; now chromium-only with a 40-min limit. Remaining in scope: L09-S1 field tab routing, S3 focus/landmarks, S4 form/async-error affordances; L10-S3/S4 payload and caching. | 2026-09-28 remaining stories. L09-S1: field tabs were three links to /field/check-in; now My Day + Check in always, Inspect/Photos only inside a job and pointing at that job, Notes hidden (no page), explicit aria-current. L09-S3: BulwarkModal/Drawer claimed a focus trap they did not have; useFocusTrap adds initial focus, a Tab trap and restore; aria-labelledby used a title-derived id that broke on spaces (now useId); route-focus.client.ts moves focus to the page h1 after navigation; the ad-hoc invite overlay became a BulwarkModal and its Role select got a label. L09-S4: COI upload had no error handling at all (unhandled rejection); invite was toast-only; avatar had no retry. All three now show a role=alert error plus Try again with the same input. docs/A11Y.md records the gates, patterns and a MANUAL keyboard + screen-reader pass that is still to be done by a human. L10-S3: data-driven, no change warranted (every route inside budget). L10-S4: HTML private,no-cache and API private,no-store (the platform sent public); R2 signed downloads are signed against a fixed 30-minute window, so the URL is stable and browser-cacheable (response-cache-control private,max-age,immutable). Mock CI lane: a11y failures came only from the nuxt-devtools overlay, now excluded. Known flake class: roughly 20 older specs wait on networkidle instead of waitForHydration (sub-coi-upload fixed); convert when touched. | 2026-09-29 (claude-code): review -> done. Skeptic P1s closed: Sentry message and stack scrubbed (query params, key values, emails, tokens; unit test on a Drizzle-shaped error); metrics bearer + field 403 e2e; migration drift against the real bookkeeping table (migration-drift.real.test); DB-backed vitest (incl. perf.test) now runs in CI (new integration job); skip link, main landmark and aria-invalid e2e (a11y-focus.spec). Gate scope per ED-063 (perf floor, mobile gates with WP-D1, drawer trap with WP-A2). OPEN SPONSOR ITEM: manual keyboard + screen-reader pass (docs/A11Y.md). P2 follow-up: /api/metrics is readable by any org admin although it aggregates every tenant; consider platform operators only (ED-057)."
     },
     {
       "id": "WP-L14",

@@ -39,8 +39,31 @@ when a `done` WP touches a page with no e2e coverage.
    so use `WP-A4A`/`WP-A4B` or new numbers — prefer new numbers with `dependsOn` chains).
 3. Run `pnpm codegraph:build && pnpm codegraph:check`; commit the regenerated graph.
 
-## Current phase-0 startable set (2026-09-17)
+## Sequencing: screens first (2026-09-29, sponsor direction)
 
-`WP-A1` tokens · `WP-Q1` harness · `WP-X1` contract generalization · `WP-L03`, `WP-L06`, `WP-L07`
-hardening — six independent lanes can start today. `WP-A2` follows `WP-A1`; `WP-A3` follows `WP-A2`;
-everything screen-related follows `WP-A3`.
+The foundation, contract and hardening lanes are closed (A1, Q1, Q2, Q3, X1–X3, L02, L03, L06–L08,
+SH01, O1, O2). Nothing user-facing has been rebuilt yet, so the backend work has not been exercised
+by a real screen. The sponsor QA's the product through the UI, so from here **front-end work takes
+priority** and backend changes are driven by the screen that needs them.
+
+1. **Critical path:** `WP-A2` (primitives) → `WP-A3` (data & layout composites) → `WP-B2` (property
+   pipeline, intake, hub). B2 depends only on A3, X1 and Q1, so it is the first full screen set.
+   Build A3's components in the order B2 consumes them (DataTable, FilterBar, PageHeader,
+   KanbanBoard, StatusMenu, Banner, KeyValue, Chips, Menu, Field, Timeline) and start B2 as each
+   lands.
+2. **Next screens:** `WP-S1` (auth family) and `WP-A5` (shells) after A3, then `WP-B1`, and `WP-S3`
+   (account security: exercises X2 sessions and L07 MFA).
+3. **One backend package runs alongside:** `WP-X4` (RPC input validation). Today bad input reaches
+   Postgres and returns a 500, so forms can't show field errors. It must land before the first
+   forms (B2 intake, B1 client create). Other backend-only lanes (`WP-L14` Stripe, `WP-L16`
+   cutover) run only when an agent is free and never take priority over the screen path. A new
+   backend WP must name the screen that consumes it.
+4. **Validate recent backend work through its first screen**, and treat a mismatch as a finding
+   against the backend WP, not a reason to bend the screen: B2 (X3 geo autocomplete with the
+   `none` fallback, L02 uploads, X3 scanning badges, L06 pagination), B3 (X2 people/contacts,
+   permits), S3 (X2 sessions/revocation, L07 MFA), B5/F2 (X2 signatures; server-side document
+   hash).
+5. **Each screen WP ends deployed** with demo data so the sponsor can click through it.
+
+Blocked on design (packets not yet returned): `WP-J1`/`WP-J2` (Packet J: DOC-*, MSG-*), `WP-I2`
+(AD-80, AD-81, FD-40), `WP-G1` (ST-24). Everything else waits only on dependencies.
