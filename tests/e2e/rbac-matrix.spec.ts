@@ -9,6 +9,8 @@
  *
  * Also: wrong-tenant calls. An org_admin of one demo org naming the other org's
  * id is refused by the tenant firewall.
+ * And the IDOR shape: each staff role naming its own org and another org's
+ * real record id reads nothing and cannot update it.
  *
  * Expectations come from the snapshot, not server/utils/rpc-policy.ts, so a
  * widened gate on the server fails here (see tests/unit/rpc-policy-snapshot.test.ts).
@@ -105,5 +107,59 @@ test.describe('RPC role matrix (WP-Q2)', () => {
     } finally {
       await context.close()
     }
+  })
+
+  // IDOR shape: the caller names their OWN org (so the firewall's org check
+  // passes) and a real record id from another org. Every staff role that may
+  // read these records must get nothing back, and a write must not land.
+  test('staff cannot read or write another org\'s record through their own org id (IDOR)', async ({ browser }) => {
+    test.setTimeout(120_000)
+    const rpc = async (ctx: { request: APIRequestContext }, service: string, method: string, args: unknown[]) => {
+      const res = await ctx.request.post(`${BASE}/api/services/${service}/${method}`, { data: { args } })
+      const text = await res.text()
+      return { status: res.status(), body: text ? JSON.parse(text) as unknown : null }
+    }
+    const firstId = (body: unknown) => (body as { rows?: Array<{ id: string }> } | null)?.rows?.[0]?.id
+
+    const acme = await signedInRequest(browser, 'ana@acme.demo')
+    const acmeOrg = (await rpc(acme, 'auth', 'currentUser', [])).body as { activeOrganizationId: string }
+    const organizationId = acmeOrg.activeOrganizationId
+    const page = { organizationId, page: 1, pageSize: 1 }
+    // The other org's own admin creates the records under attack (the Acme seed
+    // is thin), then any seeded quotes/invoices/work orders join the probe.
+    const created = await rpc(acme, 'property', 'create', [{ organizationId, addressLine1: `IDOR target ${Date.now()}`, city: 'Oakland', state: 'CA', postalCode: '94607' }])
+    expect(created.status, 'other org creates its property').toBe(200)
+    const acmeProperty = (created.body as { id: string }).id
+    const client = await rpc(acme, 'client', 'create', [{ organizationId, fullName: 'IDOR Target Client', email: null, phone: '+15555550111', preferredContact: 'phone', notes: null }])
+    expect(client.status, 'other org creates its client').toBe(200)
+    const foreign: Array<[string, string]> = [['property', acmeProperty], ['client', (client.body as { id: string }).id]]
+    for (const service of ['quote', 'invoice', 'workOrder']) {
+      const id = firstId((await rpc(acme, service, 'list', [page])).body)
+      if (id) foreign.push([service, id])
+    }
+
+    const wrong: string[] = []
+    for (const role of ['org_admin', 'org_manager', 'field', 'viewer'] as const) {
+      const context = await signedInRequest(browser, PERSONAS[role]!)
+      try {
+        const ownOrg = ((await rpc(context, 'auth', 'currentUser', [])).body as { activeOrganizationId: string }).activeOrganizationId
+        for (const [service, id] of foreign) {
+          const { status, body } = await rpc(context, service, 'get', [id, ownOrg])
+          if (status < 400 && body !== null) wrong.push(`${role}: ${service}.get(<other org id>, own org) returned the record`)
+        }
+        if (role !== 'viewer') {
+          const { status } = await rpc(context, 'property', 'update', [{ id: acmeProperty, organizationId: ownOrg, addressLine1: `IDOR ${role}` }])
+          if (status < 400) wrong.push(`${role}: property.update on another org's property answered ${status}`)
+        }
+      } finally {
+        await context.close()
+      }
+    }
+    const after = (await rpc(acme, 'property', 'get', [acmeProperty, organizationId])).body as { addressLine1: string }
+    await rpc(acme, 'property', 'softDelete', [acmeProperty, organizationId])
+    await acme.close()
+    // Unchanged: still the address the owner created, not an attacker's "IDOR <role>".
+    expect(after.addressLine1).toMatch(/^IDOR target \d+$/u)
+    expect(wrong, wrong.join('\n')).toEqual([])
   })
 })

@@ -32,6 +32,24 @@ const ids = args.includes('--all-received')
   : args.filter((a) => !a.startsWith('--'))
 if (!ids.length) { console.error('usage: scaffold-screen-test.mjs <ID> [--force] | --all-received'); process.exit(1) }
 
+// WP-Q2: the normalized persona x action matrix (tests/e2e/_matrix.generated.json)
+// names the exact permitted roles per SPEC action, so each scaffolded action test
+// says which personas must succeed and which must be refused.
+const ALL_ROLES = ['super_admin', 'org_admin', 'org_manager', 'field', 'viewer', 'sub_contractor', 'homeowner', 'stakeholder']
+const MATRIX_FILE = path.join(ROOT, 'tests', 'e2e', '_matrix.generated.json')
+const matrix = existsSync(MATRIX_FILE) ? JSON.parse(await fs.readFile(MATRIX_FILE, 'utf8')).actions : []
+function matrixRoles(design, action) {
+  const row = matrix.find((r) => r.design === design && r.action === action)
+  if (!row) return null
+  if (!row.roles) return { permitted: 'any signed-in role or public', forbidden: 'none' }
+  return { permitted: row.roles.join(', '), forbidden: ALL_ROLES.filter((r) => !row.roles.includes(r)).join(', ') || 'none' }
+}
+function matrixLine(design, action) {
+  const m = matrixRoles(design, action)
+  return m
+    ? `    // Matrix: permitted [${m.permitted}] · must be refused [${m.forbidden}]`
+    : '    // Matrix: no row for this action; regenerate tests/e2e/_matrix.generated.json and map its permission word'
+}
 const ROLE_MAP = { 'org_admin': 'org_admin', 'org_manager': 'org_manager', 'super_admin': 'super_admin', 'field': 'field', 'sub': 'sub_contractor', 'sub_contractor': 'sub_contractor', 'client': 'homeowner', 'homeowner': 'homeowner', 'viewer': 'viewer', 'stakeholder': 'stakeholder', 'manager+': 'org_manager', 'admin': 'org_admin' }
 
 function parseSpec(md) {
@@ -78,6 +96,7 @@ for (const id of ids) {
   test.fixme('action: ${ident(a.action)} (${ident(a.kind)}) → ${ident(a.leadsTo).slice(0, 60)}', async () => {
     // fixtures: async ({ page, browser }) — add when implementing
     // Permission: ${ident(a.permission)} · Confirm: ${ident(a.confirm)}
+${matrixLine(id, a.action)}
     // Positive: as a permitted role, perform the action and assert the outcome (navigation/toast/state change) and the audit/API side effect.
     // Negative: as a NON-permitted seeded role, assert the control is absent AND the underlying API call returns 403 (use page.request.post on /api/services/<svc>/<method>).
 ${/L[123]/.test(a.confirm) ? '    // Confirm ladder: assert the confirm dialog appears and that cancelling leaves state unchanged.' : ''}
