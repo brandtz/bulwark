@@ -38,14 +38,16 @@ test.describe('settings — inspection templates editor', () => {
     await expect(page.getByText('QA bolt-on field')).toBeVisible()
 
     // Verify it renders in a fresh inspection.
-    await page.goto('/admin/properties')
+    // Follow Nuxt links so the browser mock keeps the edited template in its
+    // in-memory service while moving to a new inspection.
+    await page.locator('a[href="/admin/properties"]').first().click()
     await waitForHydration(page)
     await page.getByTestId('property-card').first().click()
     // Read the id only after navigation lands (otherwise it is the list URL).
     await page.waitForURL(/\/admin\/properties\/[^/]+$/u)
-    const url = new URL(page.url())
-    const propertyId = url.pathname.split('/').filter(Boolean).pop()
-    await page.goto(`/admin/properties/${propertyId}/inspection/new`)
+    await page.getByRole('tab', { name: /assessment/i }).click()
+    await page.locator('[data-testid="tab-start-assessment-cta"], [data-testid="tab-redo-assessment-link"]').click()
+    await page.getByRole('link', { name: 'try it under Programs' }).click()
     await waitForHydration(page)
     await expect(page.getByTestId('inspection-new')).toBeVisible()
     await page.getByTestId('start-wildfire-retrofit').click()

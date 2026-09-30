@@ -15,9 +15,16 @@
  *   - Role gating: a field persona hitting /settings/labels must land
  *     at /403, matching every other admin-only settings page.
  */
-import { test, expect } from '@playwright/test'
-import { signInAsAdmin, signInAsField, signOut } from './_helpers'
+import { test, expect, type Page } from '@playwright/test'
+import { signInAsAdmin, signInAsField, signOut, waitForHydration } from './_helpers'
 import { reseedRealBackend } from './_reseed'
+
+async function openPipeline(page: Page) {
+  // Mock services live in the browser tab. Follow the app link so the label
+  // override survives navigation; the real lane still checks the same UI.
+  await page.locator('a[href="/admin/properties"]').first().click()
+  await waitForHydration(page)
+}
 
 test.describe('Settings → Labels (Wave 1A / EH-B)', () => {
   test.beforeAll(async () => {
@@ -49,25 +56,27 @@ test.describe('Settings → Labels (Wave 1A / EH-B)', () => {
     await page.getByTestId('labels-save-all-button').click()
 
     // Wait for the save toast + the dirty count to clear.
-    await expect(page.getByTestId('labels-save-all-button')).toContainText(/Save\s+all/i, { timeout: 10000 })
+    await expect(page.getByTestId('labels-save-all-button')).toBeDisabled({ timeout: 10000 })
 
     // Navigate to the pipeline list and confirm the badge picked up the new copy.
-    await page.goto('/admin/properties')
+    await openPipeline(page)
     await page.waitForLoadState('networkidle')
     const badges = page.getByTestId('status-badge').filter({ hasText: 'Prospect' })
     await expect.poll(async () => await badges.count(), { timeout: 10000 }).toBeGreaterThan(0)
 
     // Reset arc: remove the override.
-    await page.goto('/settings/labels')
+    await page.goBack()
+    await waitForHydration(page)
     await page.waitForLoadState('networkidle')
     const rowAfter = page
       .getByTestId('labels-row')
       .filter({ hasText: 'status.property.lead' })
       .first()
     await rowAfter.getByTestId('labels-reset-button').click()
+    await expect(rowAfter.getByTestId('labels-reset-button')).toHaveCount(0)
     await page.waitForLoadState('networkidle')
 
-    await page.goto('/admin/properties')
+    await openPipeline(page)
     await page.waitForLoadState('networkidle')
     const defaultBadges = page.getByTestId('status-badge').filter({ hasText: 'Lead' })
     await expect.poll(async () => await defaultBadges.count(), { timeout: 10000 }).toBeGreaterThan(0)

@@ -86,7 +86,10 @@ test.describe('Quote tiers + optional + discount (W2-3b)', () => {
     await expect(page.getByTestId('preview-line-discount').first()).toContainText('10')
 
     // List grouping + tier pill.
-    await page.goto('/admin/quotes')
+    // Keep the mock service instance alive while moving from detail to list.
+    // A hard reload constructs a fresh in-memory backend; the real lane also
+    // exercises this ordinary client-side navigation.
+    await page.locator('a[href="/admin/quotes"]').first().click()
     await waitForHydration(page)
     await page.waitForLoadState('networkidle')
     await expect(page.locator('[data-testid="quote-row-tier"]').first()).toBeVisible()

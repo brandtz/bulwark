@@ -34,6 +34,7 @@ useHead({ title: 'Inspection templates' })
 const auth = useService('auth')
 const templateService = useService('inspectionTemplate')
 const programService = useService('program')
+const nuxtApp = useNuxtApp()
 
 const sessionUser = await auth.currentUser()
 if (!sessionUser) throw createError({ statusCode: 401, statusMessage: 'Not signed in' })
@@ -48,12 +49,20 @@ const error = ref<string | null>(null)
 async function loadList(): Promise<void> {
   loading.value = true
   try {
-    const [pList, tList] = await Promise.all([
+    const [pList, listed] = await Promise.all([
       programService.list({ organizationId, page: 1, pageSize: 50 }),
       templateService.list({ organizationId, page: 1, pageSize: 100, includeInactive: true }),
     ])
     programs.value = pList.rows.map((p) => ({ id: p.id, name: p.name, slug: p.slug }))
-    templates.value = tList.rows
+    let rows = listed.rows
+    const wildfire = pList.rows.find((p) => p.slug === 'wildfire-retrofit')
+    if (wildfire && !rows.some((t) => t.programId === wildfire.id)) {
+      // A new organization (and the browser mock) may have the built-in
+      // program before its template. Bootstrap once, then show the result.
+      await nuxtApp.runWithContext(() => templateService.bootstrap({ organizationId, programId: wildfire.id, programSlug: wildfire.slug }))
+      rows = (await nuxtApp.runWithContext(() => templateService.list({ organizationId, page: 1, pageSize: 100, includeInactive: true }))).rows
+    }
+    templates.value = rows
   } finally {
     loading.value = false
   }

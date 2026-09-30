@@ -2,7 +2,7 @@
  * tests/e2e/settings-numbering.spec.ts — Wave 1B / EH-H / W1-3 admin UI.
  */
 import { test, expect } from '@playwright/test'
-import { signInAsAdmin, signInAsField, signOut } from './_helpers'
+import { signInAsAdmin, signInAsField, signOut, waitForHydration } from './_helpers'
 import { reseedRealBackend } from './_reseed'
 
 test.describe('Settings → Numbering & defaults (Wave 1B / EH-H / W1-3)', () => {
@@ -23,10 +23,19 @@ test.describe('Settings → Numbering & defaults (Wave 1B / EH-H / W1-3)', () =>
     await expect(quoteFormat).toHaveValue(/Q-\{year\}-\{seq:04\}/)
     await quoteFormat.fill('QUOTE-{year}-{seq:05}')
     await page.getByTestId('numbering-save').click()
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByText('Settings saved')).toBeVisible()
 
-    // Re-read confirms persistence.
-    await page.reload()
+    // Real persistence survives reload. The browser mock is intentionally
+    // in-memory, so re-read it through client-side navigation instead.
+    if (process.env.BULWARK_BACKEND === 'mock') {
+      await page.locator('a[href="/admin/properties"]').first().click()
+      await waitForHydration(page)
+      await page.locator('a[href="/settings"]').first().click()
+      await page.locator('a[href="/settings/numbering-defaults"]').first().click()
+    } else {
+      await page.reload()
+    }
+    await waitForHydration(page)
     await page.waitForLoadState('networkidle')
     await expect(page.getByTestId('numbering-quote-format').locator('input'))
       .toHaveValue('QUOTE-{year}-{seq:05}')

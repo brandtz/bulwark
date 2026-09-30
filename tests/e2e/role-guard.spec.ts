@@ -20,7 +20,7 @@
  *   wiring problems (e.g. forgetting to add `'role'` to `middleware`).
  */
 import { test, expect } from '@playwright/test'
-import { signIn, signOut } from './_helpers'
+import { signIn, signOut, waitForHydration } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -60,6 +60,7 @@ test.describe('Role guard — admin pages reject non-admin personas', () => {
   test('home button on /403 redirects role-aware', async ({ page }) => {
     await signIn(page.context(), 'drew@bulwark.demo')
     await page.goto('/403')
+    await waitForHydration(page)
     await page.getByTestId('home-button').click()
     await expect(page).toHaveURL(/\/admin\/dashboard$/)
   })

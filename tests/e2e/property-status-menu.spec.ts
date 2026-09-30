@@ -15,7 +15,7 @@
  *     when it works locally it fails on CI ~10% of the time.
  */
 import { test, expect } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -27,6 +27,7 @@ test.describe('Property status menu (E3-S3)', () => {
 
   test('menu opens, lists only legal transitions, and current is marked when present', async ({ page }) => {
     await page.goto('/admin/properties')
+    await waitForHydration(page)
     await expect(page.getByTestId('properties-pipeline')).toBeVisible()
     const card = page.getByTestId('property-card').first()
     await card.getByTestId('status-menu-button').click()
@@ -42,6 +43,7 @@ test.describe('Property status menu (E3-S3)', () => {
 
   test('clicking a menu item moves the card to the chosen column', async ({ page }) => {
     await page.goto('/admin/properties')
+    await waitForHydration(page)
     await expect(page.getByTestId('properties-pipeline')).toBeVisible()
 
     // Pick a card from the `lead` column we know is seeded.
@@ -69,6 +71,7 @@ test.describe('Property status menu (E3-S3)', () => {
 
   test('clicking the menu does not navigate to the detail page', async ({ page }) => {
     await page.goto('/admin/properties')
+    await waitForHydration(page)
     await expect(page.getByTestId('properties-pipeline')).toBeVisible()
     const card = page.getByTestId('property-card').first()
     await card.getByTestId('status-menu-button').click()
