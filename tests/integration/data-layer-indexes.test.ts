@@ -34,29 +34,34 @@ d('hot list queries are index-backed (WP-L06 S1)', () => {
     await closeDb()
   })
 
-  const cases: Array<[string, string, string]> = [
-    ['properties default list', `SELECT * FROM properties WHERE organization_id = '${ORG}' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 25`, 'properties_org_created_idx'],
-    ['properties by status', `SELECT * FROM properties WHERE organization_id = '${ORG}' AND deleted_at IS NULL AND status = 'lead' ORDER BY created_at DESC LIMIT 25`, 'properties_org_status_created_idx|properties_org_created_idx'],
-    ['quotes default list', `SELECT * FROM quotes WHERE organization_id = '${ORG}' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 25`, 'quotes_org_created_idx'],
-    ['quotes by status', `SELECT * FROM quotes WHERE organization_id = '${ORG}' AND deleted_at IS NULL AND status = 'sent' ORDER BY created_at DESC LIMIT 25`, 'quotes_org_status_created_idx|quotes_org_created_idx'],
+  // [name, query, expected index, paged]. Paged lists use the ORDER BY that
+  // pageWindow emits (server/services/_pagination.ts) and must get created_at
+  // order from the index: an Incremental Sort for equal timestamps is fine, a
+  // full Sort of the org's rows is not.
+  const cases: Array<[string, string, string, boolean?]> = [
+    ['properties default list', `SELECT * FROM properties WHERE organization_id = '${ORG}' AND deleted_at IS NULL ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 25`, 'properties_org_created_idx', true],
+    ['properties by status', `SELECT * FROM properties WHERE organization_id = '${ORG}' AND deleted_at IS NULL AND status = 'lead' ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 25`, 'properties_org_status_created_idx|properties_org_created_idx', true],
+    ['quotes default list', `SELECT * FROM quotes WHERE organization_id = '${ORG}' AND deleted_at IS NULL ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 25`, 'quotes_org_created_idx', true],
+    ['quotes by status', `SELECT * FROM quotes WHERE organization_id = '${ORG}' AND deleted_at IS NULL AND status = 'sent' ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 25`, 'quotes_org_status_created_idx|quotes_org_created_idx', true],
     ['quotes by property', `SELECT * FROM quotes WHERE organization_id = '${ORG}' AND property_id = '${PROP}'`, 'quotes_org_property_idx'],
-    ['invoices default list', `SELECT * FROM invoices WHERE organization_id = '${ORG}' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 25`, 'invoices_org_created_idx'],
-    ['invoices by status', `SELECT * FROM invoices WHERE organization_id = '${ORG}' AND deleted_at IS NULL AND status = 'sent' ORDER BY created_at DESC LIMIT 25`, 'invoices_org_status_created_idx|invoices_org_created_idx'],
-    ['work orders default list', `SELECT * FROM work_orders WHERE organization_id = '${ORG}' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 25`, 'work_orders_org_created_idx'],
-    ['work orders by status', `SELECT * FROM work_orders WHERE organization_id = '${ORG}' AND deleted_at IS NULL AND status = 'scheduled' ORDER BY created_at DESC LIMIT 25`, 'work_orders_org_status_created_idx|work_orders_org_created_idx'],
+    ['invoices default list', `SELECT * FROM invoices WHERE organization_id = '${ORG}' AND deleted_at IS NULL ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 25`, 'invoices_org_created_idx', true],
+    ['invoices by status', `SELECT * FROM invoices WHERE organization_id = '${ORG}' AND deleted_at IS NULL AND status = 'sent' ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 25`, 'invoices_org_status_created_idx|invoices_org_created_idx', true],
+    ['work orders default list', `SELECT * FROM work_orders WHERE organization_id = '${ORG}' AND deleted_at IS NULL ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 25`, 'work_orders_org_created_idx', true],
+    ['work orders by status', `SELECT * FROM work_orders WHERE organization_id = '${ORG}' AND deleted_at IS NULL AND status = 'scheduled' ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 25`, 'work_orders_org_status_created_idx|work_orders_org_created_idx', true],
     ['inspections by property', `SELECT * FROM inspections WHERE organization_id = '${ORG}' AND property_id = '${PROP}' AND deleted_at IS NULL ORDER BY created_at DESC`, 'inspections_org_property_created_idx'],
-    ['audit log filter (newest first)', `SELECT * FROM audit_log WHERE organization_id = '${ORG}' ORDER BY created_at DESC, id DESC LIMIT 50`, 'audit_log_org_(created|entity)_idx'],
+    ['audit log filter (newest first)', `SELECT * FROM audit_log WHERE organization_id = '${ORG}' ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 50`, 'audit_log_org_(created|entity)_idx', true],
     ['audit entity timeline', `SELECT * FROM audit_log WHERE organization_id = '${ORG}' AND entity_type = 'quote' AND entity_id = '${PROP}' ORDER BY created_at DESC`, 'audit_log_org_(entity|created)_idx'],
-    ['notifications for a user', `SELECT * FROM notifications WHERE organization_id = '${ORG}' AND user_id = '${PROP}' ORDER BY created_at DESC, id DESC LIMIT 50`, 'notifications_org_user_created_idx|notifications_org_user_idx'],
+    ['notifications for a user', `SELECT * FROM notifications WHERE organization_id = '${ORG}' AND user_id = '${PROP}' ORDER BY created_at DESC NULLS LAST, id DESC LIMIT 50`, 'notifications_org_user_created_idx|notifications_org_user_idx', true],
     ['property photos', `SELECT * FROM property_photos WHERE organization_id = '${ORG}' AND property_id = '${PROP}' AND deleted_at IS NULL ORDER BY sort_order`, 'property_photos_org_property_idx'],
     ['quote number lookup', `SELECT 1 FROM quotes WHERE organization_id = '${ORG}' AND quote_number = 'Q-2026-0001'`, 'quotes_org_(number_unique|property_idx|created_idx|status_created_idx)'],
   ]
 
-  for (const [name, query, index] of cases) {
+  for (const [name, query, index, paged] of cases) {
     it(`${name} uses ${index}`, async () => {
       const text = await plan(query)
       expect(text).toMatch(new RegExp(index))
       expect(text).not.toMatch(/Seq Scan/)
+      if (paged) expect(text, 'the index must deliver created_at order').not.toMatch(/(?<!Incremental )Sort {2}\(/u)
     })
   }
 })

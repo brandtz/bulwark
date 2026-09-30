@@ -3,8 +3,12 @@
  * (WP-L06 S3; semantics in shared/utils/pagination.ts).
  *
  * `pageWindow` returns the extra WHERE, the ORDER BY and the OFFSET for a list
- * query; both modes order by (created_at DESC, id DESC), so the default list
- * stays index-backed. timestamptz stores microseconds but the contract's ISO
+ * query; both modes order by (created_at DESC NULLS LAST, id DESC). The L06
+ * indexes are (organization_id, created_at DESC NULLS LAST): a plain DESC means
+ * NULLS FIRST, which no index delivers, so every page sorted the org's rows in
+ * memory. created_at is NOT NULL on every paged table, so NULLS LAST changes no
+ * result; the index supplies the order and only equal timestamps are sorted by
+ * id (Incremental Sort). timestamptz stores microseconds but the contract's ISO
  * strings carry milliseconds, so the cursor is NOT derived from a returned row:
  * `keysetCursor` reads the last row's exact timestamp back (one primary-key
  * lookup, only when there is a next page). A lossy cursor would skip or repeat
@@ -23,7 +27,7 @@ export interface PageWindow {
 
 export function pageWindow(input: PageRequest, createdAt: PgColumn, id: PgColumn): PageWindow {
   assertPageWindow(input)
-  const orderBy = [desc(createdAt), desc(id)]
+  const orderBy = [sql`${createdAt} DESC NULLS LAST`, desc(id)]
   if (hasCursor(input)) {
     return {
       // The cursor string keeps its microseconds; never round-trip it through Date.
