@@ -84,9 +84,12 @@ const { data: bundle } = await useAsyncData(
     const rows = activeFilter.value === 'all' ? all : all.filter((d) => d.status === activeFilter.value)
     const propertyIds = Array.from(new Set(rows.map((d) => d.propertyId)))
     const propMap = new Map<string, string>()
-    // One batched read instead of a request per property (WP-L06 S4).
-    for (const p of await property.getMany(propertyIds, orgId.value)) {
-      propMap.set(p.id, `${p.addressLine1}, ${p.city}, ${p.state}`)
+    // Batched reads instead of a request per property (WP-L06 S4). The list is
+    // unpaged, so stay under property.getMany's 500-id cap.
+    for (let i = 0; i < propertyIds.length; i += 500) {
+      for (const p of await property.getMany(propertyIds.slice(i, i + 500), orgId.value)) {
+        propMap.set(p.id, `${p.addressLine1}, ${p.city}, ${p.state}`)
+      }
     }
     return { rows, total: rows.length, propMap }
   },
