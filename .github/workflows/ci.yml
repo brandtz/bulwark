@@ -54,6 +54,56 @@ jobs:
       - name: Unit tests
         run: pnpm test:unit
 
+  # The quality job has no database, so every DB-backed vitest file skips there
+  # (describe.skip without DATABASE_URL). This job runs the same suite against a
+  # migrated, seeded Postgres: tenant firewall, numbering races, cursor paging,
+  # perf budgets (WP-L08 L10-S2) and the rest of tests/integration.
+  integration:
+    name: vitest (Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bulwark
+          POSTGRES_PASSWORD: bulwark
+          POSTGRES_DB: bulwark_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U bulwark"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BULWARK_BACKEND: real
+      DATABASE_URL: postgres://bulwark:bulwark@localhost:5432/bulwark_ci
+      JWT_SECRET: ci-only-jwt-secret-32char-min-aaaaaaaaaa
+      BULWARK_PDF_STUB: '1'
+      BULWARK_PLATFORM_ADMIN_EMAILS: sasha@bulwark.platform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migrate + seed database
+        run: |
+          pnpm exec drizzle-kit migrate
+          pnpm db:seed
+
+      - name: Vitest against Postgres
+        run: pnpm test:unit
+
   e2e:
     name: playwright e2e
     runs-on: ubuntu-latest
@@ -182,6 +232,7 @@ jobs:
       BULWARK_PDF_STUB: '1'
       BULWARK_E2E_SERVER_COMMAND: node .output/server/index.mjs
       BULWARK_PLATFORM_ADMIN_EMAILS: sasha@bulwark.platform
+      BULWARK_METRICS_BEARER: ci-only-metrics-bearer
       R2_ACCOUNT_ID: ci
       R2_ACCESS_KEY_ID: bulwarkci
       R2_SECRET_ACCESS_KEY: bulwarkci-secret

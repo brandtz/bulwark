@@ -32,7 +32,7 @@ import type { SessionUser } from '~~/shared/contracts/auth'
 import { authorizeRpc, isPublicRpc } from '~~/server/utils/rpc-policy'
 import { enforceSecurityPolicy } from '~~/server/utils/security-enforcement'
 import { log } from '~~/server/utils/logger'
-import { captureException, markCaptured } from '~~/server/utils/error-tracking'
+import { captureException, markCaptured, scrubText } from '~~/server/utils/error-tracking'
 
 type ServiceMap = { [K in keyof BulwarkServices]: BulwarkServices[K] }
 
@@ -101,8 +101,9 @@ export default defineEventHandler(async (event) => {
         requestId: event.context.requestId,
         service: String(serviceName),
         method: methodName,
-        message: msg.slice(0, 500),
-        cause: err instanceof Error && err.cause instanceof Error ? err.cause.message.slice(0, 500) : undefined,
+        // Drizzle appends bound params (names, emails, phones) to the message: scrub before logging.
+        message: scrubText(msg.slice(0, 500)),
+        cause: err instanceof Error && err.cause instanceof Error ? scrubText(err.cause.message.slice(0, 500)) : undefined,
       })
       // WP-L08 S1: report with service/method context (no-op without SENTRY_DSN).
       event.waitUntil(captureException(err, {

@@ -63,6 +63,29 @@ describe('error tracking (WP-L08 S1)', () => {
     expect(event.extra.requestId).toBe('r1')
   })
 
+  it('scrubs query params, key values, emails and tokens from the message and stack', async () => {
+    process.env.SENTRY_DSN = DSN
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    // Shape of a DrizzleQueryError wrapping a Postgres unique violation.
+    const err = new Error('Failed query: insert into "users" ("email", "full_name") values ($1, $2)\nparams: jo@example.com,Jo Smith\n'
+      + 'duplicate key value violates unique constraint "users_email_key" Key (email)=(jo@example.com) already exists.')
+    err.stack = `${err.message}\n    at auth (Bearer abc.def-123) eyJhbGciOi.eyJzdWIiOi.c2lnbmF0dXJl\n    at file:///srv/server.mjs:1:2`
+    await captureException(err, {}, fetcher)
+    const event = JSON.parse((fetcher.mock.calls[0]![1].body as string).trim().split('\n')[2]!)
+    const value: string = event.exception.values[0].value
+    const stack: string = event.extra.stack
+    for (const text of [value, stack]) {
+      expect(text).not.toContain('jo@example.com')
+      expect(text).not.toContain('Jo Smith')
+    }
+    expect(value).toContain('params: [REDACTED]')
+    expect(value).toContain('Key (email)=([REDACTED])')
+    expect(value).toContain('insert into "users"') // the SQL shape stays useful
+    expect(stack).not.toContain('abc.def-123')
+    expect(stack).not.toContain('eyJhbGciOi')
+    expect(stack).toContain('file:///srv/server.mjs:1:2')
+  })
+
   it('skips errors already marked captured and survives transport failure', async () => {
     process.env.SENTRY_DSN = DSN
     const fetcher = vi.fn().mockRejectedValue(new Error('offline'))

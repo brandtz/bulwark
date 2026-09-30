@@ -24,6 +24,18 @@ test.describe('observability endpoints (WP-L08)', () => {
     expect(bad.status()).toBe(401)
   })
 
+  test('metrics: the configured bearer is accepted without a session; a field user is refused', async ({ request, context }) => {
+    const bearer = process.env.BULWARK_METRICS_BEARER
+    test.skip(!bearer, 'server started without BULWARK_METRICS_BEARER')
+    const ok = await request.get('/api/metrics?format=prometheus', { headers: { authorization: `Bearer ${bearer}` } })
+    expect(ok.status()).toBe(200)
+    expect(await ok.text()).toMatch(/^# TYPE bulwark_requests_total counter$/mu)
+
+    await signOut(context)
+    await signIn(context, 'matthew@bulwark.demo')
+    expect((await context.request.get('/api/metrics')).status()).toBe(403)
+  })
+
   test('metrics: admin gets JSON latency and Prometheus text; counters advance', async ({ context }) => {
     await signOut(context)
     await signIn(context, 'drew@bulwark.demo')

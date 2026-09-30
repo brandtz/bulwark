@@ -50,6 +50,33 @@ test.describe('focus management (L09-S3)', () => {
     await expect(opener).toBeFocused()
   })
 
+  test('the first Tab reaches a skip link that jumps to the main landmark', async ({ page }) => {
+    await page.goto('/admin/quotes')
+    await waitForHydration(page)
+    await page.locator('body').focus()
+    await page.keyboard.press('Tab')
+    const skip = page.getByTestId('skip-to-content')
+    await expect(skip).toBeFocused()
+    await expect(skip).toBeVisible() // visible on focus, not only to screen readers
+    await page.keyboard.press('Enter')
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('main#main-content'))).toBe(true)
+    await expect(page.getByRole('main')).toHaveCount(1)
+  })
+
+  test('an invalid field is marked aria-invalid and described by its error text', async ({ page }) => {
+    await page.goto('/admin/clients/new')
+    await waitForHydration(page)
+    await page.getByTestId('submit-button').click()
+    const invalid = page.locator('input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"]')
+    await expect(invalid.first()).toBeVisible()
+    const describedBy = await invalid.first().getAttribute('aria-describedby')
+    expect(describedBy, 'invalid field names its error message').toBeTruthy()
+    const message = page.locator(`[id="${describedBy!.split(' ').find((id) => id.endsWith('-err'))}"]`)
+    await expect(message).toHaveText(/\S/u)
+    // Valid fields are not flagged.
+    await expect(page.locator('[data-testid="field-notes"] textarea, textarea[data-testid="field-notes"]')).not.toHaveAttribute('aria-invalid', 'true')
+  })
+
   test('route change moves focus to the new page heading', async ({ page }) => {
     await page.goto('/admin')
     await waitForHydration(page)

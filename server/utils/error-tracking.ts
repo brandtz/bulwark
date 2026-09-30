@@ -11,8 +11,9 @@
  *     tracing can adopt the SDK later without changing call sites
  *     (`captureException` is the only entry point).
  *   - **Scrubbed.** Context goes through the logger's `redactFields` (tokens,
- *     passwords, `*_encrypted`, ...); request bodies and headers are never
- *     attached.
+ *     passwords, `*_encrypted`, ...); the message and stack go through
+ *     `scrubText` (query params, conflicting key values, emails, tokens);
+ *     request bodies and headers are never attached.
  *   - **Once per error.** A WeakSet dedupes the dispatcher's direct capture
  *     against the Nitro `error` hook seeing the wrapped 500.
  *   - **Never throws.** Transport failures are logged and swallowed; error
@@ -52,6 +53,21 @@ export interface CaptureContext {
 
 type Fetcher = (url: string, init: { method: string, headers: Record<string, string>, body: string }) => Promise<{ ok: boolean, status: number }>
 
+/**
+ * Scrub free text (exception message, stack) before it leaves the process.
+ * `redactFields` only sees keys; messages carry values: Drizzle appends the
+ * bound parameters (`params: a@b.com,...`) to a failed query, and Postgres
+ * echoes the conflicting value in `Key (email)=(a@b.com)`. Exported for tests.
+ */
+export function scrubText(text: string): string {
+  return text
+    .replace(/^(\s*params:).*$/gmu, '$1 [REDACTED]')
+    .replace(/(Key \([^)]*\)=\()[^)]*\)/gu, '$1[REDACTED])')
+    .replace(/Bearer\s+[\w.~+/-]+=*/giu, 'Bearer [REDACTED]')
+    .replace(/\beyJ[\w-]+\.[\w-]+\.[\w-]+/gu, '[JWT]')
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/gu, '[EMAIL]')
+}
+
 /** Build the Sentry envelope body for one error event. Exported for tests. */
 export function buildEnvelope(err: unknown, ctx: CaptureContext, dsn: ParsedDsn, now = new Date()): string {
   const e = err instanceof Error ? err : new Error(String(err))
@@ -64,8 +80,8 @@ export function buildEnvelope(err: unknown, ctx: CaptureContext, dsn: ParsedDsn,
     environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
     release: process.env.VERCEL_GIT_COMMIT_SHA || undefined,
     tags: { ...(ctx.tags ?? {}), ...(ctx.route ? { route: ctx.route } : {}) },
-    extra: redactFields({ ...(ctx.extra ?? {}), requestId: ctx.requestId, stack: e.stack?.slice(0, 8000) }),
-    exception: { values: [{ type: e.name || 'Error', value: e.message.slice(0, 2000) }] },
+    extra: redactFields({ ...(ctx.extra ?? {}), requestId: ctx.requestId, stack: e.stack ? scrubText(e.stack.slice(0, 8000)) : undefined }),
+    exception: { values: [{ type: e.name || 'Error', value: scrubText(e.message.slice(0, 2000)) }] },
   }
   return [
     JSON.stringify({ event_id: eventId, sent_at: now.toISOString(), dsn: dsn.dsn }),
