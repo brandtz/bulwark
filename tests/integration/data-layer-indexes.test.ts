@@ -3,8 +3,8 @@
  *
  * The primary org-scoped list query of each hot table must be index-backed.
  * Test databases are tiny, so the planner would pick a seq scan anyway; with
- * `enable_seqscan = off` (tx-local) the plan shows whether an index CAN serve
- * the query shape. Each assertion names the index expected for that shape
+ * `enable_seqscan = off` and `enable_sort = off` (tx-local) the plan shows
+ * whether an index CAN serve the query shape, ordering included. Each assertion names the index expected for that shape
  * (status filters may be served by either org index: on tiny tables the planner
  * prefers org_created + filter; status selectivity picks org_status_created at volume).
  */
@@ -20,6 +20,10 @@ const PROP = '00000000-0000-4000-8000-000000000a07'
 async function plan(query: string): Promise<string> {
   return await getDb().transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL enable_seqscan = off`)
+    // On a near-empty table (fresh CI database) the planner prefers any
+    // org-leading index plus an in-memory Sort. Discouraging the Sort asks the
+    // real question: can an index deliver the ORDER BY for this org?
+    await tx.execute(sql`SET LOCAL enable_sort = off`)
     const rows = await tx.execute(sql.raw(`EXPLAIN ${query}`)) as unknown as Array<Record<string, string>>
     return rows.map((r) => r['QUERY PLAN']).join('\n')
   })
