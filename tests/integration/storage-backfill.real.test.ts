@@ -4,7 +4,8 @@
  *
  * Needs a real Postgres (auto-skips without DATABASE_URL). Uses the fs storage
  * driver (dev default). Seeds one org with legacy rows, dry-runs (no writes),
- * applies (data: → key, stubs dropped), re-runs (0 found: idempotent), and
+ * applies (data: → key, stubs dropped, policy-rejected data: held), re-runs
+ * (only the held row remains, still held), and
  * checks `assertOwnedAssetKey` / `signAssetUrl` against the migrated key.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -71,7 +72,7 @@ d('runAssetBackfill (WP-L02-S5)', () => {
     const by = Object.fromEntries(reports.map((r) => [`${r.table}.${r.column}`, r]))
     expect(by['property_photos.url']).toMatchObject({ found: 2, migrated: 1, dropped: 1 })
     expect(by['property_photos.thumbnail_url']).toMatchObject({ found: 1, migrated: 0, dropped: 1 })
-    expect(by['property_attachments.url']).toMatchObject({ found: 1, migrated: 0, dropped: 1 })
+    expect(by['property_attachments.url']).toMatchObject({ found: 1, migrated: 0, dropped: 0, held: 1 })
     expect(by['org_branding.logo_url']).toMatchObject({ found: 1, migrated: 1, dropped: 0 })
     const again = await runAssetBackfill({ apply: false, organizationId: orgId })
     expect(again.reduce((n, r) => n + r.found, 0)).toBe(5)
@@ -89,17 +90,23 @@ d('runAssetBackfill (WP-L02-S5)', () => {
     expect(live.find((p) => p.caption === 'stub')).toBeUndefined() // soft-deleted
     expect(live.find((p) => p.caption === 'clean')!.thumbnailUrl).toBeNull()
 
+    // gif is not an allowed attachment type, but its bytes are recoverable:
+    // held in place for review, never deleted or nulled.
     const [att] = await db.select().from(propertyAttachments).where(eq(propertyAttachments.organizationId, orgId))
-    expect(att!.deletedAt).not.toBeNull() // gif is not an allowed attachment type
+    expect(att!.deletedAt).toBeNull()
+    expect(att!.url).toBe('data:image/gif;base64,R0lGODlhAQABAAAAACw=')
 
     const [brand] = await db.select().from(orgBranding).where(eq(orgBranding.organizationId, orgId))
     expect(isStorageKey(brand!.logoUrl)).toBe(true)
 
+    // Re-run: only the held row remains, and it is still held (not dropped).
     const rerun = await runAssetBackfill({ apply: true, organizationId: orgId })
-    expect(rerun.reduce((n, r) => n + r.found, 0)).toBe(0)
+    expect(rerun.reduce((n, r) => n + r.found, 0)).toBe(1)
+    expect(rerun.reduce((n, r) => n + r.held, 0)).toBe(1)
+    expect(rerun.reduce((n, r) => n + r.dropped + r.migrated, 0)).toBe(0)
     const census = await countLegacyAssetRows(orgId)
     const l02 = census.filter((c) => ['property_photos', 'property_attachments', 'org_branding', 'users'].includes(c.table))
-    expect(l02.every((c) => c.count === 0)).toBe(true)
+    expect(l02.filter((c) => c.count > 0).map((c) => [c.table, c.count])).toEqual([['property_attachments', 1]])
   })
 
   it('owning-service key checks: tenant, entity kind and existence', async () => {

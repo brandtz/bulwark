@@ -7,10 +7,13 @@
  * report) and, with `apply`, rewrites each one:
  *   - `data:` with a MIME + size the entity policy allows → bytes written to a
  *     fresh key (`putObject`), column rewritten to the key.
- *   - anything else (a `local://`/`blob:` stub, or a data: URL the policy
- *     rejects) has no recoverable bytes → nullable columns are cleared; rows
- *     whose column is NOT NULL (photo/attachment url) are soft-deleted, since
- *     they cannot render anyway.
+ *   - `data:` whose MIME or size the policy rejects → **held**: the row is left
+ *     untouched and logged for manual review. Its bytes are recoverable, so the
+ *     backfill never destroys them (skeptic review, L02 P1-4).
+ *   - anything else (a `local://`/`blob:` stub, or an undecodable data: URL)
+ *     has no recoverable bytes → nullable columns are cleared; rows whose
+ *     column is NOT NULL (photo/attachment url) are soft-deleted, since they
+ *     cannot render anyway.
  * Dry-run (default) only counts. Idempotent: a second apply finds 0 rows.
  *
  * COI docs + deliverables are reported by the health census but owned by L11;
@@ -33,6 +36,8 @@ export interface BackfillColumnReport {
   migrated: number
   /** Unrecoverable: column cleared or row soft-deleted (or would be). */
   dropped: number
+  /** Recoverable bytes the upload policy rejects: left untouched for review. */
+  held: number
 }
 
 export interface BackfillOptions {
@@ -82,7 +87,13 @@ async function processTargets(
   report.found = targets.length
   for (const t of targets) {
     const decoded = decodeDataUrl(t.value)
-    if (decoded && validateUpload(t.entity, decoded.contentType, decoded.body.length).ok) {
+    const verdict = decoded ? validateUpload(t.entity, decoded.contentType, decoded.body.length) : null
+    if (decoded && verdict && !verdict.ok) {
+      report.held++
+      opts.log?.(`  held ${report.table}.${report.column} ${t.entity} ${t.entityId} (${decoded.contentType}, ${decoded.body.length} bytes): rejected by upload policy, left in place for review`)
+      continue
+    }
+    if (decoded) {
       report.migrated++
       if (!opts.apply) continue
       const key = buildStorageKey({ tenantId: t.tenantId, entity: t.entity, entityId: t.entityId, contentType: decoded.contentType })
@@ -95,7 +106,7 @@ async function processTargets(
       else await t.write(null)
     }
   }
-  opts.log?.(`${report.table}.${report.column}: found ${report.found}, migrate ${report.migrated}, drop ${report.dropped}${opts.apply ? '' : ' (dry-run)'}`)
+  opts.log?.(`${report.table}.${report.column}: found ${report.found}, migrate ${report.migrated}, drop ${report.dropped}, held ${report.held}${opts.apply ? '' : ' (dry-run)'}`)
 }
 
 export async function runAssetBackfill(opts: BackfillOptions): Promise<BackfillColumnReport[]> {
@@ -104,7 +115,7 @@ export async function runAssetBackfill(opts: BackfillOptions): Promise<BackfillC
   const now = new Date()
   const reports: BackfillColumnReport[] = []
   const report = (table: string, column: string): BackfillColumnReport => {
-    const r = { table, column, found: 0, migrated: 0, dropped: 0 }
+    const r = { table, column, found: 0, migrated: 0, dropped: 0, held: 0 }
     reports.push(r)
     return r
   }
