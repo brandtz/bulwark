@@ -35,8 +35,9 @@ export const CSP_DIRECTIVES: ReadonlyArray<[string, string]> = [
   ['default-src', "'self'"],
   ['script-src', "'self' 'unsafe-inline'"],
   ['style-src', "'self' 'unsafe-inline'"],
-  // WP-X3 / ED-00C: Mapbox Static Images render in <img> (geo is server-side otherwise).
-  ['img-src', "'self' data: blob: https://api.mapbox.com"],
+  // WP-X3 / ED-00C: static maps are proxied same-origin (/api/geo/static-map),
+  // so the provider token never reaches the browser and Mapbox needs no entry.
+  ['img-src', "'self' data: blob:"],
   ['connect-src', "'self'"],
   ['font-src', "'self' data:"],
   ['frame-ancestors', "'none'"],

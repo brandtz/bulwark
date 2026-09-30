@@ -5,7 +5,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { mapboxGeoDriver, noneGeoDriver } from '~~/server/services/_providers/geo'
-import { RealGeoService } from '~~/server/services/geo.real'
+import { RealGeoService, staticMapProxyPath } from '~~/server/services/geo.real'
 import { MockGeoService } from '~~/shared/mocks/geo.mock'
 
 const ORG = '00000000-0000-4000-8000-0000000000a1'
@@ -98,6 +98,15 @@ describe('geo service', () => {
     await expect(svc.autocomplete({ organizationId: ORG, query: '100 main' })).resolves.toEqual([])
     await expect(svc.staticMap({ organizationId: ORG, point: { lat: 1, lng: 2 } })).resolves.toEqual({ url: null })
     await expect(svc.route({ organizationId: ORG, stops: [{ lat: 1, lng: 2 }, { lat: 3, lng: 4 }] })).resolves.toMatchObject({ order: [0, 1], optimized: false })
+  })
+
+  it('hands out a same-origin proxy path for static maps, never the provider URL or token', async () => {
+    const svc = new RealGeoService(resolver, async () => mapboxGeoDriver('sk.secret-token'))
+    const { url } = await svc.staticMap({ organizationId: ORG, point: { lat: 38.44, lng: -122.71 }, zoom: 14, width: 400, height: 200 })
+    expect(url).toBe('/api/geo/static-map?lat=38.440000&lng=-122.710000&zoom=14&w=400&h=200')
+    expect(url).not.toContain('secret-token')
+    expect(url).not.toContain('mapbox')
+    expect(staticMapProxyPath({ lat: 1, lng: 2 }, 15, 600, 300)).toBe('/api/geo/static-map?lat=1.000000&lng=2.000000&zoom=15&w=600&h=300')
   })
 
   it('validates input and enforces the tenant firewall', async () => {
