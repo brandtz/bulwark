@@ -40,7 +40,7 @@ async function buildAndSaveDraft(page: Page, id: string): Promise<void> {
   await page.getByTestId('line-item-0-unit-cost').locator('input').fill('1500')
   await page.getByTestId('submit-button').click()
   await page.waitForURL(
-    new RegExp(`/admin/properties/${id}/quotes/[\\w-]+$`),
+    new RegExp(`/admin/properties/${id}/quotes/[0-9a-f]{8}-[0-9a-f-]{27}$`),
     { timeout: 10000 },
   )
 }

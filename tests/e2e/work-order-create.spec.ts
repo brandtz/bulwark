@@ -45,7 +45,7 @@ async function buildSendAcceptQuote(
   await page.getByTestId('line-item-0-unit-cost').locator('input').fill('2000')
   await page.getByTestId('submit-button').click()
   await page.waitForURL(
-    new RegExp(`/admin/properties/${propertyId}/quotes/[\\w-]+$`),
+    new RegExp(`/admin/properties/${propertyId}/quotes/[0-9a-f]{8}-[0-9a-f-]{27}$`),
     { timeout: 10000 },
   )
 

@@ -74,7 +74,7 @@ test.describe('Quote builder (E5-S1)', () => {
 
     await page.getByTestId('submit-button').click()
     await page.waitForURL(
-      new RegExp(`/admin/properties/${id}/quotes/[\\w-]+$`),
+      new RegExp(`/admin/properties/${id}/quotes/[0-9a-f]{8}-[0-9a-f-]{27}$`),
       { timeout: 10000 },
     )
   })

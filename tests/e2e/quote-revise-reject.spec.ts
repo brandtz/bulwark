@@ -37,7 +37,7 @@ async function authorAndSendQuote(page: Page, propertyId: string): Promise<void>
   await page.getByTestId('line-item-0-unit-cost').locator('input').fill('1500')
   await page.getByTestId('submit-button').click()
   await page.waitForURL(
-    new RegExp(`/admin/properties/${propertyId}/quotes/[\\w-]+$`),
+    new RegExp(`/admin/properties/${propertyId}/quotes/[0-9a-f]{8}-[0-9a-f-]{27}$`),
     { timeout: 10_000 },
   )
   // Detail page shows a Send button while draft.
@@ -56,7 +56,7 @@ test.describe('Quote revise + reject (W2-3b)', () => {
     await page.getByTestId('revise-button').click()
     // Lands on the new (v2) detail page.
     await page.waitForURL(
-      new RegExp(`/admin/properties/${propertyId}/quotes/[\\w-]+$`),
+      new RegExp(`/admin/properties/${propertyId}/quotes/[0-9a-f]{8}-[0-9a-f-]{27}$`),
       { timeout: 10_000 },
     )
     await expect(page.getByTestId('quote-revision-badge')).toContainText(/Revision 2/i)

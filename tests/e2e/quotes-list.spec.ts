@@ -19,7 +19,7 @@
  *     pageSize 100; pagination wiring lands when the server impl does.
  */
 import { test, expect, type Page } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { signInAsAdmin, waitForHydration } from './_helpers'
 
 async function pickTwoPropertyIds(page: Page): Promise<[string, string]> {
   await page.goto('/admin/properties?view=list')
@@ -58,9 +58,12 @@ async function buildQuoteAndStayOnPreview(
   await page.getByTestId('line-item-0-unit-cost').locator('input').fill(unitCost)
   await page.getByTestId('submit-button').click()
   await page.waitForURL(
-    new RegExp(`/admin/properties/${propertyId}/quotes/[\\w-]+$`),
+    // A saved quote's uuid, not /quotes/new: [\w-]+ also matched "new", so this
+    // returned before the save redirect and the next click raced it.
+    new RegExp(`/admin/properties/${propertyId}/quotes/[0-9a-f]{8}-[0-9a-f-]{27}$`),
     { timeout: 10000 },
   )
+  await waitForHydration(page)
 }
 
 test.describe('Quotes list (E5-S4)', () => {

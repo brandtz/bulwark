@@ -166,7 +166,7 @@ test.describe('Launch happy path (EH-C canary)', () => {
       }
       await page.getByTestId('submit-button').click()
       await page.waitForURL(
-        new RegExp(`/admin/properties/${propertyId}/quotes/[\\w-]+$`),
+        new RegExp(`/admin/properties/${propertyId}/quotes/[0-9a-f]{8}-[0-9a-f-]{27}$`),
         { timeout: 15000 },
       )
       const quoteStatus = page.getByTestId('quote-status')
