@@ -91,7 +91,7 @@
     {
       "id": "WP-A2",
       "title": "Restyle existing ui/ primitives to Packet A spec (names preserved)",
-      "lane": "DS", "phase": "0-foundation", "status": "in-progress", "size": "L", "owner": "claude-code (2026-09-29)", "branch": "main (sliced commits)",
+      "lane": "DS", "phase": "0-foundation", "status": "done", "size": "L", "owner": "claude-code (2026-09-29)", "branch": "main (sliced commits)",
       "goal": "Every existing Bulwark* primitive matches components/SPEC.md props, variants, states, a11y and tokens; /dev/ui mirrors components/INDEX.html.",
       "scope": [
         "BulwarkButton, Input, Textarea, Select, MultiSelect, Toggle, PassFailToggle, DatePicker, SegmentedControl, SearchField, FilePicker, Card, KpiCard, JobCard, StatusBadge (data-hue driven), Avatar, EmptyState, Skeleton, TableSkeleton, Pagination, Breadcrumbs, Modal (→bottom sheet <768), Drawer, Tabs, Stepper, ToastHost/Toast, SignaturePad, Icon (Lucide set per tokens/ICONS.md), Toggle",
@@ -101,7 +101,7 @@
       ],
       "outOfScope": ["New composites (WP-A3/A4)", "Page changes beyond import fixes"],
       "designs": ["SH-00"],
-      "files": ["app/components/ui/**", "app/pages/dev/ui.vue", "app/components/compliance/SignaturePad.vue"],
+      "files": ["app/components/ui/**", "app/pages/dev/ui.vue", "app/components/compliance/SignaturePad.vue", "app/components/dev/**", "nuxt.config.ts", "playwright.config.ts", "app/components/inspections/InspectionForm.vue", "app/pages/admin/properties/[id]/compliance/new.vue", "scripts/codegraph/export-ui-spec.mjs", "scripts/codegraph/export-ui-specimens.mjs", "tests/unit/ui-spec-parity.test.ts", "tests/unit/_ui-spec.generated.json", "tests/e2e/ui-primitives.spec.ts", "tests/e2e/ui-visual.spec.ts", "tests/fixtures/design/ui-specimens.json"],
       "acceptance": [
         "For each primitive, props in SPEC.md 'Props' table exist with the same names/types (unit test reads SPEC.md and asserts against defineProps)",
         "Visual: Playwright screenshot of /dev/ui per component section matches design specimen within 0.5% pixel diff at 1440 light and dark (baseline generated from design HTML, see tests/e2e/screens/_visual.ts)",
@@ -113,16 +113,17 @@
       "tests": [
         "tests/unit/ui-spec-parity.test.ts — parses components/SPEC.md Props tables and asserts each existing component declares them",
         "tests/e2e/ui-primitives.spec.ts — extend: per-primitive keyboard operability, focus-visible ring present, disabled/loading not clickable, dark mode contrast (axe color-contrast rule)",
-        "tests/e2e/screens/visual-primitives.spec.ts — screenshot per section vs design specimen"
+        "tests/e2e/screens/visual-primitives.spec.ts — screenshot per section vs design specimen",
+        "tests/e2e/ui-visual.spec.ts — design markup + design CSS vs the live primitive, same browser (replaces committed PNG baselines, which never match across OSes)"
       ],
       "dependsOn": ["WP-A1"],
-      "decisions": ["ED-063"],
-      "agentNotes": "Work component-by-component; commit per component. Preserve existing props (additive) so pages keep compiling; mark removed props @deprecated for one phase. 2026-09-26 (claude-code, from A1 Lighthouse): dark mode fails 4.5:1 for white text on legacy solid semantic fills — BulwarkButton destructive (bg #F0857A) and BulwarkAvatar success/error colors (#6FC594/#F0857A). Restyle these to Packet A (.bw-btn--destructive and avatar tokens) with a dark-safe foreground. | 2026-09-29 (claude-code): claimed."
+      "decisions": ["ED-063", "ED-064"],
+      "agentNotes": "Work component-by-component; commit per component. Preserve existing props (additive) so pages keep compiling; mark removed props @deprecated for one phase. 2026-09-26 (claude-code, from A1 Lighthouse): dark mode fails 4.5:1 for white text on legacy solid semantic fills — BulwarkButton destructive (bg #F0857A) and BulwarkAvatar success/error colors (#6FC594/#F0857A). Restyle these to Packet A (.bw-btn--destructive and avatar tokens) with a dark-safe foreground. | 2026-09-29 (claude-code): claimed. | 2026-09-30 (claude-code): batch 1 (1c1adb0, branch wp/WP-A2-primitives): Button, Input, Select, Textarea, Card, StatusBadge, Modal, Drawer on the bw-* rules with SPEC props; parity test + exporter (tests/unit/ui-spec-parity.test.ts). ED-064: Select keeps the native rendering by default. Findings: tenant status colours are free hex (WP-X5 registered); /dev/ui is publicly reachable in production (gate it behind a runtime flag in this WP). | 2026-10-01 (claude-code): in-progress -> done. All primitives on Packet A (parity test: none outstanding); /dev/ui specimen page (gated off in production); ui-primitives.spec (axe both themes, keyboard maps, focus traps, drawer guard); ui-visual.spec: 37 specimen elements pixel-identical to the design in both themes, comparing committed design markup + design CSS against the live element in the same browser (runs in CI, unlike PNG baselines). Full real-backend suite 249 passed on the release build. Found and fixed: dark-mode contrast of destructive/pass/fail/step fills (white on light fills ~2:1), split-menu Enter dropped focus to <body>."
     },
     {
       "id": "WP-A3",
       "title": "New composite components — data & layout set",
-      "lane": "DS", "phase": "0-foundation", "status": "todo", "size": "L",
+      "lane": "DS", "phase": "0-foundation", "status": "in-progress", "owner": "claude-code (2026-10-01)", "branch": "wp/WP-A3-composites", "size": "L",
       "goal": "Create the composites every list/detail screen needs: BulwarkDataTable, BulwarkFilterBar, BulwarkPageHeader, BulwarkSectionHeader, BulwarkKeyValue, BulwarkBanner, BulwarkSyncPill, BulwarkAsyncStatus, BulwarkProgress, BulwarkInlineEdit, BulwarkCopyField, BulwarkChips, BulwarkMenu, BulwarkField, BulwarkBottomSheet, BulwarkSheetMenu, BulwarkProgramChip, BulwarkTradeChip, BulwarkRoleBadge, BulwarkStatusMenu (replaces PropertyStatusMenu), BulwarkTimeline, BulwarkKanbanBoard (absorbs PipelineColumn/PipelineList/PropertyCard as slots), BulwarkPhotoMosaic.",
       "scope": [
         "Implement each per components/SPEC.md + specimen HTML; headless logic in composables where reusable (useDataTable: sort/select/columns; useFilterBar: url-synced filters)",
@@ -148,9 +149,9 @@
         "tests/e2e/ui-composites.spec.ts — DataTable/FilterBar/StatusMenu/Kanban behaviors above incl. keyboard-only paths",
         "tests/e2e/screens/visual-composites.spec.ts"
       ],
-      "dependsOn": ["WP-A2"],
+      "dependsOn": ["WP-A2", "WP-X5"],
       "decisions": ["ED-013", "ED-033"],
-      "agentNotes": "Read the specimen HTML (components/<Name>.html) — it is the visual truth; SPEC.md is the API truth."
+      "agentNotes": "Read the specimen HTML (components/<Name>.html) — it is the visual truth; SPEC.md is the API truth. | 2026-10-01 (claude-code): claimed (A2 and X5 done)."
     },
     {
       "id": "WP-A4",
@@ -370,6 +371,21 @@
       "dependsOn": [],
       "decisions": [],
       "agentNotes": "2026-09-29 (claude-code): registered from the release pass. The dispatcher forwards raw args; only 4 of 50 real services parse their input, so bad input reaches Postgres and returns 500 (seen: client.create with phone null). Screens need field errors, so this runs alongside A2/A3, before the first forms (B2 intake, B1 client create). The rpc.unhandled log now scrubs Drizzle params (names/emails/phones) via scrubText."
+    },
+    {
+      "id": "WP-X5",
+      "title": "Status hues: pipeline statuses carry one of the 12 design hues instead of a free hex colour",
+      "lane": "BE", "phase": "1-shared", "status": "done", "owner": "claude-code (2026-09-30)", "size": "S",
+      "goal": "Every tenant status renders with a contrast-tuned design hue (data-hue) in both themes; the pipeline editor offers the 12 hues, not a colour picker.",
+      "scope": ["Migration: status_pipeline statuses gain hue (slate|blue|indigo|violet|teal|green|lime|amber|orange|red|pink|gray), backfilled from the stored hex to the nearest hue and from the Packet B defaults for built-in statuses", "Contracts: StatusSchema.hue (required on write, color kept read-only for one phase then dropped)", "Seed and mocks use the design defaults (lead slate, scheduled blue, assessed indigo, quoted violet, accepted teal, in_progress amber, completed/paid green, deliverable_pending orange, invoiced blue, on_hold/cancelled slate)"],
+      "outOfScope": ["Pipeline editor UI (WP-C2 / ST-04); StatusBadge already accepts hue (WP-A2)"],
+      "designs": [],
+      "files": ["shared/contracts/status-pipeline.ts", "server/db/schema/status_pipelines.ts", "server/db/migrations/**", "server/services/status-pipeline*.ts", "shared/mocks/status-pipeline*.ts", "scripts/db-seed.mjs", "tests/integration/status-hue*.test.ts"],
+      "acceptance": ["Every status returned by statusPipeline has a hue from the 12; a write with a hex-only colour or an unknown hue is refused (400 once WP-X4 lands)", "Backfill maps each stored hex to the nearest hue (tested on fixed samples) and built-in statuses to the design defaults", "Prod migration applied via the Neon MCP before the deploy (bookkeeping row)"],
+      "tests": ["tests/integration/status-hue.real.test.ts", "tests/unit/status-hue-nearest.test.ts"],
+      "dependsOn": [],
+      "decisions": [],
+      "agentNotes": "2026-09-30 (claude-code): registered during WP-A2. X1 gave tenant statuses a free hex colour; the design specifies 12 named hues tuned for 4.5:1 in light and dark, and a free hex cannot guarantee that (a light hex badge is unreadable in dark mode). Front-end consumers: StatusBadge (hue prop, WP-A2), BulwarkStatusMenu and KanbanBoard (WP-A3), the pipeline (WP-B2), the editor (WP-C2). Land before A3's StatusMenu. | 2026-10-01 (claude-code): todo -> done. Migration 0024 (applied to prod via the Neon MCP first, bookkeeping row): status_pipeline_nodes.hue, built-ins backfilled to the Packet B defaults, custom statuses to the nearest hue. Colour-only saves keep each node's hue unless the colour changed; unknown hues refused. Tests: status-hue unit (incl. seed parity) + status-hue.real integration."
     },
 
     {
