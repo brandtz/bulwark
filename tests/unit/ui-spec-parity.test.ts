@@ -18,13 +18,9 @@ import uiSpec from './_ui-spec.generated.json'
 const UI = path.resolve(__dirname, '../../app/components/ui')
 const spec = (uiSpec as { components: Record<string, { props: Array<{ name: string }> }> }).components
 
-const NOT_YET_RESTYLED = new Set([
-  'BulwarkAvatar', 'BulwarkBreadcrumbs', 'BulwarkDatePicker',
-  'BulwarkFilePicker', 'BulwarkJobCard', 'BulwarkKpiCard', 'BulwarkMultiSelect',
-  'BulwarkPagination', 'BulwarkPassFailToggle', 'BulwarkSearchField', 'BulwarkSegmentedControl',
-  'BulwarkSignaturePad', 'BulwarkSkeleton', 'BulwarkStepper', 'BulwarkTableSkeleton', 'BulwarkTabs',
-  'BulwarkToastHost', 'EmptyState',
-])
+// Empty since the A2 restyle finished (2026-09-30). A primitive that falls behind
+// its SPEC again fails the test above; do not park it here without a WP note.
+const NOT_YET_RESTYLED = new Set<string>([])
 
 /** Prop names from `defineProps<{...}>()` or `defineProps<Name>()` + `interface|type Name`. */
 export function declaredProps(src: string): Set<string> {

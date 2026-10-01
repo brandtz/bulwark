@@ -1,72 +1,77 @@
 <!--
-  BulwarkJobCard.vue — property/work-order list card.
+  BulwarkJobCard.vue — one job in a day list or board (Packet A components/SPEC.md, WP-A2).
 
-  Why this component exists
-  -------------------------
-  The Field dashboard, Subcontractor dashboard, Property pipeline, and
-  Work Orders list all need the same one-line summary card: address,
-  status pill, optional time/scope, optional action slot. This is the
-  most-rendered domain primitive in the app — getting it consistent is
-  the difference between "professional product" and "demo".
+  An <article> whose heading is the address; the status text comes first in
+  reading order. The left rail takes the status hue (the only coloured border
+  in the system). A blocked reason is spelled out inline, never colour only.
+  The CTA is a real button (touch-sized via density); clicking the card
+  elsewhere emits `open`.
 
-  Decisions
-  ---------
-  - **status uses StatusBadge directly** so any new status enum values
-    show up here automatically.
-  - **`actions` slot, not "actionButtons" prop**: gives consumers full
-    control over button content/order.
+  `job` is the card's view model, not a contract type: screens map their work
+  order / slot into it. `status` is { id, label, hue } (hue per WP-X5).
 -->
 <script setup lang="ts">
-import type { PropertyStatus } from '~~/shared/contracts/property'
+import type { StatusHue } from './StatusBadge.vue'
+
+export interface JobCardJob {
+  number?: string
+  address: string
+  window?: string
+  trade?: string
+  scope?: string
+  assignee?: { name: string, avatarUrl?: string | null } | null
+  blockedReason?: string | null
+}
 
 interface Props {
-  address: string
-  status: PropertyStatus
-  /** Optional ISO time or short string ("8:00 AM", "Today"). */
-  time?: string
-  /** Optional scope description ("Full retrofit · 12 items"). */
-  scope?: string
-  /** Optional client name shown on second line. */
-  clientName?: string
-  /** Wrap card in a link if provided. */
-  to?: string
+  job: JobCardJob
+  status: { id: string, label: string, hue: StatusHue }
+  showAssignee?: boolean
+  cta?: { label: string, action?: () => void } | null
+  density?: 'comfortable' | 'compact' | 'touch'
 }
-const props = withDefaults(defineProps<Props>(), {
-  time: '',
-  scope: '',
-  clientName: '',
-  to: undefined,
-})
+const props = withDefaults(defineProps<Props>(), { showAssignee: true, cta: null, density: undefined })
+const emit = defineEmits<{ open: [], cta: [] }>()
 
-const Tag = computed(() => (props.to ? resolveComponent('NuxtLink') : 'div'))
+const headingId = useId()
+
+function onCta() {
+  props.cta?.action?.()
+  emit('cta')
+}
 </script>
 
 <template>
-  <component
-    :is="Tag"
-    :to="to"
-    class="block rounded-card border border-border bg-surface p-4 shadow-card transition hover:shadow-md"
-    :class="to && 'cursor-pointer'"
+  <article
+    class="bw-card bw-card--sm bw-card--clickable bw-rail flex flex-col gap-2.5"
+    :data-hue="status.hue"
+    :data-density="density"
+    :aria-labelledby="headingId"
+    @click="emit('open')"
   >
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0 flex-1">
-        <p class="text-body font-semibold text-text-primary truncate">{{ address }}</p>
-        <p
-          v-if="clientName || time"
-          class="text-small text-text-secondary truncate mt-0.5"
-        >
-          <span v-if="clientName">{{ clientName }}</span>
-          <span v-if="clientName && time" class="mx-1">·</span>
-          <span v-if="time">{{ time }}</span>
-        </p>
-        <p v-if="scope" class="text-small text-text-secondary mt-1 truncate">
-          {{ scope }}
-        </p>
-      </div>
-      <StatusBadge :status="status" size="sm" />
+    <div class="flex items-center gap-2">
+      <StatusBadge :hue="status.hue" :label="status.label" size="sm" />
+      <span v-if="job.number" class="bw-help mono">{{ job.number }}</span>
     </div>
-    <div v-if="$slots.actions" class="mt-3 flex gap-2 justify-end">
-      <slot name="actions" />
+    <h3 :id="headingId" class="truncate" style="margin: 0; font: 600 var(--text-lg) var(--font-display); color: var(--text-primary)">
+      {{ job.address }}
+    </h3>
+    <p v-if="job.window || job.trade || job.scope" class="bw-help flex flex-wrap gap-x-3 gap-y-1" style="font-size: var(--text-sm)">
+      <span v-if="job.window" class="inline-flex items-center gap-1 tnum"><BulwarkIcon name="clock" size="sm" />{{ job.window }}</span>
+      <span v-if="job.trade" class="inline-flex items-center gap-1"><BulwarkIcon name="wrench" size="sm" />{{ job.trade }}</span>
+      <span v-if="job.scope" class="truncate">{{ job.scope }}</span>
+    </p>
+    <p v-if="job.blockedReason" class="bw-error" role="note">
+      <BulwarkIcon name="alert-triangle" size="sm" />Blocked: {{ job.blockedReason }}
+    </p>
+    <div v-if="(showAssignee && job.assignee) || cta" class="flex items-center gap-2 mt-1">
+      <template v-if="showAssignee && job.assignee">
+        <BulwarkAvatar :name="job.assignee.name" :src="job.assignee.avatarUrl" size="sm" />
+        <span style="font-size: var(--text-sm); color: var(--text-secondary)">{{ job.assignee.name }}</span>
+      </template>
+      <button v-if="cta" type="button" class="bw-btn bw-btn--primary bw-btn--sm ml-auto" @click.stop="onCta">
+        {{ cta.label }}
+      </button>
     </div>
-  </component>
+  </article>
 </template>

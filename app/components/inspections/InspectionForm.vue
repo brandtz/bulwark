@@ -27,7 +27,7 @@
       flush on unmount so navigating away doesn't drop work.
 
     - **Submit + sign**: The "Submit & sign" CTA opens a modal with the
-      `SignaturePad`. On confirm we call `sign({ signedByName,
+      `BulwarkSignaturePad`. On confirm we call `sign({ signedByName,
       signatureDataUrl })` which moves the inspection straight to
       `signed`. (We *could* split submit vs. sign but the field crew has
       asked for one tap; the audit trail captures both transitions.)
@@ -447,7 +447,7 @@ const issueSeverityClass = (sev: string) =>
         />
         <div class="flex flex-col gap-1">
           <span class="text-small font-medium">Signature</span>
-          <SignaturePad v-model="signatureUrl" />
+          <BulwarkSignaturePad v-model="signatureUrl" statement="By signing you certify the work is complete and compliant." />
         </div>
         <p v-if="submitError" class="text-small text-status-error">{{ submitError }}</p>
       </div>

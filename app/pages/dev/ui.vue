@@ -116,11 +116,9 @@ const stepperSteps = [
         <BulwarkKpiCard label="Past due" :value="1" tone="error" />
       </div>
       <BulwarkJobCard
-        address="123 Pine Street, Truckee CA"
-        status="scheduled"
-        client-name="Sarah Lee"
-        time="Tomorrow · 9:00 AM"
-        scope="Full retrofit · 12 items"
+        :job="{ number: 'J-2201', address: '1842 Rimrock Rd', window: '8:00 – 12:00 PM', trade: 'Roofing', assignee: { name: 'Dev Patel' } }"
+        :status="{ id: 'in_progress', label: 'In progress', hue: 'amber' }"
+        :cta="{ label: 'Check in' }"
       />
       <EmptyState
         title="No properties yet"

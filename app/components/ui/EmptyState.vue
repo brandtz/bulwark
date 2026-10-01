@@ -1,39 +1,77 @@
 <!--
-  EmptyState.vue — "no results" / "no items yet" screen primitive.
+  EmptyState.vue — empty, no-results, error and forbidden states
+  (Packet A components/SPEC.md, WP-A2).
 
-  Why this component exists
-  -------------------------
-  Every list page in Bulwark needs an empty state — Properties (no leads),
-  Work Orders (no jobs), Invoices (none generated), Compliance (no docs).
-  Without a shared component teams ship different placeholder text and
-  different layouts. Boring is the goal.
+  `flavor` picks the default icon and tone; `title` says what is missing,
+  `body` what to do. Actions: SPEC `primary` / `secondary` ({ label, action }
+  where action is a route or a function); existing callers' `cta`
+  ({ label, to }) still works. The error flavor shows `errorRef` (a request id)
+  so support can find the failure.
 -->
 <script setup lang="ts">
+import type { IconName } from './icon-names'
+
+type Action = { label: string; action: string | (() => void) }
 interface CTA { label: string; to: string }
 interface Props {
+  flavor?: 'first-run' | 'no-results' | 'error' | 'forbidden'
   title: string
   body?: string
-  /** A single icon character or short emoji-free glyph; visual hierarchy only. */
-  icon?: string
+  icon?: IconName | string
+  primary?: Action | null
+  secondary?: Action | null
+  errorRef?: string
+  /** @deprecated use `primary`. */
   cta?: CTA | null
 }
-withDefaults(defineProps<Props>(), { body: '', icon: '·', cta: null })
+const props = withDefaults(defineProps<Props>(), {
+  flavor: 'first-run',
+  body: '',
+  icon: undefined,
+  primary: null,
+  secondary: null,
+  errorRef: undefined,
+  cta: null,
+})
+
+const FLAVOR_ICON: Record<NonNullable<Props['flavor']>, IconName> = {
+  'first-run': 'plus',
+  'no-results': 'search',
+  error: 'alert-triangle',
+  forbidden: 'shield',
+}
+// Legacy callers passed a glyph character; only icon names render as icons.
+const iconName = computed<IconName>(() =>
+  props.icon && /^[a-z][a-z-]+$/u.test(props.icon) ? (props.icon as IconName) : FLAVOR_ICON[props.flavor])
+const primaryAction = computed<Action | null>(() => props.primary ?? (props.cta ? { label: props.cta.label, action: props.cta.to } : null))
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center text-center py-12 px-4">
-    <span
-      class="h-12 w-12 rounded-full bg-surface-muted text-text-disabled flex items-center justify-center text-2xl mb-4"
-      aria-hidden="true"
-    >{{ icon }}</span>
-    <h2 class="text-h2 text-text-primary">{{ title }}</h2>
-    <p v-if="body" class="text-body text-text-secondary mt-2 max-w-md">{{ body }}</p>
-    <NuxtLink
-      v-if="cta"
-      :to="cta.to"
-      class="mt-6 inline-flex h-input items-center rounded-input bg-primary px-4 text-body font-medium text-white hover:bg-primary-700 transition"
-    >
-      {{ cta.label }}
-    </NuxtLink>
+  <div class="bw-empty" :role="flavor === 'error' ? 'alert' : undefined">
+    <span class="ic" aria-hidden="true">
+      <BulwarkIcon :name="iconName" size="lg" />
+    </span>
+    <h3>{{ title }}</h3>
+    <p v-if="body">{{ body }}</p>
+    <p v-if="flavor === 'error' && errorRef" class="mono">Reference: {{ errorRef }}</p>
+    <div v-if="primaryAction || secondary" class="acts">
+      <template v-for="(a, i) in [primaryAction, secondary]" :key="i">
+        <template v-if="a">
+          <NuxtLink
+            v-if="typeof a.action === 'string'"
+            :to="a.action"
+            class="bw-btn"
+            :class="i === 0 ? 'bw-btn--primary' : 'bw-btn--secondary'"
+          >{{ a.label }}</NuxtLink>
+          <button
+            v-else
+            type="button"
+            class="bw-btn"
+            :class="i === 0 ? 'bw-btn--primary' : 'bw-btn--secondary'"
+            @click="a.action()"
+          >{{ a.label }}</button>
+        </template>
+      </template>
+    </div>
   </div>
 </template>

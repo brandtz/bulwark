@@ -299,9 +299,10 @@ async function onSubmit() {
             required
             data-testid="compliance-signer-name"
           />
-          <SignaturePad
+          <BulwarkSignaturePad
             v-model="signatureDataUrl"
             v-model:is-empty="signatureEmpty"
+            statement="By signing you certify the work is complete and compliant."
           />
         </div>
       </BulwarkCard>
