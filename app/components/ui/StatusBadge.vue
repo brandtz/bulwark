@@ -1,70 +1,91 @@
 <!--
-  StatusBadge.vue — the canonical pill renderer.
+  StatusBadge.vue — status pill (Packet A components/SPEC.md, WP-A2).
 
-  Per UI-CONTRACTS.md §display: this is the ONLY component allowed to render
-  a colored status pill. Ad-hoc colored chips elsewhere are forbidden because
-  status colors must stay aligned to STYLE_GUIDE §2.4 across the whole app.
+  Generic per SPEC: `hue` (one of the 12 status hues, contrast-tuned for both
+  themes via data-hue tokens) + `label`. Label first, hue second: two statuses
+  may share a hue, so the text is always present (the dot-only variant needs an
+  aria-label).
 
-  # EH-B / W1-2 pilot (ADR-0014)
-    - The badge resolves its display text via `useLabel().t('status.property',
-      status, default)` so an admin override on /settings/labels reaches every
-      property surface that renders this pill. This is one of the two
-      pilot surfaces for the CMS label registry — the other is the WO trade
-      chip on `/admin/work-orders/[id]`.
-    - The label resolver falls back to the in-file `PROPERTY_STATUS_LABEL`
-      map when no override exists. That fallback is still the source of
-      truth for the default copy; `DEFAULT_LABELS` in `shared/labels/defaults`
-      re-exports the same strings so they stay in lockstep.
+  Existing callers pass a property `status`; it maps to the design's default
+  hue and the tenant label (useLabel). Tenant pipelines store a free hex
+  colour today, which cannot guarantee contrast in dark mode; WP-X5 moves
+  statuses to these hue names, after which callers pass the status record's
+  hue directly.
 -->
 <script setup lang="ts">
 import type { PropertyStatus, PropertyStatusValue } from '~~/shared/contracts/property'
 import { PROPERTY_STATUS_LABEL } from '~~/shared/contracts/property'
+import type { IconName } from './icon-names'
+
+export type StatusHue =
+  | 'slate' | 'blue' | 'indigo' | 'violet' | 'teal' | 'green'
+  | 'lime' | 'amber' | 'orange' | 'red' | 'pink' | 'gray'
 
 const props = withDefaults(defineProps<{
-  status: PropertyStatusValue
+  /** Property status (existing callers): hue and tenant label are derived. */
+  status?: PropertyStatusValue
+  hue?: StatusHue
+  label?: string
   size?: 'sm' | 'md'
-}>(), { size: 'md' })
+  variant?: 'solid' | 'outline' | 'dot'
+  icon?: IconName
+}>(), {
+  status: undefined,
+  hue: undefined,
+  label: undefined,
+  size: 'md',
+  variant: 'solid',
+  icon: undefined,
+})
+
+/** Default hues for the built-in property statuses, as the Packet B screens use them. */
+const PROPERTY_STATUS_HUE: Record<string, StatusHue> = {
+  lead: 'slate',
+  scheduled: 'blue',
+  assessed: 'indigo',
+  quoted: 'violet',
+  accepted: 'teal',
+  in_progress: 'amber',
+  completed: 'green',
+  deliverable_pending: 'orange',
+  deliverable_complete: 'green',
+  invoiced: 'blue',
+  paid: 'green',
+  on_hold: 'slate',
+  cancelled: 'slate',
+}
 
 const { t: tLabel } = useLabel()
 
-// Tone groupings per STYLE_GUIDE §2.4 — a status maps to a color family.
-const toneByStatus: Record<string, string> = {
-  lead:                'bg-info-light text-info',
-  scheduled:           'bg-info-light text-info',
-  assessed:            'bg-purple-light text-purple',
-  quoted:              'bg-warning-light text-warning',
-  accepted:            'bg-success-light text-success-dark',
-  in_progress:         'bg-primary-light text-primary',
-  completed:           'bg-success-light text-success-dark',
-  deliverable_pending:  'bg-warning-light text-warning',
-  deliverable_complete: 'bg-success-light text-success-dark',
-  invoiced:            'bg-purple-light text-purple',
-  paid:                'bg-success-light text-success-dark',
-  on_hold:             'bg-blocked-light text-blocked',
-  cancelled:           'bg-error-light text-error',
-}
-
-const sizeClass = computed(() => props.size === 'sm' ? 'text-tiny px-2 py-0.5' : 'text-small px-2.5 py-1')
-
-const displayText = computed(() =>
-  tLabel(
+const resolvedHue = computed<StatusHue>(() => props.hue ?? (props.status ? PROPERTY_STATUS_HUE[props.status] : undefined) ?? 'gray')
+const text = computed(() => {
+  if (props.label) return props.label
+  if (!props.status) return ''
+  return tLabel(
     'status.property',
     props.status,
     PROPERTY_STATUS_LABEL[props.status as PropertyStatus] ?? props.status.replaceAll('_', ' '),
-  ),
-)
+  )
+})
 </script>
 
 <template>
   <span
+    class="bw-badge"
     :class="[
-      'inline-flex items-center rounded-pill font-medium whitespace-nowrap',
-      toneByStatus[status] ?? 'bg-info-light text-info',
-      sizeClass,
+      size === 'sm' && 'bw-badge--sm',
+      variant === 'outline' && 'bw-badge--outline',
+      variant === 'dot' && 'bw-badge--dot',
     ]"
+    :data-hue="resolvedHue"
     :data-status="status"
+    :role="variant === 'dot' ? 'img' : undefined"
+    :aria-label="variant === 'dot' ? text : undefined"
+    :title="variant === 'dot' ? text : undefined"
     data-testid="status-badge"
   >
-    {{ displayText }}
+    <template v-if="variant !== 'dot'">
+      <BulwarkIcon v-if="icon" :name="icon" size="sm" />{{ text }}
+    </template>
   </span>
 </template>

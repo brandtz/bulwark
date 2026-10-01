@@ -30,6 +30,8 @@ const page = ref(2)
 const toast = useToast()
 const showModal = ref(false)
 const showDrawer = ref(false)
+const drawerDirty = ref(false)
+const drawerNote = ref('')
 
 const stepperSteps = [
   { label: 'Address', status: 'complete' as const },
@@ -165,8 +167,12 @@ const stepperSteps = [
           <BulwarkButton variant="destructive" @click="showModal = false">Delete</BulwarkButton>
         </template>
       </BulwarkModal>
-      <BulwarkDrawer v-model="showDrawer" side="right" title="Filters">
-        <p class="text-body">Drawer body…</p>
+      <BulwarkDrawer v-model="showDrawer" title="Edit filters" subtitle="Changes apply to this list" :dirty="drawerDirty" data-testid="dev-drawer">
+        <BulwarkInput v-model="drawerNote" label="Note" data-testid="dev-drawer-note" @update:model-value="drawerDirty = true" />
+        <template #footer>
+          <BulwarkButton variant="secondary" @click="showDrawer = false">Cancel</BulwarkButton>
+          <BulwarkButton @click="drawerDirty = false; showDrawer = false">Save</BulwarkButton>
+        </template>
       </BulwarkDrawer>
     </section>
   </div>

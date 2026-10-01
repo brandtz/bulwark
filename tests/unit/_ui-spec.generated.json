@@ -1,0 +1,2388 @@
+{
+ "generatedFrom": "agents/design/return/design-return/A/components/SPEC.md",
+ "components": {
+  "BulwarkButton": {
+   "existing": true,
+   "props": [
+    {
+     "name": "variant",
+     "type": "'primary'|'secondary'|'ghost'|'destructive'|'link'",
+     "default": "primary"
+    },
+    {
+     "name": "size",
+     "type": "'sm'|'md'|'lg'",
+     "default": "md"
+    },
+    {
+     "name": "iconOnly",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "loading",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "disabled",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "block",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "menu",
+     "type": "MenuItem[]",
+     "default": null
+    }
+   ],
+   "slots": [
+    "default",
+    "icon"
+   ],
+   "emits": [
+    "click",
+    "menu-select"
+   ]
+  },
+  "BulwarkInput": {
+   "existing": true,
+   "props": [
+    {
+     "name": "type",
+     "type": "'text'|'email'|'tel'|'password'|'number'|'currency'|'percent'|'measurement'",
+     "default": "text"
+    },
+    {
+     "name": "unit",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "label",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "helper",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "error",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "required",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "readonly",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "disabled",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "maxlength",
+     "type": "number",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue",
+    "blur"
+   ]
+  },
+  "BulwarkTextarea": {
+   "existing": true,
+   "props": [
+    {
+     "name": "rows",
+     "type": "number",
+     "default": "3"
+    },
+    {
+     "name": "autogrow",
+     "type": "boolean",
+     "default": "true"
+    },
+    {
+     "name": "maxRows",
+     "type": "number",
+     "default": "8"
+    },
+    {
+     "name": "maxlength",
+     "type": "number",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkSelect": {
+   "existing": true,
+   "props": [
+    {
+     "name": "options",
+     "type": "{value,label,meta?,avatar?}[]",
+     "default": "[]"
+    },
+    {
+     "name": "searchable",
+     "type": "boolean",
+     "default": "auto (>8 options)"
+    },
+    {
+     "name": "native",
+     "type": "boolean",
+     "default": "auto (<768px)"
+    },
+    {
+     "name": "placeholder",
+     "type": "string",
+     "default": "Select…"
+    },
+    {
+     "name": "createLabel",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue",
+    "create"
+   ]
+  },
+  "BulwarkMultiSelect": {
+   "existing": true,
+   "props": [
+    {
+     "name": "options",
+     "type": "Option[]",
+     "default": null
+    },
+    {
+     "name": "max",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "collapseAfter",
+     "type": "number",
+     "default": "3"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue"
+   ]
+  },
+  "BulwarkToggle": {
+   "existing": true,
+   "props": [
+    {
+     "name": "modelValue",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "label",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "description",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "disabled",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkPassFailToggle": {
+   "existing": true,
+   "props": [
+    {
+     "name": "modelValue",
+     "type": "'pass'|'fail'|'na'|null",
+     "default": null
+    },
+    {
+     "name": "requirePhotoOnFail",
+     "type": "boolean",
+     "default": "false"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkDatePicker": {
+   "existing": true,
+   "props": [
+    {
+     "name": "mode",
+     "type": "'date'|'range'|'datetime'|'time'",
+     "default": "date"
+    },
+    {
+     "name": "min",
+     "type": "Date",
+     "default": null
+    },
+    {
+     "name": "max",
+     "type": "Date",
+     "default": null
+    },
+    {
+     "name": "disabledDates",
+     "type": "(d)=>boolean",
+     "default": null
+    },
+    {
+     "name": "format",
+     "type": "string",
+     "default": "EEE, MMM d, yyyy"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkSegmentedControl": {
+   "existing": true,
+   "props": [
+    {
+     "name": "options",
+     "type": "{value,label,icon?}[]",
+     "default": null
+    },
+    {
+     "name": "block",
+     "type": "boolean",
+     "default": "false"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkSearchField": {
+   "existing": true,
+   "props": [
+    {
+     "name": "modelValue",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "debounce",
+     "type": "number",
+     "default": "250"
+    },
+    {
+     "name": "shortcut",
+     "type": "string",
+     "default": "/"
+    },
+    {
+     "name": "loading",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue",
+    "submit",
+    "clear"
+   ]
+  },
+  "BulwarkFilePicker": {
+   "existing": true,
+   "props": [
+    {
+     "name": "accept",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "multiple",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "maxSize",
+     "type": "number (bytes)",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "select",
+    "remove",
+    "error"
+   ]
+  },
+  "StatusBadge": {
+   "existing": true,
+   "props": [
+    {
+     "name": "hue",
+     "type": "one of 12 status hues",
+     "default": "gray"
+    },
+    {
+     "name": "label",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "size",
+     "type": "'sm'|'md'",
+     "default": "md"
+    },
+    {
+     "name": "variant",
+     "type": "'solid'|'outline'|'dot'",
+     "default": "solid"
+    },
+    {
+     "name": "icon",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkCard": {
+   "existing": true,
+   "props": [
+    {
+     "name": "padding",
+     "type": "'sm'|'md'|'lg'",
+     "default": "md"
+    },
+    {
+     "name": "clickable",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "selected",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "as",
+     "type": "string",
+     "default": "div"
+    }
+   ],
+   "slots": [
+    "header",
+    "default",
+    "footer"
+   ],
+   "emits": []
+  },
+  "BulwarkKpiCard": {
+   "existing": true,
+   "props": [
+    {
+     "name": "label",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "value",
+     "type": "string | number",
+     "default": null
+    },
+    {
+     "name": "format",
+     "type": "'money'|'int'|'percent'",
+     "default": null
+    },
+    {
+     "name": "delta",
+     "type": "{value,label,direction}",
+     "default": null
+    },
+    {
+     "name": "tone",
+     "type": "'neutral'|'success'|'warning'|'danger'|'info'",
+     "default": "neutral"
+    },
+    {
+     "name": "loading",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [
+    "sparkline",
+    "footer"
+   ],
+   "emits": []
+  },
+  "BulwarkJobCard": {
+   "existing": true,
+   "props": [
+    {
+     "name": "job",
+     "type": "Job",
+     "default": null
+    },
+    {
+     "name": "status",
+     "type": "{id,label,hue}",
+     "default": null
+    },
+    {
+     "name": "showAssignee",
+     "type": "boolean",
+     "default": "true"
+    },
+    {
+     "name": "cta",
+     "type": "{label,action}",
+     "default": null
+    },
+    {
+     "name": "density",
+     "type": "inherits",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "open",
+    "cta"
+   ]
+  },
+  "BulwarkAvatar": {
+   "existing": true,
+   "props": [
+    {
+     "name": "src",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "size",
+     "type": "'sm'|'md'|'lg'|'xl'",
+     "default": "md"
+    },
+    {
+     "name": "shape",
+     "type": "'circle'|'square'",
+     "default": "circle"
+    },
+    {
+     "name": "presence",
+     "type": "'online'|'offline'|null",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "EmptyState": {
+   "existing": true,
+   "props": [
+    {
+     "name": "flavor",
+     "type": "'first-run'|'no-results'|'error'|'forbidden'",
+     "default": "first-run"
+    },
+    {
+     "name": "icon",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "body",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "primary",
+     "type": "{label,action}",
+     "default": null
+    },
+    {
+     "name": "secondary",
+     "type": "{label,action}",
+     "default": null
+    },
+    {
+     "name": "errorRef",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkSkeleton": {
+   "existing": true,
+   "props": [
+    {
+     "name": "kind",
+     "type": "'text'|'avatar'|'card'|'table'|'kanban'|'calendar'",
+     "default": null
+    },
+    {
+     "name": "lines",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "rows",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "columns",
+     "type": "number",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkTableSkeleton": {
+   "existing": true,
+   "props": [
+    {
+     "name": "rows",
+     "type": "number",
+     "default": "8"
+    },
+    {
+     "name": "columns",
+     "type": "number",
+     "default": "5"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkPagination": {
+   "existing": true,
+   "props": [
+    {
+     "name": "mode",
+     "type": "'page'|'cursor'",
+     "default": "page"
+    },
+    {
+     "name": "page",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "pageSize",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "total",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "hasMore",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:page",
+    "update:pageSize",
+    "load-more"
+   ]
+  },
+  "BulwarkBreadcrumbs": {
+   "existing": true,
+   "props": [
+    {
+     "name": "items",
+     "type": "{label,to}[]",
+     "default": null
+    },
+    {
+     "name": "collapseAfter",
+     "type": "number",
+     "default": "3"
+    },
+    {
+     "name": "backOnly",
+     "type": "boolean",
+     "default": "false"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkIcon": {
+   "existing": true,
+   "props": [
+    {
+     "name": "size",
+     "type": "16|20|24",
+     "default": "20"
+    },
+    {
+     "name": "label",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkModal": {
+   "existing": true,
+   "props": [
+    {
+     "name": "size",
+     "type": "'sm'|'md'|'lg'|'xl'",
+     "default": "md"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "open",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "closeOnOverlay",
+     "type": "boolean",
+     "default": "true (false for destructive)"
+    },
+    {
+     "name": "destructive",
+     "type": "boolean",
+     "default": "false"
+    }
+   ],
+   "slots": [
+    "default",
+    "footer"
+   ],
+   "emits": [
+    "close",
+    "confirm"
+   ]
+  },
+  "BulwarkDrawer": {
+   "existing": true,
+   "props": [
+    {
+     "name": "size",
+     "type": "'md'(480)|'lg'(640)",
+     "default": "md"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "subtitle",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "open",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "dirtyGuard",
+     "type": "boolean",
+     "default": "true"
+    }
+   ],
+   "slots": [
+    "header-end",
+    "default",
+    "footer"
+   ],
+   "emits": [
+    "close",
+    "save"
+   ]
+  },
+  "BulwarkTabs": {
+   "existing": true,
+   "props": [
+    {
+     "name": "tabs",
+     "type": "{id,label,count?,disabled?}[]",
+     "default": null
+    },
+    {
+     "name": "variant",
+     "type": "'underline'|'segmented'",
+     "default": "underline"
+    },
+    {
+     "name": "scrollable",
+     "type": "boolean",
+     "default": "true"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkStepper": {
+   "existing": true,
+   "props": [
+    {
+     "name": "variant",
+     "type": "'display'|'input'",
+     "default": null
+    },
+    {
+     "name": "steps",
+     "type": "{label,state}[]",
+     "default": null
+    },
+    {
+     "name": "modelValue",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "min",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "max",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "step",
+     "type": "number",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkToast": {
+   "existing": false,
+   "props": [
+    {
+     "name": "tone",
+     "type": "'info'|'success'|'warning'|'error'",
+     "default": "info"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "body",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "action",
+     "type": "{label,fn}",
+     "default": null
+    },
+    {
+     "name": "persistent",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "duration",
+     "type": "ms",
+     "default": "5000"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "action",
+    "dismiss"
+   ]
+  },
+  "BulwarkToastHost": {
+   "existing": true,
+   "props": [
+    {
+     "name": "position",
+     "type": "'bottom-right'|'top'",
+     "default": "auto by breakpoint"
+    },
+    {
+     "name": "max",
+     "type": "number",
+     "default": "3"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkSignaturePad": {
+   "existing": true,
+   "props": [
+    {
+     "name": "modelValue",
+     "type": "dataURL",
+     "default": null
+    },
+    {
+     "name": "locked",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "height",
+     "type": "number",
+     "default": "140"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue",
+    "clear"
+   ]
+  },
+  "BulwarkBanner": {
+   "existing": false,
+   "props": [
+    {
+     "name": "tone",
+     "type": "'info'|'warning'|'danger'|'success'|'offline'|'readonly'",
+     "default": null
+    },
+    {
+     "name": "action",
+     "type": "{label,fn}",
+     "default": null
+    },
+    {
+     "name": "dismissible",
+     "type": "boolean",
+     "default": "false"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkSyncPill": {
+   "existing": false,
+   "props": [
+    {
+     "name": "state",
+     "type": "'online'|'syncing'|'offline'|'pending'|'conflict'",
+     "default": null
+    },
+    {
+     "name": "pending",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "compact",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "click"
+   ]
+  },
+  "BulwarkAsyncStatus": {
+   "existing": false,
+   "props": [
+    {
+     "name": "kind",
+     "type": "'document'|'payment'|'sync'|'save'",
+     "default": null
+    },
+    {
+     "name": "state",
+     "type": "string per kind",
+     "default": null
+    },
+    {
+     "name": "at",
+     "type": "Date",
+     "default": null
+    },
+    {
+     "name": "reference",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "variant",
+     "type": "'inline'|'banner'",
+     "default": "inline"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "retry",
+    "resolve",
+    "open"
+   ]
+  },
+  "BulwarkProgress": {
+   "existing": false,
+   "props": [
+    {
+     "name": "value",
+     "type": "0–100 | null (indeterminate)",
+     "default": null
+    },
+    {
+     "name": "variant",
+     "type": "'linear'|'ring'",
+     "default": null
+    },
+    {
+     "name": "label",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "size",
+     "type": "number",
+     "default": "48 (ring)"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkBottomSheet": {
+   "existing": false,
+   "props": [
+    {
+     "name": "open",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "height",
+     "type": "'auto'|'half'|'full'",
+     "default": "auto"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "close"
+   ]
+  },
+  "BulwarkSheetMenu": {
+   "existing": false,
+   "props": [
+    {
+     "name": "items",
+     "type": "{icon,label,tone?,action}[]",
+     "default": null
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "select"
+   ]
+  },
+  "BulwarkInlineEdit": {
+   "existing": false,
+   "props": [
+    {
+     "name": "modelValue",
+     "type": "string|number",
+     "default": null
+    },
+    {
+     "name": "type",
+     "type": "input type",
+     "default": null
+    },
+    {
+     "name": "saveOn",
+     "type": "'blur'|'enter'|'both'",
+     "default": "both"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "save",
+    "cancel"
+   ]
+  },
+  "BulwarkCopyField": {
+   "existing": false,
+   "props": [
+    {
+     "name": "value",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "masked",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "oneTime",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "copy"
+   ]
+  },
+  "BulwarkKeyValue": {
+   "existing": false,
+   "props": [
+    {
+     "name": "items",
+     "type": "{key,value,type?}[]",
+     "default": null
+    },
+    {
+     "name": "columns",
+     "type": "1|2",
+     "default": "auto"
+    },
+    {
+     "name": "dense",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkSectionHeader": {
+   "existing": false,
+   "props": [
+    {
+     "name": "title",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "description",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "count",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "level",
+     "type": "2|3",
+     "default": "2"
+    }
+   ],
+   "slots": [
+    "actions"
+   ],
+   "emits": []
+  },
+  "BulwarkPageHeader": {
+   "existing": false,
+   "props": [
+    {
+     "name": "title",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "breadcrumbs",
+     "type": "Crumb[]",
+     "default": null
+    },
+    {
+     "name": "status",
+     "type": "{label,hue}",
+     "default": null
+    },
+    {
+     "name": "chips",
+     "type": "Chip[]",
+     "default": null
+    },
+    {
+     "name": "meta",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [
+    "actions",
+    "tabs"
+   ],
+   "emits": []
+  },
+  "BulwarkProgramChip": {
+   "existing": false,
+   "props": [
+    {
+     "name": "program",
+     "type": "{id,name,kind}",
+     "default": null
+    },
+    {
+     "name": "removable",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkTradeChip": {
+   "existing": false,
+   "props": [
+    {
+     "name": "trade",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "removable",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkRoleBadge": {
+   "existing": false,
+   "props": [
+    {
+     "name": "role",
+     "type": "RoleId",
+     "default": null
+    },
+    {
+     "name": "label",
+     "type": "string",
+     "default": "tenant label"
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkDataTable": {
+   "existing": false,
+   "props": [
+    {
+     "name": "columns",
+     "type": "{key,label,sortable?,align?,width?,pinned?,hidden?}[]",
+     "default": null
+    },
+    {
+     "name": "rows",
+     "type": "T[]",
+     "default": null
+    },
+    {
+     "name": "rowKey",
+     "type": "string",
+     "default": "id"
+    },
+    {
+     "name": "selectable",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "bulkActions",
+     "type": "Action[]",
+     "default": null
+    },
+    {
+     "name": "rowActions",
+     "type": "(row)=>Action[]",
+     "default": null
+    },
+    {
+     "name": "sort",
+     "type": "{key,dir}",
+     "default": null
+    },
+    {
+     "name": "density",
+     "type": "inherits data-density",
+     "default": null
+    },
+    {
+     "name": "loading",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "error",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "emptyFlavor",
+     "type": "'first-run'|'no-results'",
+     "default": null
+    },
+    {
+     "name": "virtualize",
+     "type": "boolean",
+     "default": "auto >200"
+    },
+    {
+     "name": "cardTemplate",
+     "type": "slot",
+     "default": null
+    }
+   ],
+   "slots": [
+    "cell-<key>",
+    "card",
+    "empty"
+   ],
+   "emits": [
+    "sort",
+    "select",
+    "row-click",
+    "bulk",
+    "load-more"
+   ]
+  },
+  "BulwarkFilterBar": {
+   "existing": false,
+   "props": [
+    {
+     "name": "filters",
+     "type": "{key,label,type,options?}[]",
+     "default": null
+    },
+    {
+     "name": "modelValue",
+     "type": "Record<key,value[]>",
+     "default": null
+    },
+    {
+     "name": "sortOptions",
+     "type": "{key,label}[]",
+     "default": null
+    },
+    {
+     "name": "savedViews",
+     "type": "boolean",
+     "default": "true"
+    },
+    {
+     "name": "total",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "matching",
+     "type": "number",
+     "default": null
+    }
+   ],
+   "slots": [
+    "extra-actions"
+   ],
+   "emits": [
+    "update:modelValue",
+    "sort",
+    "save-view",
+    "clear"
+   ]
+  },
+  "BulwarkKanbanBoard": {
+   "existing": false,
+   "props": [
+    {
+     "name": "columns",
+     "type": "{status:{id,label,hue},wip?,collapsed?}[]",
+     "default": null
+    },
+    {
+     "name": "cards",
+     "type": "Card[]",
+     "default": null
+    },
+    {
+     "name": "groupBy",
+     "type": "string",
+     "default": "statusId"
+    },
+    {
+     "name": "draggable",
+     "type": "boolean",
+     "default": "true (false <768)"
+    },
+    {
+     "name": "cardTemplate",
+     "type": "slot",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "move",
+    "from",
+    "to",
+    "index)",
+    "collapse",
+    "open"
+   ]
+  },
+  "PipelineColumn": {
+   "existing": true,
+   "props": [
+    {
+     "name": "status",
+     "type": "{id,label,hue}",
+     "default": null
+    },
+    {
+     "name": "count",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "wip",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "collapsed",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [
+    "default (cards)"
+   ],
+   "emits": []
+  },
+  "PipelineList": {
+   "existing": true,
+   "props": [],
+   "slots": [],
+   "emits": []
+  },
+  "PropertyCard": {
+   "existing": true,
+   "props": [
+    {
+     "name": "property",
+     "type": "Property",
+     "default": null
+    },
+    {
+     "name": "compact",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "PropertyStatusMenu": {
+   "existing": true,
+   "props": [
+    {
+     "name": "current",
+     "type": "StatusId",
+     "default": null
+    },
+    {
+     "name": "allowed",
+     "type": "StatusId[]",
+     "default": "from BulwarkTransitionEditor rules"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "change"
+   ]
+  },
+  "BulwarkScheduler": {
+   "existing": false,
+   "props": [
+    {
+     "name": "view",
+     "type": "'day'|'3day'|'week'|'month'",
+     "default": "day"
+    },
+    {
+     "name": "resources",
+     "type": "{id,name,avatar}[]",
+     "default": null
+    },
+    {
+     "name": "events",
+     "type": "{id,resourceId,start,end,status,label}[]",
+     "default": null
+    },
+    {
+     "name": "unscheduled",
+     "type": "Event[]",
+     "default": null
+    },
+    {
+     "name": "stepMinutes",
+     "type": "number",
+     "default": "15"
+    },
+    {
+     "name": "workHours",
+     "type": "[7,17]",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "move",
+    "resize",
+    "assign",
+    "open",
+    "create"
+   ]
+  },
+  "BulwarkTimeline": {
+   "existing": false,
+   "props": [
+    {
+     "name": "variant",
+     "type": "'activity'|'milestones'",
+     "default": null
+    },
+    {
+     "name": "items",
+     "type": "Activity[] | Milestone[]",
+     "default": null
+    },
+    {
+     "name": "pageSize",
+     "type": "number",
+     "default": "25"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "load-more",
+    "open"
+   ]
+  },
+  "BulwarkTreeBuilder": {
+   "existing": false,
+   "props": [
+    {
+     "name": "modelValue",
+     "type": "Section[] ({id,title,fields:{id,label,kind,required,rules}[]})",
+     "default": null
+    },
+    {
+     "name": "kinds",
+     "type": "{id,icon,label}[]",
+     "default": null
+    },
+    {
+     "name": "maxDepth",
+     "type": "number",
+     "default": "2"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue",
+    "select",
+    "add",
+    "duplicate",
+    "remove"
+   ]
+  },
+  "BulwarkRuleEditor": {
+   "existing": false,
+   "props": [
+    {
+     "name": "modelValue",
+     "type": "RuleGroup ({op:\"and\"|\"or\",rules:(Rule|RuleGroup)[]})",
+     "default": null
+    },
+    {
+     "name": "fields",
+     "type": "{id,label,type,options?}[]",
+     "default": null
+    },
+    {
+     "name": "operators",
+     "type": "per field type",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue",
+    "preview"
+   ]
+  },
+  "BulwarkTransitionEditor": {
+   "existing": false,
+   "props": [
+    {
+     "name": "statuses",
+     "type": "Status[]",
+     "default": null
+    },
+    {
+     "name": "modelValue",
+     "type": "Record<fromId,toId[]>",
+     "default": null
+    },
+    {
+     "name": "view",
+     "type": "'matrix'|'graph'",
+     "default": "matrix"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue"
+   ]
+  },
+  "BulwarkMatrixTable": {
+   "existing": false,
+   "props": [
+    {
+     "name": "rows",
+     "type": "{id,label}[]",
+     "default": null
+    },
+    {
+     "name": "columns",
+     "type": "{id,label}[]",
+     "default": null
+    },
+    {
+     "name": "cell",
+     "type": "(row,col)=>{label,hue}|{value,max}",
+     "default": null
+    },
+    {
+     "name": "variant",
+     "type": "'badge'|'heatmap'",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkTierComparison": {
+   "existing": false,
+   "props": [
+    {
+     "name": "tiers",
+     "type": "{id,name,total,recommended?,items:{lineItemId,included}[]}[] (2–4)",
+     "default": null
+    },
+    {
+     "name": "lineItems",
+     "type": "LineItem[]",
+     "default": null
+    },
+    {
+     "name": "optionals",
+     "type": "{lineItemId,price}[]",
+     "default": null
+    },
+    {
+     "name": "modelValue",
+     "type": "{tierId,optionalIds[]}",
+     "default": null
+    },
+    {
+     "name": "readonly",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue",
+    "accept"
+   ]
+  },
+  "BulwarkLineItemEditor": {
+   "existing": false,
+   "props": [
+    {
+     "name": "modelValue",
+     "type": "{groups:{id,title,items:LineItem[]}[]}",
+     "default": null
+    },
+    {
+     "name": "taxRate",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "currency",
+     "type": "string",
+     "default": "USD"
+    },
+    {
+     "name": "catalog",
+     "type": "boolean",
+     "default": "true"
+    }
+   ],
+   "slots": [
+    "catalog-picker"
+   ],
+   "emits": [
+    "update:modelValue",
+    "open-catalog"
+   ]
+  },
+  "BulwarkCatalogPicker": {
+   "existing": false,
+   "props": [
+    {
+     "name": "items",
+     "type": "CatalogItem[]",
+     "default": null
+    },
+    {
+     "name": "categories",
+     "type": "string[]",
+     "default": null
+    },
+    {
+     "name": "favorites",
+     "type": "id[]",
+     "default": null
+    },
+    {
+     "name": "recent",
+     "type": "id[]",
+     "default": null
+    },
+    {
+     "name": "multi",
+     "type": "boolean",
+     "default": "true"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "add"
+   ]
+  },
+  "BulwarkMoneySummary": {
+   "existing": false,
+   "props": [
+    {
+     "name": "subtotal",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "discount",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "tax",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "total",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "deposit",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "paid",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "balance",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "variant",
+     "type": "'default'|'large'",
+     "default": null
+    },
+    {
+     "name": "currency",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkPaymentsLedger": {
+   "existing": false,
+   "props": [
+    {
+     "name": "payments",
+     "type": "{id,date,method,amount,ref,status}[]",
+     "default": null
+    },
+    {
+     "name": "invoiceTotal",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "canAdd",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "add",
+    "refund",
+    "open"
+   ]
+  },
+  "BulwarkDropzone": {
+   "existing": false,
+   "props": [
+    {
+     "name": "accept",
+     "type": "string[]",
+     "default": null
+    },
+    {
+     "name": "maxSize",
+     "type": "bytes",
+     "default": null
+    },
+    {
+     "name": "capture",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "multiple",
+     "type": "boolean",
+     "default": "true"
+    },
+    {
+     "name": "files",
+     "type": "UploadFile[]",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "add",
+    "remove",
+    "retry"
+   ]
+  },
+  "BulwarkPhotoGrid": {
+   "existing": false,
+   "props": [
+    {
+     "name": "photos",
+     "type": "{id,src,thumb,label,takenAt,by}[]",
+     "default": null
+    },
+    {
+     "name": "selectable",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "columns",
+     "type": "auto",
+     "default": null
+    },
+    {
+     "name": "canAdd",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "open",
+    "select",
+    "add"
+   ]
+  },
+  "BulwarkLightbox": {
+   "existing": false,
+   "props": [
+    {
+     "name": "photos",
+     "type": "Photo[]",
+     "default": null
+    },
+    {
+     "name": "index",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "annotations",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "close",
+    "delete",
+    "annotate",
+    "download"
+   ]
+  },
+  "BulwarkAnnotator": {
+   "existing": false,
+   "props": [
+    {
+     "name": "tools",
+     "type": "('arrow'|'box'|'text'|'blur')[]",
+     "default": null
+    },
+    {
+     "name": "color",
+     "type": "danger|warning|white",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "save",
+    "shapes)"
+   ]
+  },
+  "BulwarkSignatureBlock": {
+   "existing": false,
+   "props": [
+    {
+     "name": "modes",
+     "type": "('draw'|'type'|'upload')[]",
+     "default": null
+    },
+    {
+     "name": "signer",
+     "type": "{name,title}",
+     "default": null
+    },
+    {
+     "name": "locked",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "audit",
+     "type": "{at,ip,hash,method}",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "sign"
+   ]
+  },
+  "BulwarkDocumentFrame": {
+   "existing": false,
+   "props": [
+    {
+     "name": "document",
+     "type": "{id,kind,status,version,pages,pdfUrl}",
+     "default": null
+    },
+    {
+     "name": "status",
+     "type": "'generating'|'ready'|'failed'",
+     "default": null
+    },
+    {
+     "name": "draft",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "actions",
+     "type": "('print'|'download'|'send'|'regenerate'|'finalize')[]",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "action",
+    "page"
+   ]
+  },
+  "BulwarkCommandPalette": {
+   "existing": false,
+   "props": [
+    {
+     "name": "groups",
+     "type": "{id,label,fetch}[]",
+     "default": null
+    },
+    {
+     "name": "actions",
+     "type": "Command[]",
+     "default": null
+    },
+    {
+     "name": "recent",
+     "type": "Result[]",
+     "default": null
+    },
+    {
+     "name": "shortcut",
+     "type": "string",
+     "default": "mod+k"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "select",
+    "action"
+   ]
+  },
+  "SearchPalette": {
+   "existing": true,
+   "props": [],
+   "slots": [],
+   "emits": []
+  },
+  "BulwarkChartCard": {
+   "existing": false,
+   "props": [
+    {
+     "name": "type",
+     "type": "'bar'|'stackedBar'|'line'|'donut'|'sparkline'",
+     "default": null
+    },
+    {
+     "name": "series",
+     "type": "Series[]",
+     "default": null
+    },
+    {
+     "name": "range",
+     "type": "{from,to}",
+     "default": null
+    },
+    {
+     "name": "loading",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "empty",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [
+    "header-actions"
+   ],
+   "emits": [
+    "range",
+    "point-click"
+   ]
+  },
+  "BulwarkMapPanel": {
+   "existing": false,
+   "props": [
+    {
+     "name": "pins",
+     "type": "{id,lat,lng,status,order?}[]",
+     "default": null
+    },
+    {
+     "name": "selectedId",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "cluster",
+     "type": "boolean",
+     "default": "true"
+    },
+    {
+     "name": "route",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "select",
+    "move"
+   ]
+  },
+  "AppSidebar": {
+   "existing": true,
+   "props": [
+    {
+     "name": "groups",
+     "type": "{label,items:{label,icon,to,count?}[]}[]",
+     "default": null
+    },
+    {
+     "name": "collapsed",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "org",
+     "type": "Org",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "toggle"
+   ]
+  },
+  "AppTopBar": {
+   "existing": true,
+   "props": [
+    {
+     "name": "breadcrumbs",
+     "type": "Crumb[]",
+     "default": null
+    },
+    {
+     "name": "showSearch",
+     "type": "boolean",
+     "default": "true"
+    },
+    {
+     "name": "sync",
+     "type": "SyncState",
+     "default": null
+    }
+   ],
+   "slots": [
+    "actions"
+   ],
+   "emits": []
+  },
+  "AppBottomNav": {
+   "existing": true,
+   "props": [
+    {
+     "name": "items",
+     "type": "{label,icon,to,badge?}[] (≤5)",
+     "default": null
+    },
+    {
+     "name": "moreSheet",
+     "type": "boolean",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": []
+  },
+  "NotificationBell": {
+   "existing": true,
+   "props": [
+    {
+     "name": "unread",
+     "type": "number",
+     "default": null
+    },
+    {
+     "name": "preview",
+     "type": "Notification[] (5)",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "open",
+    "mark-all-read"
+   ]
+  },
+  "UserMenu": {
+   "existing": true,
+   "props": [
+    {
+     "name": "user",
+     "type": "User",
+     "default": null
+    },
+    {
+     "name": "org",
+     "type": "Org",
+     "default": null
+    },
+    {
+     "name": "role",
+     "type": "RoleId",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "profile",
+    "security",
+    "theme",
+    "sign-out"
+   ]
+  },
+  "OrgSwitcher": {
+   "existing": false,
+   "props": [
+    {
+     "name": "memberships",
+     "type": "{org,role,lastActive}[]",
+     "default": null
+    },
+    {
+     "name": "current",
+     "type": "OrgId",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "switch"
+   ]
+  },
+  "SavedViewsMenu": {
+   "existing": true,
+   "props": [
+    {
+     "name": "views",
+     "type": "{id,name,shared,default}[]",
+     "default": null
+    },
+    {
+     "name": "current",
+     "type": "ViewId",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "apply",
+    "save",
+    "set-default",
+    "rename",
+    "delete"
+   ]
+  },
+  "JobProgressUpdater": {
+   "existing": true,
+   "props": [
+    {
+     "name": "job",
+     "type": "Job",
+     "default": null
+    },
+    {
+     "name": "steps",
+     "type": "25|50|75|100",
+     "default": null
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update"
+   ]
+  },
+  "InspectionForm": {
+   "existing": true,
+   "props": [
+    {
+     "name": "template",
+     "type": "Section[]",
+     "default": null
+    },
+    {
+     "name": "modelValue",
+     "type": "Answers",
+     "default": null
+    },
+    {
+     "name": "autosaveMs",
+     "type": "number",
+     "default": "800"
+    }
+   ],
+   "slots": [],
+   "emits": [
+    "update:modelValue",
+    "saved"
+   ]
+  },
+  "BulwarkField": {
+   "existing": false,
+   "props": [
+    {
+     "name": "label",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "helper",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "error",
+     "type": "string",
+     "default": null
+    },
+    {
+     "name": "required",
+     "type": "boolean",
+     "default": null
+    },
+    {
+     "name": "count",
+     "type": "string",
+     "default": null
+    }
+   ],
+   "slots": [
+    "default"
+   ],
+   "emits": []
+  },
+  "BulwarkChips": {
+   "existing": false,
+   "props": [
+    {
+     "name": "variant",
+     "type": "'default' \\| 'accent' \\| 'count' \\| 'filter' \\| 'pressable'",
+     "default": "'default'"
+    },
+    {
+     "name": "removable",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "pressed",
+     "type": "boolean",
+     "default": "false"
+    },
+    {
+     "name": "dot",
+     "type": "hue \\| null",
+     "default": "null"
+    },
+    {
+     "name": "size",
+     "type": "'sm' (24) \\| 'md' (32) \\| 'lg' (36, touch)",
+     "default": "'sm'"
+    }
+   ],
+   "slots": [
+    "default (label)",
+    "leading (icon/dot)"
+   ],
+   "emits": [
+    "remove",
+    "toggle"
+   ]
+  },
+  "BulwarkMenu": {
+   "existing": false,
+   "props": [
+    {
+     "name": "anchor",
+     "type": "Element \\| null",
+     "default": "null"
+    },
+    {
+     "name": "width",
+     "type": "number",
+     "default": "220"
+    },
+    {
+     "name": "role",
+     "type": "'menu' \\| 'listbox' \\| 'dialog'",
+     "default": "'menu'"
+    }
+   ],
+   "slots": [
+    "default (items)",
+    "header (.hd)",
+    "items use .item / .sep / .hd classes"
+   ],
+   "emits": [
+    "select",
+    "close"
+   ]
+  }
+ }
+}

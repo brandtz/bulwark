@@ -1,74 +1,71 @@
 <!--
-  BulwarkModal.vue — accessible centered modal dialog.
+  BulwarkModal.vue — dialog (Packet A components/SPEC.md, WP-A2).
 
-  Why this component exists
-  -------------------------
-  Confirm-destructive-action, quick-edit forms, image-zoom previews. The
-  demo's confirm modals were each ad-hoc divs with `display: fixed`. This
-  centralises focus trap, Escape-to-dismiss, backdrop click, scroll lock.
+  role=dialog, aria-modal, labelled by its title; focus trapped with initial
+  focus and restore (useFocusTrap, WP-L08). Below 768px it renders as a bottom
+  sheet (CSS only, so SSR and hydration agree).
 
-  A11y
-  ----
-  - role="dialog" + aria-modal=true
-  - Initial focus on the first control in the body; Tab is trapped inside;
-    focus returns to the opener on close (useFocusTrap, WP-L08 / L09-S3)
-  - Escape closes (unless `dismissible=false`)
-  - Body overflow locked while open
-  - aria-labelledby uses a generated id (a title-derived id broke on spaces)
-
-  Decisions
-  ---------
-  - **Native <dialog> rejected**: support is fine but the styling story is
-    awkward and we lose teleport-to-body simplicity. We use a portal (Teleport)
-    to body which is the Nuxt-friendly pattern.
-  - **No promise-based imperative API yet**: useModal() composable lands
-    in a follow-up if call-site demand emerges.
+  API: SPEC names `open` / `close` / `confirm` / `closeOnOverlay` /
+  `destructive`. Existing callers keep `v-model` (modelValue), `dismissible`
+  and `cancel`; both work. `destructive` turns overlay-click dismissal off
+  (SPEC: false for destructive) — Esc still cancels unless `dismissible` is
+  false. Keep it to six fields or fewer; more belongs in BulwarkDrawer.
+  Slots: default, footer.
 -->
 <script setup lang="ts">
-// The root is a <Teleport>, which cannot inherit attributes: forward them (data-testid,
-// aria-*) to the dialog element instead of dropping them (WP-Q3).
 defineOptions({ inheritAttrs: false })
+
 interface Props {
-  modelValue: boolean
+  /** SPEC name. */
+  open?: boolean
+  /** v-model (existing callers). */
+  modelValue?: boolean
   title: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
-  /** Allow Escape and backdrop-click to dismiss. Default true. */
+  /** Clicking the overlay closes (SPEC default true; false when destructive). */
+  closeOnOverlay?: boolean
+  destructive?: boolean
+  /** Escape, overlay and the close button can dismiss. Default true. */
   dismissible?: boolean
 }
+
 const props = withDefaults(defineProps<Props>(), {
+  open: undefined,
+  modelValue: undefined,
   size: 'md',
+  closeOnOverlay: undefined,
+  destructive: false,
   dismissible: true,
 })
 
 const emit = defineEmits<{
   'update:modelValue': [v: boolean]
+  close: []
   cancel: []
+  confirm: []
 }>()
+
+const isOpen = computed(() => Boolean(props.open ?? props.modelValue))
+const overlayCloses = computed(() => props.dismissible && (props.closeOnOverlay ?? !props.destructive))
+const width: Record<NonNullable<Props['size']>, string> = { sm: '400px', md: '520px', lg: '720px', xl: '960px' }
 
 const titleId = useId()
 const panel = ref<HTMLElement | null>(null)
-useFocusTrap(() => props.modelValue, panel)
-
-const sizeClass: Record<NonNullable<Props['size']>, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
-}
+useFocusTrap(() => isOpen.value, panel)
 
 function close() {
   if (!props.dismissible) return
   emit('update:modelValue', false)
+  emit('close')
   emit('cancel')
 }
 
-// Esc handler — bound only while open. Avoids leaking listeners.
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') close()
 }
 
 watch(
-  () => props.modelValue,
+  isOpen,
   (open) => {
     if (typeof document === 'undefined') return
     if (open) {
@@ -100,36 +97,35 @@ onBeforeUnmount(() => {
       leave-to-class="opacity-0"
     >
       <div
-        v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        v-if="isOpen"
+        class="bw-modal-overlay"
         v-bind="$attrs"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
-        @click.self="close"
+        @click.self="overlayCloses && close()"
       >
         <div
           ref="panel"
-          class="relative w-full rounded-card bg-surface shadow-xl focus:outline-none"
-          :class="sizeClass[size]"
+          class="bw-modal bw-modal-panel focus:outline-none"
+          :style="{ '--w': width[size] }"
         >
-          <header class="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-border">
-            <h2 :id="titleId" class="text-h2 text-text-primary">{{ title }}</h2>
+          <header class="bw-modal__hd">
+            <h3 :id="titleId">{{ title }}</h3>
             <button
               v-if="dismissible"
               type="button"
-              class="h-8 w-8 rounded-input text-text-secondary hover:bg-surface-muted"
+              class="bw-btn bw-btn--ghost bw-btn--icon bw-btn--sm"
               aria-label="Close"
               @click="close"
-            >×</button>
+            >
+              <BulwarkIcon name="x" size="sm" />
+            </button>
           </header>
-          <div class="px-5 py-4" data-dialog-body>
+          <div class="bw-modal__bd" data-dialog-body>
             <slot />
           </div>
-          <footer
-            v-if="$slots.footer"
-            class="flex items-center justify-end gap-2 px-5 pb-4 pt-2 border-t border-border"
-          >
+          <footer v-if="$slots.footer" class="bw-modal__ft">
             <slot name="footer" />
           </footer>
         </div>
@@ -137,3 +133,24 @@ onBeforeUnmount(() => {
     </Transition>
   </Teleport>
 </template>
+
+<style>
+.bw-modal-overlay {
+  position: fixed; inset: 0; z-index: var(--z-modal);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: var(--overlay);
+}
+/* SPEC: below 768px the modal is a bottom sheet. */
+@media (max-width: 767px) {
+  .bw-modal-overlay { align-items: flex-end; padding: 0; }
+  .bw-modal-panel {
+    width: 100%; max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bw-modal-panel::before {
+    content: ""; display: block; width: 40px; height: 4px; border-radius: 2px;
+    background: var(--neutral-300); margin: 8px auto 0;
+  }
+}
+</style>
