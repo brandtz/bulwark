@@ -1,0 +1,264 @@
+{
+ "generatedFrom": "agents/design/return/design-return/A/components",
+ "specimens": [
+  {
+   "name": "button-primary",
+   "component": "BulwarkButton",
+   "theme": "light",
+   "selector": ".bw-btn--primary:text-is(\"New Quote\")",
+   "html": "<button class=\"bw-btn bw-btn--primary \">New Quote</button>"
+  },
+  {
+   "name": "button-primary",
+   "component": "BulwarkButton",
+   "theme": "dark",
+   "selector": ".bw-btn--primary:text-is(\"New Quote\")",
+   "html": "<button class=\"bw-btn bw-btn--primary \">New Quote</button>"
+  },
+  {
+   "name": "button-secondary",
+   "component": "BulwarkButton",
+   "theme": "light",
+   "selector": ".bw-btn--secondary:text-is(\"Schedule\")",
+   "html": "<button class=\"bw-btn bw-btn--secondary \">Schedule</button>"
+  },
+  {
+   "name": "button-secondary",
+   "component": "BulwarkButton",
+   "theme": "dark",
+   "selector": ".bw-btn--secondary:text-is(\"Schedule\")",
+   "html": "<button class=\"bw-btn bw-btn--secondary \">Schedule</button>"
+  },
+  {
+   "name": "button-ghost",
+   "component": "BulwarkButton",
+   "theme": "light",
+   "selector": ".bw-btn--ghost:text-is(\"View All\")",
+   "html": "<button class=\"bw-btn bw-btn--ghost \">View All</button>"
+  },
+  {
+   "name": "button-ghost",
+   "component": "BulwarkButton",
+   "theme": "dark",
+   "selector": ".bw-btn--ghost:text-is(\"View All\")",
+   "html": "<button class=\"bw-btn bw-btn--ghost \">View All</button>"
+  },
+  {
+   "name": "button-destructive",
+   "component": "BulwarkButton",
+   "theme": "light",
+   "selector": ".bw-btn--destructive:text-is(\"Delete Property\")",
+   "html": "<button class=\"bw-btn bw-btn--destructive \">Delete Property</button>"
+  },
+  {
+   "name": "button-link",
+   "component": "BulwarkButton",
+   "theme": "light",
+   "selector": ".bw-btn--link:text-is(\"Learn more\")",
+   "html": "<button class=\"bw-btn bw-btn--link \">Learn more</button>"
+  },
+  {
+   "name": "button-link",
+   "component": "BulwarkButton",
+   "theme": "dark",
+   "selector": ".bw-btn--link:text-is(\"Learn more\")",
+   "html": "<button class=\"bw-btn bw-btn--link \">Learn more</button>"
+  },
+  {
+   "name": "badge-slate",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"slate\"]:text-is(\"Slate\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"slate\">Slate</span>"
+  },
+  {
+   "name": "badge-slate",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"slate\"]:text-is(\"Slate\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"slate\">Slate</span>"
+  },
+  {
+   "name": "badge-blue",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"blue\"]:text-is(\"Blue\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"blue\">Blue</span>"
+  },
+  {
+   "name": "badge-blue",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"blue\"]:text-is(\"Blue\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"blue\">Blue</span>"
+  },
+  {
+   "name": "badge-indigo",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"indigo\"]:text-is(\"Indigo\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"indigo\">Indigo</span>"
+  },
+  {
+   "name": "badge-indigo",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"indigo\"]:text-is(\"Indigo\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"indigo\">Indigo</span>"
+  },
+  {
+   "name": "badge-violet",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"violet\"]:text-is(\"Violet\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"violet\">Violet</span>"
+  },
+  {
+   "name": "badge-violet",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"violet\"]:text-is(\"Violet\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"violet\">Violet</span>"
+  },
+  {
+   "name": "badge-teal",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"teal\"]:text-is(\"Teal\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"teal\">Teal</span>"
+  },
+  {
+   "name": "badge-teal",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"teal\"]:text-is(\"Teal\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"teal\">Teal</span>"
+  },
+  {
+   "name": "badge-green",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"green\"]:text-is(\"Green\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"green\">Green</span>"
+  },
+  {
+   "name": "badge-green",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"green\"]:text-is(\"Green\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"green\">Green</span>"
+  },
+  {
+   "name": "badge-lime",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"lime\"]:text-is(\"Lime\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"lime\">Lime</span>"
+  },
+  {
+   "name": "badge-lime",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"lime\"]:text-is(\"Lime\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"lime\">Lime</span>"
+  },
+  {
+   "name": "badge-amber",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"amber\"]:text-is(\"Amber\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"amber\">Amber</span>"
+  },
+  {
+   "name": "badge-amber",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"amber\"]:text-is(\"Amber\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"amber\">Amber</span>"
+  },
+  {
+   "name": "badge-orange",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"orange\"]:text-is(\"Orange\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"orange\">Orange</span>"
+  },
+  {
+   "name": "badge-orange",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"orange\"]:text-is(\"Orange\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"orange\">Orange</span>"
+  },
+  {
+   "name": "badge-red",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"red\"]:text-is(\"Red\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"red\">Red</span>"
+  },
+  {
+   "name": "badge-red",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"red\"]:text-is(\"Red\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"red\">Red</span>"
+  },
+  {
+   "name": "badge-pink",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"pink\"]:text-is(\"Pink\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"pink\">Pink</span>"
+  },
+  {
+   "name": "badge-pink",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"pink\"]:text-is(\"Pink\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"pink\">Pink</span>"
+  },
+  {
+   "name": "badge-gray",
+   "component": "StatusBadge",
+   "theme": "light",
+   "selector": ".bw-badge[data-hue=\"gray\"]:text-is(\"Gray\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"gray\">Gray</span>"
+  },
+  {
+   "name": "badge-gray",
+   "component": "StatusBadge",
+   "theme": "dark",
+   "selector": ".bw-badge[data-hue=\"gray\"]:text-is(\"Gray\")",
+   "html": "<span class=\"bw-badge \" data-hue=\"gray\">Gray</span>"
+  },
+  {
+   "name": "toggle-on",
+   "component": "BulwarkToggle",
+   "theme": "light",
+   "selector": ".bw-toggle.is-on",
+   "html": "<span class=\"bw-toggle is-on\" role=\"switch\" aria-checked=\"1\"></span>"
+  },
+  {
+   "name": "toggle-on",
+   "component": "BulwarkToggle",
+   "theme": "dark",
+   "selector": ".bw-toggle.is-on",
+   "html": "<span class=\"bw-toggle is-on\" role=\"switch\" aria-checked=\"1\"></span>"
+  },
+  {
+   "name": "toggle-off",
+   "component": "BulwarkToggle",
+   "theme": "light",
+   "selector": ".bw-toggle:not(.is-on):not(.is-disabled)",
+   "html": "<span class=\"bw-toggle \" role=\"switch\" aria-checked=\"0\"></span>"
+  },
+  {
+   "name": "toggle-off",
+   "component": "BulwarkToggle",
+   "theme": "dark",
+   "selector": ".bw-toggle:not(.is-on):not(.is-disabled)",
+   "html": "<span class=\"bw-toggle \" role=\"switch\" aria-checked=\"0\"></span>"
+  }
+ ]
+}

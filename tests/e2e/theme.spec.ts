@@ -75,13 +75,15 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       expect(response?.ok()).toBe(true)
       const buttons = page.locator('[data-section="buttons"]')
       const primary = buttons.getByRole('button', { name: 'Primary', exact: true })
-      const card = page.locator('[data-section="display"] .bg-surface').first()
+      // The probe on /dev/ui follows the page theme (the specimen panels force theirs).
+      const card = page.getByTestId('theme-probe-card')
       await expect(buttons).toBeVisible()
       await expect(primary).toBeVisible()
       await expect(card).toBeVisible()
       const root = page.locator('html')
       const accent = await root.getAttribute('data-accent')
-      await expect(primary).toHaveCSS('background-color', 'rgb(29, 78, 216)')
+      // Packet A primary is the accent (#0F766E) in both themes (WP-A2 dropped the legacy blue).
+      await expect(primary).toHaveCSS('background-color', 'rgb(15, 118, 110)')
       await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)')
       await expect(pageCanvas(page)).toHaveCSS('background-color', 'rgb(245, 247, 248)')
       const lightScreenshot = await page.screenshot({ animations: 'disabled' })

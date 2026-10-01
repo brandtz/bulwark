@@ -123,7 +123,14 @@ function onMenuKey(e: KeyboardEvent) {
   else if (e.key === 'Home') active.value = enabledIndex(-1, 1)
   else if (e.key === 'End') active.value = enabledIndex(items.length, -1)
   else if (e.key === 'Escape' || e.key === 'Tab') { closeMenu(e.key === 'Escape'); return }
-  else if (e.key === 'Enter' || e.key === ' ') { const it = items[active.value]; if (it) choose(it) }
+  else if (e.key === 'Enter' || e.key === ' ') {
+    // choose() closes the menu and returns focus to the toggle; stop here so
+    // the item (about to be removed) is not re-focused below.
+    e.preventDefault()
+    const it = items[active.value]
+    if (it) choose(it)
+    return
+  }
   else return
   e.preventDefault()
   itemEls.value[active.value]?.focus()

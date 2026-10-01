@@ -109,6 +109,9 @@ export default defineNuxtConfig({
       // Set BULWARK_BACKEND=mock as an explicit opt-in for offline
       // demos — it is no longer the implicit fallback.
       backend: process.env.BULWARK_BACKEND || 'real',
+      // WP-A2: /dev/ui (component specimens) is off on built servers unless
+      // NUXT_PUBLIC_DEV_UI=1 (the Playwright test servers set it). Dev always has it.
+      devUi: false,
       appName: 'Bulwark',
     },
   },

@@ -66,6 +66,8 @@ export default defineConfig({
       // runtime overrides keep the backend flag and a non-Secure cookie on http://localhost.
       NUXT_PUBLIC_BACKEND: process.env.BULWARK_BACKEND || 'real',
       NUXT_SESSION_COOKIE_SECURE: 'false',
+      // WP-A2: built servers serve /dev/ui (component specimens) only with this flag.
+      NUXT_PUBLIC_DEV_UI: '1',
       // W5-1 / EH-R: the login rate-limiter (5/min per IP) hammers the e2e
       // suite, which authenticates as ~12 personas back-to-back. Default
       // the bypass ON in playwright so specs don't have to sleep; explicit
