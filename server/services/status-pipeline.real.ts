@@ -16,6 +16,7 @@
  */
 import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm'
 import { DEFAULT_PIPELINES } from '../../shared/pipelines/defaults'
+import { defaultHue, hueOnSave, isStatusHue } from '../../shared/utils/status-hue'
 import type {
   CanTransitionInput,
   CanTransitionOutput,
@@ -55,6 +56,7 @@ function nodeRowToContract(n: typeof statusPipelineNodes.$inferSelect): StatusPi
     slug: n.slug,
     labelKey: n.labelKey,
     color: n.color,
+    hue: isStatusHue(n.hue) ? n.hue : defaultHue(n.slug, n.color),
     description: n.description,
     sortOrder: n.sortOrder,
     isInitial: n.isInitial,
@@ -176,6 +178,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             slug: n.slug,
             labelKey: n.labelKey,
             color: n.color,
+            hue: n.hue ?? defaultHue(n.slug, n.color),
             description: n.description ?? null,
             sortOrder: n.sortOrder,
             isInitial: n.isInitial,
@@ -201,6 +204,8 @@ export class RealStatusPipelineService implements IStatusPipelineService {
   async save(input: StatusPipelineSaveInput): Promise<StatusPipelineFull> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     validatePipelineInput(input)
+    // WP-X5: colour-only callers (the legacy editor) keep each node's hue.
+    const previous = new Map((await this.getActive(input))?.nodes.map((n) => [n.slug, n] as const) ?? [])
     return await withAudit(async ({ tx, audit }) => {
       // Deactivate prior active versions.
       await tx
@@ -241,6 +246,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             slug: n.slug,
             labelKey: n.labelKey,
             color: n.color,
+            hue: hueOnSave(n, previous.get(n.slug)),
             description: n.description ?? null,
             sortOrder: n.sortOrder,
             isInitial: n.isInitial,
@@ -289,6 +295,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             slug: n.slug,
             labelKey: n.labelKey,
             color: n.color,
+            hue: n.hue ?? defaultHue(n.slug, n.color),
             description: n.description ?? null,
             sortOrder: n.sortOrder,
             isInitial: n.isInitial,
@@ -353,6 +360,7 @@ function validatePipelineInput(input: StatusPipelineSaveInput): void {
   let terminals = 0
   for (const n of input.nodes) {
     if (slugs.has(n.slug)) throw new Error(`Duplicate node slug: ${n.slug}`)
+    if (n.hue !== undefined && !isStatusHue(n.hue)) throw new Error(`Invalid pipeline: unknown status hue ${String(n.hue)}`)
     slugs.add(n.slug)
     if (n.isInitial) initials += 1
     if (n.isTerminal) terminals += 1

@@ -169,6 +169,13 @@
       "when": 1790695494686,
       "tag": "0023_x2_permit_ad19",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790817382555,
+      "tag": "0024_x5_status_hue",
+      "breakpoints": true
     }
   ]
 }

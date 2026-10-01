@@ -28,6 +28,7 @@ import type {
   StatusPipelineSaveInput,
 } from '../contracts/status-pipeline'
 import { DEFAULT_PIPELINES } from '../pipelines/defaults'
+import { defaultHue, hueOnSave, isStatusHue } from '../utils/status-hue'
 import { FIXTURE_ORG_ID, FIXTURE_ORG_ID_2 } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
 
@@ -62,6 +63,7 @@ function buildFromDefaults(
     slug: n.slug,
     labelKey: n.labelKey,
     color: n.color,
+    hue: n.hue ?? defaultHue(n.slug, n.color),
     description: n.description ?? null,
     sortOrder: n.sortOrder,
     isInitial: n.isInitial,
@@ -188,6 +190,7 @@ export class MockStatusPipelineService implements IStatusPipelineService {
         slug: d.slug,
         labelKey: d.labelKey,
         color: d.color,
+        hue: d.hue ?? defaultHue(d.slug, d.color),
         description: d.description ?? null,
         sortOrder: d.sortOrder,
         isInitial: d.isInitial,
@@ -216,6 +219,9 @@ export class MockStatusPipelineService implements IStatusPipelineService {
         p.isActive &&
         !p.deletedAt,
     )
+    // WP-X5: colour-only callers keep each node's hue (real service parity).
+    const priorIds = new Set(prior.map((p) => p.id))
+    const previous = new Map(nodeRows.filter((n) => priorIds.has(n.pipelineId)).map((n) => [n.slug, n] as const))
     const now = nowIso()
     for (const p of prior) {
       p.isActive = false
@@ -249,6 +255,7 @@ export class MockStatusPipelineService implements IStatusPipelineService {
       slug: n.slug,
       labelKey: n.labelKey,
       color: n.color,
+      hue: hueOnSave(n, previous.get(n.slug)),
       description: n.description ?? null,
       sortOrder: n.sortOrder,
       isInitial: n.isInitial,
@@ -296,6 +303,7 @@ function validatePipelineInput(input: StatusPipelineSaveInput): void {
   let terminals = 0
   for (const n of input.nodes) {
     if (slugs.has(n.slug)) throw new Error(`Duplicate node slug: ${n.slug}`)
+    if (n.hue !== undefined && !isStatusHue(n.hue)) throw new Error(`Invalid pipeline: unknown status hue ${String(n.hue)}`)
     slugs.add(n.slug)
     if (n.isInitial) initials += 1
     if (n.isTerminal) terminals += 1

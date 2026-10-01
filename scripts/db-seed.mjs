@@ -886,6 +886,15 @@ try {
               SELECT id FROM status_pipelines WHERE organization_id = ANY(${DEMO_ORG_IDS})
             )`
   await sql`DELETE FROM status_pipelines WHERE organization_id = ANY(${DEMO_ORG_IDS})`
+  // WP-X5: design hue per built-in slug. Mirrors SLUG_DEFAULT_HUE in
+  // shared/utils/status-hue.ts (tests/unit/status-hue.test.ts keeps them equal).
+  const SEED_STATUS_HUE = {
+    lead: 'slate', scheduled: 'blue', assessed: 'indigo', quoted: 'violet', accepted: 'teal', in_progress: 'amber',
+    completed: 'green', deliverable_pending: 'orange', deliverable_complete: 'green', invoiced: 'blue', paid: 'green',
+    on_hold: 'slate', cancelled: 'slate',
+    draft: 'slate', sent: 'blue', rejected: 'red', expired: 'gray', partial: 'amber', voided: 'gray',
+    generating: 'amber', ready: 'green', failed: 'red', queued: 'slate', running: 'amber', succeeded: 'green',
+  }
   const DEFAULT_PIPELINES_SEED = {
     property: [
       { slug: 'lead', color: '#94A3B8', sortOrder: 10, isInitial: true, isTerminal: false, allowedTransitions: ['scheduled', 'on_hold', 'cancelled'] },
@@ -948,17 +957,18 @@ try {
         const nodeId = mk(`pipeline-node-${entityType}-${n.slug}-${org.slug}`)
         await sql`
           INSERT INTO status_pipeline_nodes (
-            id, pipeline_id, slug, label_key, color, sort_order,
+            id, pipeline_id, slug, label_key, color, hue, sort_order,
             is_initial, is_terminal, allowed_transitions
           )
           VALUES (
             ${nodeId}, ${pipelineId}, ${n.slug},
-            ${`status.${entityType}.${n.slug}`}, ${n.color}, ${n.sortOrder},
+            ${`status.${entityType}.${n.slug}`}, ${n.color}, ${SEED_STATUS_HUE[n.slug] ?? 'gray'}, ${n.sortOrder},
             ${n.isInitial}, ${n.isTerminal}, ${sql.json(n.allowedTransitions)}
           )
           ON CONFLICT (pipeline_id, slug) DO UPDATE
             SET label_key = EXCLUDED.label_key,
                 color = EXCLUDED.color,
+                hue = EXCLUDED.hue,
                 sort_order = EXCLUDED.sort_order,
                 is_initial = EXCLUDED.is_initial,
                 is_terminal = EXCLUDED.is_terminal,

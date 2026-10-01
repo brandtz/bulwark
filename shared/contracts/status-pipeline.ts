@@ -51,6 +51,7 @@
  *     — if there's no graph, there's no editor value.
  */
 import { z } from 'zod'
+import { STATUS_HUES } from '../utils/status-hue'
 import { AuditFieldsSchema, UuidSchema } from './_shared'
 
 // ----------------------------------------------------------------------------
@@ -83,6 +84,13 @@ export const HexColorSchema = z
   .string()
   .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/u, 'Expected hex color like #1E3A8A')
 
+/**
+ * WP-X5: one of the design's 12 status hues (tokens.css data-hue), contrast-tuned
+ * for both themes. `color` stays readable for one phase (legacy editor); it no
+ * longer decides how a status renders.
+ */
+export const StatusHueSchema = z.enum(STATUS_HUES)
+
 export const StatusSlugSchema = z
   .string()
   .min(1)
@@ -96,6 +104,7 @@ export const StatusPipelineNodeSchema = z
     slug: StatusSlugSchema,
     labelKey: z.string().min(1).max(120),
     color: HexColorSchema,
+    hue: StatusHueSchema,
     description: z.string().max(500).nullable(),
     sortOrder: z.number().int(),
     isInitial: z.boolean(),
@@ -140,6 +149,8 @@ export const StatusPipelineNodeInputSchema = z.object({
   slug: StatusPipelineNodeSchema.shape.slug,
   labelKey: StatusPipelineNodeSchema.shape.labelKey,
   color: HexColorSchema,
+  /** Omitted by colour-only callers: the server keeps the node's hue when its colour is unchanged, else derives the nearest. */
+  hue: StatusHueSchema.optional(),
   description: z.string().max(500).nullable().optional(),
   sortOrder: z.number().int(),
   isInitial: z.boolean(),

@@ -52,6 +52,8 @@ export const statusPipelineNodes = pgTable(
     slug: text('slug').notNull(),
     labelKey: text('label_key').notNull(),
     color: text('color').notNull(),
+    // WP-X5: one of the 12 design status hues (shared/utils/status-hue.ts).
+    hue: text('hue').notNull().default('gray'),
     description: text('description'),
     sortOrder: integer('sort_order').notNull().default(0),
     isInitial: boolean('is_initial').notNull().default(false),
