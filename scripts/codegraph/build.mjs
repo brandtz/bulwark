@@ -421,6 +421,21 @@ async function indexDesign() {
       addEdge(`design:${designId}`, hit ? hit.id : `route:${r}`, 'DESIGNS_ROUTE')
     }
   }
+  // Packet J returns document and message templates as files, not screen SPEC
+  // folders: J/documents/DOC-01-*.html, J/messages/MSG-01-*.email.html ...
+  for (const [sub, prefix] of [['documents', 'DOC'], ['messages', 'MSG']]) {
+    const dir = path.join(DESIGN_RETURN, 'J', sub)
+    if (!fsExistsSync(dir)) continue
+    const files = (await walk(dir, (p) => /\.(html|txt)$/u.test(p))).map((p) => path.basename(p))
+    for (const id of uniq(files.map((f) => f.match(new RegExp(`^(${prefix}-\\d{2})`, 'u'))?.[1]).filter(Boolean))) {
+      received.add(id)
+      addNode(`design:${id}`, 'design', {
+        title: invRows.get(id)?.title ?? id, packet: 'J', status: 'received', dir: rel(dir),
+        spec: rel(path.join(dir, files.find((f) => f.startsWith(id)))), renders: files.filter((f) => f.startsWith(id)),
+        routes: [], components: [], states: [], openQuestions: [], inventory: invRows.get(id) ?? null,
+      })
+    }
+  }
   for (const [id, row] of invRows) {
     if (received.has(id)) continue
     if (id === 'SH-00' && fsExistsSync(path.join(DESIGN_RETURN, 'A', 'shell', 'INDEX.html'))) {
