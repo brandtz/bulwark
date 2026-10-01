@@ -10,7 +10,7 @@ From WP-L08 (epic `agents/epics/L08-observability.md`).
 |---|---|---|
 | `GET /api/health` | public | Liveness: the function boots and responds. Cheap; use it for uptime checks. |
 | `GET /api/ready` | public | Readiness. Returns `{ ready, migrationsOk, configOk }`, or 503 when the database is unreachable **or migrated behind the deployed code**. |
-| `GET /api/metrics` | admin session, or `Authorization: Bearer $BULWARK_METRICS_BEARER` | JSON counters plus per-route p50/p95 latency. Add `?format=prometheus` for Prometheus text. |
+| `GET /api/metrics` | platform operator (`BULWARK_PLATFORM_ADMIN_EMAILS`) or `Authorization: Bearer $BULWARK_METRICS_BEARER`: platform-wide view. Org admin session: that organization's requests, errors, latency and comms counters only. | JSON counters plus per-route p50/p95 latency (`scope` says which view). Add `?format=prometheus` for Prometheus text. |
 | `GET /api/health/storage` | org admin | Storage driver, a probe round trip, and a census of legacy `data:`/`local://` rows. |
 | Request logs | Vercel log drain | One JSON line per request: `request.complete` with `route`, `status` and `durationMs`. Unexpected RPC failures log as `rpc.unhandled`. |
 | Error tracking | set `SENTRY_DSN` | Unhandled 5xx errors, RPC failures (tagged with service and method) and worker job failures. Nothing is sent while the DSN is unset. |

@@ -28,7 +28,7 @@ function recipientHash(recipient: string): string {
 }
 
 export async function recordDeliveryAttempt(input: DeliveryAttemptInput): Promise<void> {
-  incCounter(COUNTERS.commsDeliveriesTotal) // WP-L08 S3
+  incCounter(COUNTERS.commsDeliveriesTotal, 1, input.organizationId) // WP-L08 S3
   try {
     await getDb().insert(messageDeliveries).values({
       organizationId: input.organizationId,

@@ -2,9 +2,9 @@
  * tests/e2e/observability.spec.ts — WP-L08 S2/S3 over HTTP.
  *
  * - /api/ready reports DB + migration state (the test DB is fully migrated).
- * - /api/metrics refuses anonymous and bad-bearer callers, serves admins JSON
- *   with per-route latency, and Prometheus text on request; request counters
- *   move between two scrapes.
+ * - /api/metrics refuses anonymous and bad-bearer callers; an org admin gets
+ *   only their organization's counters and latency (JSON or Prometheus text);
+ *   a platform operator or the scrape bearer gets the platform-wide view.
  */
 import { expect, test } from '@playwright/test'
 import { signIn, signOut } from './_helpers'
@@ -36,13 +36,19 @@ test.describe('observability endpoints (WP-L08)', () => {
     expect((await context.request.get('/api/metrics')).status()).toBe(403)
   })
 
-  test('metrics: admin gets JSON latency and Prometheus text; counters advance', async ({ context }) => {
+  // Isolation between organizations is unit-tested (tests/unit/observability.test.ts).
+  test('metrics: an org admin gets only their organization\'s metrics; counters advance', async ({ context }) => {
     await signOut(context)
     await signIn(context, 'drew@bulwark.demo')
+    const me = await (await context.request.post('/api/services/auth/currentUser', { data: { args: [] } })).json()
     const first = await context.request.get('/api/metrics')
     expect(first.status()).toBe(200)
     const json = await first.json()
+    expect(json).toMatchObject({ scope: 'organization', organizationId: me.activeOrganizationId })
     expect(json.counters).toHaveProperty('requests_total')
+    // Platform-only counters (no tenant) are not in an org's view.
+    expect(json.counters).not.toHaveProperty('rate_limit_blocks_total')
+    expect(json.counters).not.toHaveProperty('jobs_enqueued_total')
     expect(Array.isArray(json.latency)).toBe(true)
     expect(json.latency.length).toBeGreaterThan(0)
     expect(json.latency[0]).toHaveProperty('p95')
@@ -56,5 +62,15 @@ test.describe('observability endpoints (WP-L08)', () => {
 
     const second = await (await context.request.get('/api/metrics')).json()
     expect(second.counters.requests_total).toBeGreaterThan(json.counters.requests_total)
+  })
+
+  test('metrics: a platform operator gets the platform-wide view', async ({ context }) => {
+    test.skip(!(process.env.BULWARK_PLATFORM_ADMIN_EMAILS ?? '').includes('sasha@bulwark.platform'), 'server has no platform operator configured')
+    await signOut(context)
+    await signIn(context, 'sasha@bulwark.platform')
+    const json = await (await context.request.get('/api/metrics')).json()
+    expect(json.scope).toBe('platform')
+    expect(json.counters).toHaveProperty('rate_limit_blocks_total')
+    expect(json.counters).toHaveProperty('jobs_enqueued_total')
   })
 })

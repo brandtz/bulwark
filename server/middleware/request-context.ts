@@ -32,15 +32,18 @@ export default defineEventHandler((event) => {
   const path = url.split('?')[0] ?? url
 
   log('info', 'request.start', { requestId, method, path })
-  incCounter(COUNTERS.requestsTotal)
 
   event.node.res.on('finish', () => {
     const status = event.node.res.statusCode
     const durationMs = Date.now() - startedAt
     const route = routeLabel(path)
-    if (status >= 500) incCounter(COUNTERS.requestsErroredTotal)
+    // Counted at finish, when the session (if any) is known: a signed-in
+    // request also feeds its organization's own metrics (org-scoped /api/metrics).
+    const organizationId = (event.context.bulwarkSession as { activeOrganizationId?: string } | null | undefined)?.activeOrganizationId ?? null
+    incCounter(COUNTERS.requestsTotal, 1, organizationId)
+    if (status >= 500) incCounter(COUNTERS.requestsErroredTotal, 1, organizationId)
     // WP-L08 S4: per-route latency histogram (p50/p95 for the L10 budget).
-    observeLatency(route, method, durationMs)
+    observeLatency(route, method, durationMs, organizationId)
     log(status >= 500 ? 'error' : 'info', 'request.complete', {
       requestId,
       method,

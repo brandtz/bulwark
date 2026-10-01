@@ -168,7 +168,7 @@ async function dispatchEvent(eventName: string, payload: unknown): Promise<void>
 
   const db = getDb()
   for (const r of recipients) {
-    incCounter(COUNTERS.notificationsDispatchedTotal)
+    incCounter(COUNTERS.notificationsDispatchedTotal, 1, orgId)
     const fr: FanoutRecipient = {
       userId: r.userId,
       email: r.email,
@@ -252,7 +252,7 @@ async function dispatchEvent(eventName: string, payload: unknown): Promise<void>
     }
     for (const channel of result.channels) {
       if ((channel.channel !== 'email' && channel.channel !== 'sms') || channel.outcome !== 'error') continue
-      incCounter(COUNTERS.commsDeliveryFailedTotal)
+      incCounter(COUNTERS.commsDeliveryFailedTotal, 1, orgId)
       await emit(commsDeliveryFailed, {
         organizationId: orgId,
         entityId: r.userId,

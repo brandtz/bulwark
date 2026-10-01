@@ -17,6 +17,7 @@ import {
   observeLatency,
   renderPrometheus,
   routeLabel,
+  snapshotMetrics,
 } from '~~/server/utils/metrics'
 import { checkMigrations, expectedMigration } from '~~/server/utils/migration-drift'
 
@@ -144,6 +145,32 @@ describe('latency metrics + Prometheus (WP-L08 S3/S4)', () => {
     const routes = latencySummary().map((r) => r.route)
     expect(routes.length).toBeLessThanOrEqual(301)
     expect(routes).toContain('GET other')
+  })
+
+  it('keeps each organization\'s metrics apart from the platform totals', () => {
+    const A = '00000000-0000-4000-8000-00000000000a'
+    const B = '00000000-0000-4000-8000-00000000000b'
+    incCounter(COUNTERS.requestsTotal, 1, A)
+    incCounter(COUNTERS.requestsTotal, 1, A)
+    incCounter(COUNTERS.requestsTotal, 1, B)
+    incCounter(COUNTERS.requestsTotal) // anonymous: platform only
+    incCounter(COUNTERS.rateLimitBlocksTotal, 1, A) // platform-only counter
+    observeLatency('/admin/quotes', 'GET', 30, A)
+    observeLatency('/admin/secret-b', 'GET', 30, B)
+
+    expect(snapshotMetrics().requests_total).toBe(4)
+    expect(snapshotMetrics(A)).toMatchObject({ requests_total: 2, comms_deliveries_total: 0 })
+    expect(snapshotMetrics(A)).not.toHaveProperty('rate_limit_blocks_total')
+    expect(snapshotMetrics(B).requests_total).toBe(1)
+    // An org that never sent traffic sees zeros, never another org's numbers.
+    expect(snapshotMetrics('00000000-0000-4000-8000-00000000000c').requests_total).toBe(0)
+
+    expect(latencySummary(A).map((r) => r.route)).toEqual(['GET /admin/quotes'])
+    expect(latencySummary().map((r) => r.route).sort()).toEqual(['GET /admin/quotes', 'GET /admin/secret-b'])
+    const promA = renderPrometheus(A)
+    expect(promA).toContain('bulwark_requests_total 2')
+    expect(promA).not.toContain('secret-b')
+    expect(promA).not.toContain('rate_limit_blocks')
   })
 })
 
