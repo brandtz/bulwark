@@ -65,6 +65,15 @@ export const PropertySchema = z.object({
   gateCode: z.string().nullable(),
   specialInstructions: z.string().nullable(),
   primaryContactId: UuidSchema.nullable(),
+  // WP-B2 (AD-10/AD-13). Assignee = the staff owner shown on cards and the
+  // hub meta row. statusReason/statusNote/statusChangedAt are written by
+  // updateStatus (hold/cancel banner); resumeOn is a hold's expected resume
+  // date (YYYY-MM-DD).
+  assigneeUserId: UuidSchema.nullable(),
+  statusReason: z.string().nullable(),
+  statusNote: z.string().nullable(),
+  statusChangedAt: z.string().nullable(),
+  resumeOn: z.string().nullable(),
 }).merge(AuditFieldsSchema)
 export type Property = z.infer<typeof PropertySchema>
 
@@ -83,6 +92,7 @@ export const PropertyCreateInputSchema = PropertySchema.pick({
   gateCode: true,
   specialInstructions: true,
   primaryContactId: true,
+  assigneeUserId: true,
 }).partial({
   lotSizeAcres: true,
   parcelNumber: true,
@@ -91,6 +101,7 @@ export const PropertyCreateInputSchema = PropertySchema.pick({
   gateCode: true,
   specialInstructions: true,
   primaryContactId: true,
+  assigneeUserId: true,
 }).extend({
   organizationId: UuidSchema,
 })
@@ -106,8 +117,33 @@ export const PropertyListInputSchema = PaginationInputSchema.extend({
   organizationId: UuidSchema,
   status: PropertyStatusValueSchema.optional(),
   search: z.string().optional(),
+  /** WP-B2: owner filter; `'none'` = unassigned. */
+  assigneeUserId: z.union([UuidSchema, z.literal('none')]).optional(),
 })
 export type PropertyListInput = z.infer<typeof PropertyListInputSchema>
+
+/** WP-B2 (AD-13): extras captured with a status change (hold / cancel modals). */
+export const PropertyStatusDetailsSchema = z.object({
+  note: z.string().max(2000).optional(),
+  /** Expected resume date of a hold, YYYY-MM-DD. */
+  resumeOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+})
+export type PropertyStatusDetails = z.infer<typeof PropertyStatusDetailsSchema>
+
+/**
+ * WP-B2 (AD-10 cards, AD-12 stat cards). Money in cents.
+ * contractValue = sum of accepted quotes; invoiced = sum of non-draft,
+ * non-void invoices; balance = invoiced - paid.
+ */
+export const PropertySummarySchema = z.object({
+  propertyId: UuidSchema,
+  contractValueCents: z.number().int(),
+  invoicedCents: z.number().int(),
+  paidCents: z.number().int(),
+  balanceCents: z.number().int(),
+  openInvoiceCount: z.number().int(),
+})
+export type PropertySummary = z.infer<typeof PropertySummarySchema>
 
 export const PropertyListOutputSchema = ListOutputSchema(PropertySchema)
 export type PropertyListOutput = z.infer<typeof PropertyListOutputSchema>
@@ -145,7 +181,9 @@ export interface IPropertyService {
   create(input: PropertyCreateInput): Promise<Property>
   update(input: PropertyUpdateInput): Promise<Property>
   softDelete(id: string, organizationId: string): Promise<void>
-  updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string): Promise<Property>
+  updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string, details?: PropertyStatusDetails): Promise<Property>
+  /** WP-B2: money roll-up per property (one query for many ids, at most 500). */
+  summaries(ids: string[], organizationId: string): Promise<PropertySummary[]>
   /**
    * W2-1 / EH-E (ADR-0018). One-shot depth fetch for the overview hub.
    * Returns null when the property is missing or soft-deleted.

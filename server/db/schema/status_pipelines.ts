@@ -59,6 +59,8 @@ export const statusPipelineNodes = pgTable(
     isInitial: boolean('is_initial').notNull().default(false),
     isTerminal: boolean('is_terminal').notNull().default(false),
     requiresReason: boolean('requires_reason').notNull().default(false),
+    // WP-B2 (ED-030): soft WIP limit for the board column; null = none.
+    wipLimit: integer('wip_limit'),
     allowedTransitions: jsonb('allowed_transitions').$type<string[]>().notNull().default([]),
     ...auditColumns,
   },

@@ -17,8 +17,10 @@
  */
 import type {
   IPropertyService, Property, PropertyCreateInput, PropertyDepth, PropertyListInput,
-  PropertyListOutput, PropertyStatusValue, PropertyUpdateInput,
+  PropertyListOutput, PropertyStatusDetails, PropertyStatusValue, PropertySummary, PropertyUpdateInput,
 } from '../contracts/property'
+import type { IQuoteService } from '../contracts/quote'
+import type { IInvoiceService } from '../contracts/invoice'
 import { FIXTURE_PROPERTIES } from './fixtures'
 import { assertSameTenant, type TenantResolver } from './tenant'
 import type { MockBuildingService } from './building.mock'
@@ -40,6 +42,7 @@ export class MockPropertyService implements IPropertyService {
   private buildingSvc: MockBuildingService | null = null
   private contactSvc: MockContactService | null = null
   private photoSvc: MockPropertyPhotoService | null = null
+  private moneySources: { quote: IQuoteService, invoice: IInvoiceService } | null = null
 
   constructor(private readonly tenantResolver?: TenantResolver) {
     this.statusPipelines = new MockStatusPipelineService(tenantResolver)
@@ -55,12 +58,43 @@ export class MockPropertyService implements IPropertyService {
     this.photoSvc = deps.photo
   }
 
+  /** WP-B2: `summaries` reads the quote and invoice mocks (wired by the factory). */
+  attachMoneySources(deps: { quote: IQuoteService, invoice: IInvoiceService }): void {
+    this.moneySources = deps
+  }
+
+  async summaries(ids: string[], organizationId: string): Promise<PropertySummary[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const live = await this.getMany(ids, organizationId)
+    return Promise.all(live.map(async ({ id: propertyId }) => {
+      const quotes = this.moneySources
+        ? (await this.moneySources.quote.list({ organizationId, propertyId, status: 'accepted', page: 1, pageSize: 200 })).rows
+        : []
+      const invoices = this.moneySources
+        ? (await this.moneySources.invoice.list({ organizationId, propertyId, page: 1, pageSize: 200 })).rows
+            .filter((i) => i.status === 'sent' || i.status === 'partial' || i.status === 'paid')
+        : []
+      const invoicedCents = invoices.reduce((s, i) => s + i.totals.totalCents, 0)
+      const paidCents = invoices.reduce((s, i) => s + i.paidAmountCents, 0)
+      return {
+        propertyId,
+        contractValueCents: quotes.reduce((s, q) => s + q.totals.totalCents, 0),
+        invoicedCents,
+        paidCents,
+        balanceCents: invoicedCents - paidCents,
+        openInvoiceCount: invoices.filter((i) => i.status !== 'paid').length,
+      }
+    }))
+  }
+
   async list(input: PropertyListInput): Promise<PropertyListOutput> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     let scoped = rows.filter(r =>
       r.organizationId === input.organizationId && r.deletedAt === null
     )
     if (input.status) scoped = scoped.filter(r => r.status === input.status)
+    if (input.assigneeUserId === 'none') scoped = scoped.filter(r => r.assigneeUserId === null)
+    else if (input.assigneeUserId) scoped = scoped.filter(r => r.assigneeUserId === input.assigneeUserId)
     if (input.search) {
       const q = input.search.toLowerCase()
       scoped = scoped.filter(r =>
@@ -120,6 +154,11 @@ export class MockPropertyService implements IPropertyService {
       gateCode: input.gateCode ?? null,
       specialInstructions: input.specialInstructions ?? null,
       primaryContactId: input.primaryContactId ?? null,
+      assigneeUserId: input.assigneeUserId ?? null,
+      statusReason: null,
+      statusNote: null,
+      statusChangedAt: null,
+      resumeOn: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -143,7 +182,7 @@ export class MockPropertyService implements IPropertyService {
     r.deletedAt = nowIso()
   }
 
-  async updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string): Promise<Property> {
+  async updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string, details?: PropertyStatusDetails): Promise<Property> {
     assertSameTenant(this.tenantResolver, organizationId)
     const r = rows.find(x => x.id === id && x.organizationId === organizationId)
     if (!r) throw new Error('Property not found')
@@ -158,7 +197,13 @@ export class MockPropertyService implements IPropertyService {
     if (r.status !== status && target.requiresReason && !reason?.trim()) {
       throw new Error('Invalid property status transition: a reason is required')
     }
-    r.status = status
+    if (r.status !== status) {
+      r.status = status
+      r.statusReason = reason?.trim() || null
+      r.statusNote = details?.note?.trim() || null
+      r.statusChangedAt = nowIso()
+      r.resumeOn = details?.resumeOn ?? null
+    }
     r.updatedAt = nowIso()
     return r
   }

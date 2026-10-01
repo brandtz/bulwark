@@ -110,6 +110,8 @@ export const StatusPipelineNodeSchema = z
     isInitial: z.boolean(),
     isTerminal: z.boolean(),
     requiresReason: z.boolean(),
+    /** WP-B2 (ED-030): soft WIP limit for the board column; null = none. */
+    wipLimit: z.number().int().positive().nullable(),
     /** Slugs of nodes reachable from this one via a legal transition. */
     allowedTransitions: z.array(z.string().min(1).max(64)),
   })
@@ -156,6 +158,7 @@ export const StatusPipelineNodeInputSchema = z.object({
   isInitial: z.boolean(),
   isTerminal: z.boolean(),
   requiresReason: z.boolean().optional(),
+  wipLimit: z.number().int().positive().nullable().optional(),
   allowedTransitions: z.array(z.string().min(1).max(64)),
 })
 export type StatusPipelineNodeInput = z.infer<typeof StatusPipelineNodeInputSchema>

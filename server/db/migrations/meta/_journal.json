@@ -176,6 +176,13 @@
       "when": 1790817382555,
       "tag": "0024_x5_status_hue",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790893729777,
+      "tag": "0025_b2_property_pipeline",
+      "breakpoints": true
     }
   ]
 }

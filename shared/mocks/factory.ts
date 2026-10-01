@@ -148,6 +148,7 @@ export function createMockServices(
     // mock needs to read so reporting can be wired into the literal
     // bag below without a two-pass null cast.
     const quoteMock = new MockQuoteService(resolver)
+    propertyMock.attachMoneySources({ quote: quoteMock, invoice })
     const subcontractorMock = new MockSubcontractorService(resolver)
     const deliverableMock = new MockDeliverableService(resolver, () => job)
     const programMock = new MockProgramService(resolver, async (templateId, orgId) =>

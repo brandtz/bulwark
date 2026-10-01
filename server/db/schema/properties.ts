@@ -5,7 +5,7 @@
  * to a property. Pipeline status is the kanban column on /admin/pipeline (E3).
  */
 import { sql } from 'drizzle-orm'
-import { pgTable, text, uuid, integer, numeric, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, uuid, integer, numeric, index, timestamp, date } from 'drizzle-orm/pg-core'
 import { auditColumns, orgColumn } from './_shared'
 
 export const properties = pgTable(
@@ -26,6 +26,14 @@ export const properties = pgTable(
 
     // Pipeline
     status: text('status').notNull().default('lead'),
+    // WP-B2 (AD-10/AD-13): owner of the property in the pipeline, and the
+    // reason/note/date captured by the last status change (hold/cancel
+    // banner on the hub). resumeOn is the expected resume date of a hold.
+    assigneeUserId: uuid('assignee_user_id'),
+    statusReason: text('status_reason'),
+    statusNote: text('status_note'),
+    statusChangedAt: timestamp('status_changed_at', { withTimezone: true }),
+    resumeOn: date('resume_on'),
 
     // Free-text notes
     notes: text('notes'),

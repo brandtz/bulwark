@@ -22,7 +22,7 @@
  *     2× the audit volume. If we ever need it (e.g. HIPAA-style logs)
  *     we add it explicitly per-method, not blanket.
  */
-import { and, eq, ilike, inArray, or, sql, type SQL } from 'drizzle-orm'
+import { and, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
 import type {
   IPropertyService,
   Property,
@@ -30,7 +30,9 @@ import type {
   PropertyDepth,
   PropertyListInput,
   PropertyListOutput,
+  PropertyStatusDetails,
   PropertyStatusValue,
+  PropertySummary,
   PropertyUpdateInput,
 } from '../../shared/contracts/property'
 import { getDb } from '../db/client'
@@ -39,6 +41,9 @@ import { buildings } from '../db/schema/buildings'
 import { buildingSections } from '../db/schema/building_sections'
 import { contacts } from '../db/schema/contacts'
 import { propertyPhotos } from '../db/schema/property_photos'
+import { memberships } from '../db/schema/users'
+import { quotes } from '../db/schema/quotes'
+import { invoices } from '../db/schema/invoices'
 import { escapeLikeContains } from '../../shared/utils/likeEscape'
 import { assertSameTenant, type TenantResolver } from './_tenant'
 import { withAudit } from './_tx'
@@ -70,6 +75,8 @@ export class RealPropertyService implements IPropertyService {
       sql`${properties.deletedAt} IS NULL`,
     ]
     if (input.status) conditions.push(eq(properties.status, input.status))
+    if (input.assigneeUserId === 'none') conditions.push(isNull(properties.assigneeUserId))
+    else if (input.assigneeUserId) conditions.push(eq(properties.assigneeUserId, input.assigneeUserId))
     if (input.search) {
       // W5-3 / ADR-0037: escape LIKE wildcards in user input.
       const q = escapeLikeContains(input.search)
@@ -137,6 +144,52 @@ export class RealPropertyService implements IPropertyService {
     return rows.map(dbPropertyToContract)
   }
 
+  async summaries(ids: string[], organizationId: string): Promise<PropertySummary[]> {
+    assertSameTenant(this.tenantResolver, organizationId)
+    const unique = [...new Set(ids)]
+    if (unique.length === 0) return []
+    if (unique.length > 500) throw new Error('Invalid summaries: at most 500 ids')
+    const db = getDb()
+    const live = await db
+      .select({ id: properties.id })
+      .from(properties)
+      .where(and(inArray(properties.id, unique), eq(properties.organizationId, organizationId), isNull(properties.deletedAt)))
+    const liveIds = live.map((r) => r.id)
+    if (liveIds.length === 0) return []
+    const [quoteRows, invoiceRows] = await Promise.all([
+      db
+        .select({ propertyId: quotes.propertyId, cents: sql<string>`coalesce(sum(${quotes.totalCents}), 0)` })
+        .from(quotes)
+        .where(and(inArray(quotes.propertyId, liveIds), eq(quotes.organizationId, organizationId), eq(quotes.status, 'accepted'), isNull(quotes.deletedAt)))
+        .groupBy(quotes.propertyId),
+      db
+        .select({
+          propertyId: invoices.propertyId,
+          invoiced: sql<string>`coalesce(sum(${invoices.totalCents}), 0)`,
+          paid: sql<string>`coalesce(sum(${invoices.paidAmountCents}), 0)`,
+          open: sql<string>`count(*) filter (where ${invoices.status} in ('sent', 'partial'))`,
+        })
+        .from(invoices)
+        .where(and(inArray(invoices.propertyId, liveIds), eq(invoices.organizationId, organizationId), inArray(invoices.status, ['sent', 'partial', 'paid']), isNull(invoices.deletedAt)))
+        .groupBy(invoices.propertyId),
+    ])
+    const quoteBy = new Map(quoteRows.map((r) => [r.propertyId, Number(r.cents)]))
+    const invoiceBy = new Map(invoiceRows.map((r) => [r.propertyId, r]))
+    return liveIds.map((propertyId) => {
+      const inv = invoiceBy.get(propertyId)
+      const invoicedCents = Number(inv?.invoiced ?? 0)
+      const paidCents = Number(inv?.paid ?? 0)
+      return {
+        propertyId,
+        contractValueCents: quoteBy.get(propertyId) ?? 0,
+        invoicedCents,
+        paidCents,
+        balanceCents: invoicedCents - paidCents,
+        openInvoiceCount: Number(inv?.open ?? 0),
+      }
+    })
+  }
+
   async create(input: PropertyCreateInput): Promise<Property> {
     assertSameTenant(this.tenantResolver, input.organizationId)
     const pipeline = await this.statusPipelines.bootstrap({
@@ -145,6 +198,7 @@ export class RealPropertyService implements IPropertyService {
     })
     const initialStatus = pipeline.nodes.find((node) => node.isInitial)
     if (!initialStatus) throw new Error('Invalid property pipeline: no initial status')
+    if (input.assigneeUserId) await assertAssignable(input.assigneeUserId, input.organizationId)
     const created = await withAudit(async ({ tx, audit }) => {
       const [row] = await tx
         .insert(properties)
@@ -167,6 +221,7 @@ export class RealPropertyService implements IPropertyService {
           gateCode: input.gateCode ?? null,
           specialInstructions: input.specialInstructions ?? null,
           primaryContactId: input.primaryContactId ?? null,
+          assigneeUserId: input.assigneeUserId ?? null,
         })
         .returning()
       await audit.record({
@@ -217,6 +272,10 @@ export class RealPropertyService implements IPropertyService {
       if (input.gateCode !== undefined) patch.gateCode = input.gateCode ?? null
       if (input.specialInstructions !== undefined) patch.specialInstructions = input.specialInstructions ?? null
       if (input.primaryContactId !== undefined) patch.primaryContactId = input.primaryContactId ?? null
+      if (input.assigneeUserId !== undefined) {
+        if (input.assigneeUserId) await assertAssignable(input.assigneeUserId, input.organizationId)
+        patch.assigneeUserId = input.assigneeUserId ?? null
+      }
 
       const [after] = await tx
         .update(properties)
@@ -261,7 +320,7 @@ export class RealPropertyService implements IPropertyService {
     })
   }
 
-  async updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string): Promise<Property> {
+  async updateStatus(id: string, status: PropertyStatusValue, organizationId: string, reason?: string, details?: PropertyStatusDetails): Promise<Property> {
     assertSameTenant(this.tenantResolver, organizationId)
     const pipeline = await this.statusPipelines.bootstrap({ organizationId, entityType: 'property' })
     const target = pipeline.nodes.find((node) => node.slug === status)
@@ -283,7 +342,16 @@ export class RealPropertyService implements IPropertyService {
       }
       const [after] = await tx
         .update(properties)
-        .set({ status, updatedAt: new Date() })
+        .set(before.status === status
+          ? { updatedAt: new Date() }
+          : {
+              status,
+              statusReason: reason?.trim() || null,
+              statusNote: details?.note?.trim() || null,
+              statusChangedAt: new Date(),
+              resumeOn: details?.resumeOn ?? null,
+              updatedAt: new Date(),
+            })
         .where(and(eq(properties.id, id), eq(properties.organizationId, organizationId)))
         .returning()
       await audit.record({
@@ -292,7 +360,13 @@ export class RealPropertyService implements IPropertyService {
         entityId: id,
         action: 'state_change',
         actorUserId: this.actorUserId(),
-        metadata: { from: before.status, to: status, ...(reason?.trim() ? { reason: reason.trim() } : {}) },
+        metadata: {
+          from: before.status,
+          to: status,
+          ...(reason?.trim() ? { reason: reason.trim() } : {}),
+          ...(details?.note?.trim() ? { note: details.note.trim() } : {}),
+          ...(details?.resumeOn ? { resumeOn: details.resumeOn } : {}),
+        },
       })
       return dbPropertyToContract(after!)
     })
@@ -379,5 +453,17 @@ export class RealPropertyService implements IPropertyService {
       // WP-L02 key → signed URL; WP-X3: never a photo this viewer may not see (infected, or unscanned and not theirs).
       primaryPhotoUrl: await signAssetUrl(photoRows.find((p) => !isWithheld(p.scanStatus, p.uploadedByUserId, this.actorUserId()))?.url ?? null),
     }
+  }
+}
+
+/** WP-B2: an assignee must be an active staff member of the property's org. */
+async function assertAssignable(userId: string, organizationId: string): Promise<void> {
+  const [row] = await getDb()
+    .select({ role: memberships.role })
+    .from(memberships)
+    .where(and(eq(memberships.userId, userId), eq(memberships.organizationId, organizationId), eq(memberships.isActive, true), isNull(memberships.deletedAt)))
+    .limit(1)
+  if (!row || !['super_admin', 'org_admin', 'org_manager', 'field'].includes(row.role)) {
+    throw new Error('Invalid assignee: not an active staff member of this organization')
   }
 }

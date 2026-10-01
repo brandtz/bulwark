@@ -62,6 +62,7 @@ function nodeRowToContract(n: typeof statusPipelineNodes.$inferSelect): StatusPi
     isInitial: n.isInitial,
     isTerminal: n.isTerminal,
     requiresReason: n.requiresReason,
+    wipLimit: n.wipLimit ?? null,
     allowedTransitions: (n.allowedTransitions ?? []) as string[],
     createdAt: n.createdAt.toISOString(),
     updatedAt: n.updatedAt.toISOString(),
@@ -184,6 +185,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             isInitial: n.isInitial,
             isTerminal: n.isTerminal,
             requiresReason: n.requiresReason ?? false,
+            wipLimit: n.wipLimit ?? null,
             allowedTransitions: n.allowedTransitions,
           })),
         )
@@ -252,6 +254,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             isInitial: n.isInitial,
             isTerminal: n.isTerminal,
             requiresReason: n.requiresReason ?? false,
+            wipLimit: n.wipLimit ?? null,
             allowedTransitions: n.allowedTransitions,
           })),
         )
@@ -301,6 +304,7 @@ export class RealStatusPipelineService implements IStatusPipelineService {
             isInitial: n.isInitial,
             isTerminal: n.isTerminal,
             requiresReason: n.requiresReason ?? false,
+            wipLimit: n.wipLimit ?? null,
             allowedTransitions: n.allowedTransitions,
           })),
         )

@@ -1218,6 +1218,13 @@
         "org_admin",
         "org_manager"
       ],
+      "summaries": [
+        "super_admin",
+        "org_admin",
+        "org_manager",
+        "field",
+        "viewer"
+      ],
       "update": [
         "super_admin",
         "org_admin",
