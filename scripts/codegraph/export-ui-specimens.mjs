@@ -38,13 +38,17 @@ const both = ['light', 'dark']
 const PAIRS = [
   ['button-primary', 'BulwarkButton', '.bw-btn--primary:text-is("New Quote")', both],
   ['button-secondary', 'BulwarkButton', '.bw-btn--secondary:text-is("Schedule")', both],
-  ['button-ghost', 'BulwarkButton', '.bw-btn--ghost:text-is("View All")', both],
+  // Light ghost/link text uses accent-700 (ED-065: accent-600 fails 4.5:1 for light accents).
+  ['button-ghost', 'BulwarkButton', '.bw-btn--ghost:text-is("View All")', ['dark']],
   // Dark: white on the dark danger fill is 2.5:1; BulwarkButton uses dark ink (WP-A2).
   ['button-destructive', 'BulwarkButton', '.bw-btn--destructive:text-is("Delete Property")', ['light']],
-  ['button-link', 'BulwarkButton', '.bw-btn--link:text-is("Learn more")', both],
+  ['button-link', 'BulwarkButton', '.bw-btn--link:text-is("Learn more")', ['dark']],
   ...HUES.map((h) => [`badge-${h}`, 'StatusBadge', `.bw-badge[data-hue="${h}"]:text-is("${cap(h)}")`, both]),
   ['toggle-on', 'BulwarkToggle', '.bw-toggle.is-on', both],
   ['toggle-off', 'BulwarkToggle', '.bw-toggle:not(.is-on):not(.is-disabled)', both],
+  // WP-A3. Banners and icon chips are left out: the specimen draws Lucide from a CDN,
+  // the app its own sprite, so glyph pixels differ by design.
+  ['chip-default', 'BulwarkChips', '.bw-chip:not(.bw-chip--accent):text-is("Roofing")', both],
 ]
 
 const { chromium } = await import('@playwright/test')

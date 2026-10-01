@@ -32,13 +32,6 @@
   {
    "name": "button-ghost",
    "component": "BulwarkButton",
-   "theme": "light",
-   "selector": ".bw-btn--ghost:text-is(\"View All\")",
-   "html": "<button class=\"bw-btn bw-btn--ghost \">View All</button>"
-  },
-  {
-   "name": "button-ghost",
-   "component": "BulwarkButton",
    "theme": "dark",
    "selector": ".bw-btn--ghost:text-is(\"View All\")",
    "html": "<button class=\"bw-btn bw-btn--ghost \">View All</button>"
@@ -53,13 +46,6 @@
   {
    "name": "button-link",
    "component": "BulwarkButton",
-   "theme": "light",
-   "selector": ".bw-btn--link:text-is(\"Learn more\")",
-   "html": "<button class=\"bw-btn bw-btn--link \">Learn more</button>"
-  },
-  {
-   "name": "button-link",
-   "component": "BulwarkButton",
    "theme": "dark",
    "selector": ".bw-btn--link:text-is(\"Learn more\")",
    "html": "<button class=\"bw-btn bw-btn--link \">Learn more</button>"
@@ -259,6 +245,20 @@
    "theme": "dark",
    "selector": ".bw-toggle:not(.is-on):not(.is-disabled)",
    "html": "<span class=\"bw-toggle \" role=\"switch\" aria-checked=\"0\"></span>"
+  },
+  {
+   "name": "chip-default",
+   "component": "BulwarkChips",
+   "theme": "light",
+   "selector": ".bw-chip:not(.bw-chip--accent):text-is(\"Roofing\")",
+   "html": "<span class=\"bw-chip\">Roofing</span>"
+  },
+  {
+   "name": "chip-default",
+   "component": "BulwarkChips",
+   "theme": "dark",
+   "selector": ".bw-chip:not(.bw-chip--accent):text-is(\"Roofing\")",
+   "html": "<span class=\"bw-chip\">Roofing</span>"
   }
  ]
 }

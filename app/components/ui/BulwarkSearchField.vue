@@ -60,7 +60,9 @@ function clear() {
 }
 
 function onGlobalKey(e: KeyboardEvent) {
-  if (!props.shortcut || e.key !== props.shortcut || e.metaKey || e.ctrlKey || e.altKey) return
+  // defaultPrevented: another search field (the first mounted) already took
+  // the shortcut, so a page with two never splits focus between them.
+  if (!props.shortcut || e.key !== props.shortcut || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return
   const t = e.target as HTMLElement | null
   if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return
   e.preventDefault()

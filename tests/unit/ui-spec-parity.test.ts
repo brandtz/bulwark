@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest'
 import uiSpec from './_ui-spec.generated.json'
 
 const UI = path.resolve(__dirname, '../../app/components/ui')
-const spec = (uiSpec as { components: Record<string, { props: Array<{ name: string }> }> }).components
+const spec = (uiSpec as { components: Record<string, { props: Array<{ name: string, type?: string }> }> }).components
 
 // Empty since the A2 restyle finished (2026-09-30). A primitive that falls behind
 // its SPEC again fails the test above; do not park it here without a WP note.
@@ -40,7 +40,8 @@ function gaps(): Record<string, string[]> {
     const entry = spec[name]
     if (!entry) continue
     const declared = declaredProps(readFileSync(path.join(UI, file), 'utf8'))
-    out[name] = entry.props.map((p) => p.name).filter((p) => !declared.has(p))
+    // SPEC rows typed `slot` (cardTemplate) or `inherits` (density) are not props.
+    out[name] = entry.props.filter((p) => !/^(slot|inherits)/u.test(p.type ?? '')).map((p) => p.name).filter((p) => !declared.has(p))
   }
   return out
 }

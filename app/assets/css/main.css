@@ -11,6 +11,29 @@
 @import './base.css';
 @import './system-theme.css';
 
+/*
+ * ED-065 (WP-A3): light-theme text contrast. The design's --text-muted
+ * (#8C96A3) is 2.9:1 on light surfaces and --accent-600 text drops to 2.7-3.9:1
+ * for light tenant accents (orange, green, cyan, yellow). Both fail WCAG AA
+ * for the 12-14px help text, breadcrumbs, links and ghost buttons that use
+ * them. tokens.css/base.css mirror the design (tokens-sync test), so the
+ * override lives here: neutral-600 (>= 5.3:1 on every light surface) and
+ * accent-700 for link/ghost text. Dark theme is unchanged.
+ */
+:root:not([data-theme="dark"]):not([data-theme="system"]),
+[data-theme="light"] {
+  --text-muted: var(--neutral-600);
+  --text-link: var(--accent-700);
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --text-muted: var(--neutral-600);
+    --text-link: var(--accent-700);
+  }
+}
+.bw-btn--ghost { color: var(--accent-700); }
+[data-theme="dark"] .bw-btn--ghost { color: var(--accent-300); }
+
 @font-face {
   font-family: Barlow;
   src: url('/fonts/barlow-latin-400-normal.woff2') format('woff2');

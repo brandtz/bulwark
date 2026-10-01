@@ -2,7 +2,9 @@
   DevThemePair.vue — renders its slot twice, light and dark side by side
   (WP-A2 /dev/ui specimen layout, after components/*.html in the design).
   Tokens are scoped by [data-theme] on any element, so each panel is a full
-  theme at comfortable density (specimens and visual parity must not follow
+  theme at comfortable density. tokens.css defines light values only on
+  `:root, [data-accent]`, so the light panel carries data-accent to stay light
+  inside a dark page (a signed-in viewer's saved theme) (specimens and visual parity must not follow
   the viewer's saved density). Content is duplicated: scope test locators to a panel
   ([data-panel="light"] / [data-panel="dark"]).
 -->
@@ -13,6 +15,7 @@
       :key="theme"
       :data-theme="theme"
       :data-panel="theme"
+      :data-accent="theme === 'light' ? '' : undefined"
       data-density="comfortable"
       class="p-5 flex flex-col gap-4"
       style="background: var(--bg-page); color: var(--text-primary); border-radius: var(--radius-lg); border: 1px solid var(--border)"

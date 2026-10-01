@@ -10,7 +10,7 @@
  * buttons are inert; keyboard focus shows a ring.
  */
 import { test, expect, type Page } from '@playwright/test'
-import { signInAsAdmin, waitForHydration } from './_helpers'
+import { waitForHydration } from './_helpers'
 import { assertAxeClean } from './screens/_contract'
 
 const A2_SECTIONS = [
@@ -32,9 +32,10 @@ const light = (page: Page, component: string) => page.getByTestId(`ui-${componen
 test.describe('UI primitives (WP-A2)', () => {
   test.describe.configure({ mode: 'serial' })
 
-  test.beforeEach(async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'chromium', 'desktop keyboard checks')
-    await signInAsAdmin(page)
+  // Signed out: /dev/ui is public in test servers, and a signed-in persona's
+  // saved theme (theme.spec sets one) would change what axe measures.
+  test.beforeEach(async ({ browserName }) => {
+    test.skip(browserName !== 'chromium', 'desktop keyboard checks')
   })
 
   test('every A2 primitive has a section with light and dark panels', async ({ page }) => {
@@ -143,15 +144,15 @@ test.describe('UI primitives (WP-A2)', () => {
 
   test('search field: "/" focuses it, Esc clears, the clear button resets', async ({ page }) => {
     await gotoUi(page)
-    const search = page.getByRole('searchbox', { name: 'Search' })
-    await page.locator('h1').click()
+    const search = page.getByTestId('ui-BulwarkSearchField').getByRole('searchbox', { name: 'Search' })
+    await page.getByRole('heading', { level: 1, name: 'Components' }).click()
     await page.keyboard.press('/')
     await expect(search).toBeFocused()
     await page.keyboard.type('truckee')
     await page.keyboard.press('Escape')
     await expect(search).toHaveValue('')
     await search.fill('rimrock')
-    await page.getByRole('button', { name: /Clear Search/ }).click()
+    await page.getByTestId('ui-BulwarkSearchField').getByRole('button', { name: /Clear Search/ }).click()
     await expect(search).toHaveValue('')
   })
 
