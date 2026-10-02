@@ -22,7 +22,7 @@ async function pickFreshPropertyId(page: Page): Promise<string> {
   // list entries stay assessment-free across run order.
   await page.goto('/admin/properties?view=list')
   await page.waitForLoadState('networkidle')
-  const cards = page.locator('[data-testid="property-card"]')
+  const cards = page.locator('[data-testid="property-card"]:visible')
   const count = await cards.count()
   expect(count).toBeGreaterThan(0)
   const id = await cards.nth(count - 1).getAttribute('data-property-id')
@@ -47,12 +47,12 @@ test.describe('Property assessment tab (E4-S4)', () => {
     // mock service being seeded on the SSR side of the detail route.
     await page.goto('/admin/properties?view=list')
     await page.waitForLoadState('networkidle')
-    const cards = page.locator('[data-testid="property-card"]')
+    const cards = page.locator('[data-testid="property-card"]:visible')
     const count = await cards.count()
     expect(count).toBeGreaterThan(0)
     await cards.nth(count - 1).click()
     await page.waitForURL(/\/admin\/properties\/[\w-]+$/)
-    await page.getByRole('tab', { name: 'Assessment' }).click()
+    await page.getByRole('tab', { name: 'Inspections' }).click()
     await expect(page.getByTestId('tab-panel-assessment')).toBeVisible()
     await expect(page.getByTestId('tab-start-assessment-cta')).toBeVisible()
   })
@@ -79,7 +79,7 @@ test.describe('Property assessment tab (E4-S4)', () => {
     await page.waitForURL(new RegExp(`/admin/properties/${id}(?:\\?.*)?$`))
 
     // Click the Assessment tab.
-    await page.getByRole('tab', { name: 'Assessment' }).click()
+    await page.getByRole('tab', { name: 'Inspections' }).click()
 
     const banner = page.getByTestId('assessment-tab-banner')
     await expect(banner).toBeVisible()

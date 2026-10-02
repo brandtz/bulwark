@@ -23,7 +23,7 @@ import { signInAsAdmin } from './_helpers'
 async function pickFreshPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/properties?view=list')
   await page.waitForLoadState('networkidle')
-  const cards = page.locator('[data-testid="property-card"]')
+  const cards = page.locator('[data-testid="property-card"]:visible')
   const count = await cards.count()
   expect(count).toBeGreaterThan(0)
   const id = await cards.nth(count - 1).getAttribute('data-property-id')

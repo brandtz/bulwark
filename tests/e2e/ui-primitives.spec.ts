@@ -178,7 +178,7 @@ test.describe('UI primitives (WP-A2)', () => {
     await gotoUi(page)
     const opener = page.getByRole('button', { name: 'Open modal' })
     await opener.click()
-    const dialog = page.getByRole('dialog', { name: 'Void invoice INV-1042?' })
+    const dialog = page.getByRole('alertdialog', { name: 'Void invoice INV-1042?' })
     await expect(dialog).toBeVisible()
     await expect.poll(() => dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true)
     for (let i = 0; i < 6; i++) {
@@ -224,8 +224,8 @@ test.describe('UI primitives (WP-A2)', () => {
   test('toast: success auto-dismisses; an error is an alert that stays', async ({ page }) => {
     await gotoUi(page)
     await page.getByTestId('toast-success').click()
-    await expect(page.getByText('Done')).toBeVisible()
-    await expect(page.getByText('Done')).toBeHidden({ timeout: 8000 })
+    await expect(page.getByText('Done', { exact: true })).toBeVisible()
+    await expect(page.getByText('Done', { exact: true })).toBeHidden({ timeout: 8000 })
     await page.getByTestId('toast-error').click()
     const alert = page.getByRole('alert').filter({ hasText: 'Save failed' })
     await expect(alert).toBeVisible()

@@ -20,7 +20,7 @@ import { signInAsAdmin } from './_helpers'
 async function pickFirstPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/properties')
   await page.waitForLoadState('networkidle')
-  const id = await page.locator('[data-testid="property-card"]').first().getAttribute('data-property-id')
+  const id = await page.locator('[data-testid="property-card"]:visible').first().getAttribute('data-property-id')
   expect(id, 'expected at least one property in the fixture pipeline').toBeTruthy()
   return id as string
 }
@@ -66,7 +66,7 @@ test.describe('Assessment summary (E4-S3)', () => {
     // in the pipeline list view.
     await page.goto('/admin/properties?view=list')
     await page.waitForLoadState('networkidle')
-    const cards = page.locator('[data-testid="property-card"]')
+    const cards = page.locator('[data-testid="property-card"]:visible')
     const count = await cards.count()
     expect(count).toBeGreaterThan(0)
     const propertyId = await cards.nth(count - 1).getAttribute('data-property-id')

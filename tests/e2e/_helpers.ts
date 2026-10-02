@@ -164,3 +164,34 @@ export async function drawSignature(page: Page): Promise<void> {
     buttons: 0,
   })
 }
+
+/**
+ * AD-10 board (WP-B2): move a property card with the keyboard — focus it,
+ * Space to pick up, arrows to the target column, Enter to drop. Returns the
+ * live-region text. The caller asserts where the card lands (a reason-required
+ * target opens the AD-13 dialog instead).
+ */
+export async function moveCardByKeyboard(page: Page, propertyId: string, toStatus: string): Promise<string> {
+  const ids = await page.getByTestId('kanban-column').evaluateAll((els) => els.map((e) => e.getAttribute('data-column') ?? ''))
+  const card = page.locator(`[data-testid="kanban-card"][data-card="${propertyId}"]`)
+  const from = await card.evaluate((el) => el.closest('[data-testid="kanban-column"]')?.getAttribute('data-column') ?? '')
+  const delta = ids.indexOf(toStatus) - ids.indexOf(from)
+  expect(ids.indexOf(toStatus), `column ${toStatus} on the board`).toBeGreaterThanOrEqual(0)
+  await card.focus()
+  await page.keyboard.press('Space')
+  for (let i = 0; i < Math.abs(delta); i++) await page.keyboard.press(delta > 0 ? 'ArrowRight' : 'ArrowLeft')
+  await page.keyboard.press('Enter')
+  return (await page.getByTestId('kanban-live').textContent()) ?? ''
+}
+
+/** Real backend: call an RPC method as the signed-in page (args positional). */
+export async function rpc<T = unknown>(page: Page, service: string, method: string, args: unknown[]): Promise<T> {
+  const res = await page.request.post(`http://localhost:3000/api/services/${service}/${method}`, { data: { args } })
+  expect(res.status(), `${service}.${method} → ${await res.text().catch(() => '')}`).toBe(200)
+  return (await res.json()) as T
+}
+
+/** Real backend: the signed-in user's active organization id. */
+export async function activeOrgId(page: Page): Promise<string> {
+  return (await rpc<{ activeOrganizationId: string }>(page, 'auth', 'currentUser', [])).activeOrganizationId
+}

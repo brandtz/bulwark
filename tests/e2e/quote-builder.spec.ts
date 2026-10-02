@@ -20,7 +20,7 @@ import { signInAsAdmin } from './_helpers'
 async function pickPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/properties?view=list')
   await page.waitForLoadState('networkidle')
-  const cards = page.locator('[data-testid="property-card"]')
+  const cards = page.locator('[data-testid="property-card"]:visible')
   await expect(cards.first()).toBeVisible()
   const id = await cards.first().getAttribute('data-property-id')
   expect(id).toBeTruthy()

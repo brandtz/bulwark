@@ -27,9 +27,10 @@ test.describe('Property depth happy path (W2-1)', () => {
     await page.waitForLoadState('networkidle')
     await page.getByTestId('property-card').first().click()
     await expect(page.getByTestId('property-detail')).toBeVisible()
-    await expect(page.getByTestId('property-depth-nav')).toBeVisible()
 
     // ── Buildings ────────────────────────────────────────────────────
+    // The hub's Buildings tab (AD-12) links to the depth page.
+    await page.getByRole('tab', { name: 'Buildings' }).click()
     await page.locator('[data-depth-tab="buildings"]').click()
     await expect(page.getByTestId('property-buildings-page')).toBeVisible()
     await page.getByTestId('building-add-button').click()

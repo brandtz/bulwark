@@ -45,7 +45,7 @@ test.describe('settings — inspection templates editor', () => {
     await page.getByTestId('property-card').first().click()
     // Read the id only after navigation lands (otherwise it is the list URL).
     await page.waitForURL(/\/admin\/properties\/[^/]+$/u)
-    await page.getByRole('tab', { name: /assessment/i }).click()
+    await page.getByRole('tab', { name: /^Inspections/u }).click()
     await page.locator('[data-testid="tab-start-assessment-cta"], [data-testid="tab-redo-assessment-link"]').click()
     await page.getByRole('link', { name: 'try it under Programs' }).click()
     await waitForHydration(page)

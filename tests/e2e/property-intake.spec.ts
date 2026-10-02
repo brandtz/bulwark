@@ -60,7 +60,7 @@ test.describe('Property intake (E3-S4)', () => {
     await page.getByTestId('submit-button').click()
 
     await expect(page).toHaveURL(/\/admin\/properties$/, { timeout: 10000 })
-    const leadColumn = page.locator('[data-testid="pipeline-column"][data-status="lead"]')
+    const leadColumn = page.locator('[data-testid="kanban-column"][data-column="lead"]')
     await expect(leadColumn).toBeVisible()
     await expect(leadColumn.getByText(street)).toBeVisible()
   })

@@ -36,14 +36,14 @@ test('E4 happy path: detail → start assessment → non-compliant → summary �
   //    run order; form-creating specs target the first kanban card).
   await page.goto('/admin/properties?view=list')
   await page.waitForLoadState('networkidle')
-  const cards = page.locator('[data-testid="property-card"]')
+  const cards = page.locator('[data-testid="property-card"]:visible')
   const count = await cards.count()
   expect(count).toBeGreaterThan(0)
   await cards.nth(count - 1).click()
   await page.waitForURL(/\/admin\/properties\/[\w-]+$/)
 
   // 2) Assessment tab shows the empty-state CTA.
-  await page.getByRole('tab', { name: 'Assessment' }).click()
+  await page.getByRole('tab', { name: 'Inspections' }).click()
   const startCta = page.getByTestId('tab-start-assessment-cta')
   await expect(startCta).toBeVisible()
 
@@ -77,7 +77,7 @@ test('E4 happy path: detail → start assessment → non-compliant → summary �
 
   // 7) Open the Assessment tab — preview now shows the non-compliant
   //    banner + the link to the full summary.
-  await page.getByRole('tab', { name: 'Assessment' }).click()
+  await page.getByRole('tab', { name: 'Inspections' }).click()
   const tabBanner = page.getByTestId('assessment-tab-banner')
   await expect(tabBanner).toBeVisible()
   await expect(tabBanner).toHaveAttribute('data-compliant', 'false')

@@ -22,7 +22,7 @@ async function pickPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/properties?view=list')
   await waitForHydration(page)
   await page.waitForLoadState('networkidle')
-  const card = page.locator('[data-testid="property-card"]').first()
+  const card = page.locator('[data-testid="property-card"]:visible').first()
   await expect(card).toBeVisible()
   const id = await card.getAttribute('data-property-id')
   expect(id).toBeTruthy()

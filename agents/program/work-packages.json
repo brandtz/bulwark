@@ -123,7 +123,7 @@
     {
       "id": "WP-A3",
       "title": "New composite components — data & layout set",
-      "lane": "DS", "phase": "0-foundation", "status": "in-progress", "owner": "claude-code (2026-10-01)", "branch": "wp/WP-A3-composites", "size": "L",
+      "lane": "DS", "phase": "0-foundation", "status": "done", "owner": "claude-code (2026-10-01)", "branch": "wp/WP-A3-composites", "size": "L",
       "goal": "Create the composites every list/detail screen needs: BulwarkDataTable, BulwarkFilterBar, BulwarkPageHeader, BulwarkSectionHeader, BulwarkKeyValue, BulwarkBanner, BulwarkSyncPill, BulwarkAsyncStatus, BulwarkProgress, BulwarkInlineEdit, BulwarkCopyField, BulwarkChips, BulwarkMenu, BulwarkField, BulwarkBottomSheet, BulwarkSheetMenu, BulwarkProgramChip, BulwarkTradeChip, BulwarkRoleBadge, BulwarkStatusMenu (replaces PropertyStatusMenu), BulwarkTimeline, BulwarkKanbanBoard (absorbs PipelineColumn/PipelineList/PropertyCard as slots), BulwarkPhotoMosaic.",
       "scope": [
         "Implement each per components/SPEC.md + specimen HTML; headless logic in composables where reusable (useDataTable: sort/select/columns; useFilterBar: url-synced filters)",
@@ -151,7 +151,7 @@
       ],
       "dependsOn": ["WP-A2", "WP-X5"],
       "decisions": ["ED-013", "ED-033"],
-      "agentNotes": "Read the specimen HTML (components/<Name>.html) — it is the visual truth; SPEC.md is the API truth. | 2026-10-01 (claude-code): claimed (A2 and X5 done)."
+      "agentNotes": "Read the specimen HTML (components/<Name>.html) — it is the visual truth; SPEC.md is the API truth. | 2026-10-01 (claude-code): claimed (A2 and X5 done). | 2026-10-01 (claude-code): in-progress -> done. Composites on Packet A with demos on /dev/ui: DataTable (controlled sort, page vs all-matching selection, roving rows, cards <768), FilterBar + useFilterBar (URL state, defensive parsing), Menu, StatusMenu (legal transitions, reason/backwards modal), KanbanBoard (keyboard moves, refusals announced, link cards), PageHeader, KeyValue, Banner, Field, Timeline, SyncPill, Progress, InlineEdit, CopyField, BottomSheet, SheetMenu, chips, RoleBadge, PhotoMosaic. Tests: use-data-table/use-filter-bar unit, ui-composites e2e, axe both themes. Found and fixed: ED-065 light-theme text contrast (design muted text 2.9:1, light tenant accents <4.5:1), SyncPill lost its button name to role=status, \"/\" shortcut split focus between two search fields. Visual parity stays limited to icon-free specimens (the design loads Lucide from a CDN, we ship the sprite). First consumer: WP-B2 AD-10."
     },
     {
       "id": "WP-A4",
@@ -453,7 +453,7 @@
     {
       "id": "WP-B2",
       "title": "Property pipeline, intake, hub, status change (AD-10…AD-13)",
-      "lane": "SCR", "phase": "2-admin-core", "status": "todo", "size": "L",
+      "lane": "SCR", "phase": "2-admin-core", "status": "in-progress", "owner": "claude-code (2026-10-01)", "branch": "wp/WP-B2-pipeline", "size": "L",
       "goal": "Kanban/list pipeline driven by tenant statuses with legal-transition drag; single-page intake with client create-inline, buildings default, program enrollment, photos; hub with 11 tabs + sticky header + stat cards + open items; status menu with reasons.",
       "scope": ["AD-10 with BulwarkKanbanBoard + DataTable; bulk actions (assign, status, tag, export); WIP soft warnings (ED-030); map toggle disabled until geo key", "AD-11 intake with Mapbox autocomplete (none-driver fallback), inline AD-04 drawer, program chips", "AD-12 hub: URL-addressable tabs w/ scroll memory, overflow More at >8 (ED-032), on-hold/cancelled banners, open items aggregate", "AD-13 status menu (BulwarkStatusMenu) + reasons (ED-033)"],
       "outOfScope": ["Sub-tabs content (WP-B3)"],
@@ -463,7 +463,7 @@
       "tests": ["tests/e2e/screens/AD-10…AD-13", "tests/e2e/properties-pipeline*.spec.ts, property-intake.spec.ts, property-detail.spec.ts updated", "tests/integration/property-status-transitions.test.ts (illegal transitions rejected server-side even if UI bypassed)"],
       "dependsOn": ["WP-A3", "WP-X1", "WP-Q1"],
       "decisions": ["ED-030", "ED-031", "ED-032", "ED-033", "ED-00B", "ED-00C"],
-      "agentNotes": ""
+      "agentNotes": "2026-10-01 (claude-code): claimed (A3 done; X4 still todo, so AD-11 intake comes after it). Slice 1 shipped: migration 0025 (ED-066; applied to prod via the Neon MCP first) — assignee, status reason/note/changed-at/resume-on, pipeline wip_limit, property.summaries money roll-up; AD-10 board/list rebuilt on KanbanBoard + DataTable + FilterBar (URL state, keyboard + pointer moves with server re-check, AD-13 dialog for hold/cancel/reason, soft WIP warning, bulk status/assign/export with illegal rows reported by name, phone tab strip, Map disabled). Legacy PipelineColumn/PipelineList/PropertyCard/PropertyStatusMenu removed. Next: AD-12 hub + AD-13 status control, then AD-11 after X4."
     },
     {
       "id": "WP-B3",

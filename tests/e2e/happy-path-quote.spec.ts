@@ -24,7 +24,7 @@ test.describe.configure({ mode: 'serial' })
 async function pickPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/properties?view=list')
   await page.waitForLoadState('networkidle')
-  const cards = page.locator('[data-testid="property-card"]')
+  const cards = page.locator('[data-testid="property-card"]:visible')
   await expect(cards.first()).toBeVisible()
   const id = await cards.last().getAttribute('data-property-id')
   expect(id).toBeTruthy()
@@ -48,7 +48,7 @@ test.describe('Happy path: assessment → quote → send (E5-S5)', () => {
     await page.locator(`[data-property-id="${id}"]`).first().click()
     await page.waitForURL(new RegExp(`/admin/properties/${id}(?:\\?.*)?$`))
     // Assessment tab → start a fresh assessment.
-    await page.getByRole('tab', { name: 'Assessment' }).click()
+    await page.getByRole('tab', { name: 'Inspections' }).click()
     await page.getByTestId('tab-start-assessment-cta').click()
     await page.waitForURL(new RegExp(`/admin/properties/${id}/assessment$`))
 

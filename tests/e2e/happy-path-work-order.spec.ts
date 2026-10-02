@@ -28,7 +28,7 @@ test.describe.configure({ mode: 'serial' })
 async function pickFreshPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/properties?view=list')
   await page.waitForLoadState('networkidle')
-  const cards = page.locator('[data-testid="property-card"]')
+  const cards = page.locator('[data-testid="property-card"]:visible')
   await expect(cards.first()).toBeVisible()
   const id = await cards.last().getAttribute('data-property-id')
   expect(id).toBeTruthy()

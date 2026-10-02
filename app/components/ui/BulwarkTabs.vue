@@ -16,8 +16,11 @@ interface Props {
   variant?: 'underline' | 'segmented'
   scrollable?: boolean
   ariaLabel?: string
+  /** Hide count chips that are 0 (AD-12: "hidden at 0"). */
+  hideZero?: boolean
 }
-const props = withDefaults(defineProps<Props>(), { variant: 'underline', scrollable: true, ariaLabel: 'Tabs' })
+const props = withDefaults(defineProps<Props>(), { variant: 'underline', scrollable: true, ariaLabel: 'Tabs', hideZero: false })
+const showCount = (t: Tab) => typeof t.count === 'number' && !(props.hideZero && t.count === 0)
 const emit = defineEmits<{ 'update:modelValue': [v: string] }>()
 
 const key = (t: Tab) => t.id ?? t.value ?? t.label
@@ -71,7 +74,9 @@ function onKey(e: KeyboardEvent, i: number) {
         @keydown="onKey($event, i)"
       >
         {{ t.label }}
-        <span v-if="typeof t.count === 'number'" class="count tnum">{{ t.count }}</span>
+        <template v-if="showCount(t)">
+          <span class="count tnum" aria-hidden="true">{{ t.count }}</span><span class="sr-only">, {{ t.count }} {{ t.count === 1 ? 'item' : 'items' }}</span>
+        </template>
       </button>
     </div>
     <div

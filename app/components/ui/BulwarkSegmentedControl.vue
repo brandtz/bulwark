@@ -8,7 +8,8 @@
 <script setup lang="ts">
 import type { IconName } from './icon-names'
 
-interface Option { value: string; label: string; icon?: IconName }
+/** `disabled` options stay visible (e.g. Map until geo is configured) and are skipped by the arrow keys. */
+interface Option { value: string; label: string; icon?: IconName; disabled?: boolean; title?: string }
 interface Props {
   modelValue: string
   options: Option[]
@@ -21,10 +22,18 @@ const buttons = ref<HTMLButtonElement[]>([])
 
 function onKey(e: KeyboardEvent, i: number) {
   const n = props.options.length
-  const next = e.key === 'ArrowRight' ? (i + 1) % n
-    : e.key === 'ArrowLeft' ? (i - 1 + n) % n
-      : e.key === 'Home' ? 0
-        : e.key === 'End' ? n - 1 : -1
+  const enabled = (j: number) => !props.options[j]?.disabled
+  const step = (from: number, dir: 1 | -1) => {
+    for (let k = 1; k <= n; k++) {
+      const j = (from + dir * k + n * k) % n
+      if (enabled(j)) return j
+    }
+    return -1
+  }
+  const next = e.key === 'ArrowRight' ? step(i, 1)
+    : e.key === 'ArrowLeft' ? step(i, -1)
+      : e.key === 'Home' ? step(n - 1, 1)
+        : e.key === 'End' ? step(0, -1) : -1
   if (next < 0) return
   e.preventDefault()
   emit('update:modelValue', props.options[next]!.value)
@@ -43,6 +52,9 @@ function onKey(e: KeyboardEvent, i: number) {
       :class="[{ 'is-on': modelValue === opt.value }, block && 'flex-1 justify-center']"
       :aria-selected="modelValue === opt.value"
       :tabindex="modelValue === opt.value ? 0 : -1"
+      :disabled="opt.disabled"
+      :aria-disabled="opt.disabled || undefined"
+      :title="opt.title"
       @click="emit('update:modelValue', opt.value)"
       @keydown="onKey($event, i)"
     >

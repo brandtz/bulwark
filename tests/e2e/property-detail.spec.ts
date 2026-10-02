@@ -61,9 +61,9 @@ test.describe('Property detail hub (E3-S5)', () => {
     await expect(page.getByTestId('tab-panel-quotes')).toBeVisible()
     await expect(page).toHaveURL(/\?(?:.*&)?tab=quotes/)
 
-    await page.getByRole('tab', { name: 'Work orders' }).click()
+    await page.getByRole('tab', { name: 'Jobs' }).click()
     await expect(page.getByTestId('tab-panel-work-orders')).toBeVisible()
-    await expect(page).toHaveURL(/\?(?:.*&)?tab=work-orders/)
+    await expect(page).toHaveURL(/\?(?:.*&)?tab=jobs/)
 
     await page.getByRole('tab', { name: 'Overview' }).click()
     await expect(page.getByTestId('tab-panel-overview')).toBeVisible()

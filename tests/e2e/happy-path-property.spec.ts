@@ -16,7 +16,7 @@
  *     localization). Happy-path is the seatbelt, not the seat.
  */
 import { test, expect } from '@playwright/test'
-import { signInAsAdmin } from './_helpers'
+import { moveCardByKeyboard, signInAsAdmin, waitForHydration } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -37,15 +37,16 @@ test('E3 happy path: intake → pipeline → status → detail → client', asyn
 
   // 2) Lands on the pipeline with the new card visible in `lead`.
   await expect(page).toHaveURL(/\/admin\/properties$/, { timeout: 10000 })
-  const leadColumn = page.locator('[data-testid="pipeline-column"][data-status="lead"]')
+  const leadColumn = page.locator('[data-testid="kanban-column"][data-column="lead"]')
   const newCard = leadColumn.locator(`[data-testid="property-card"]:has-text("${street}")`)
   await expect(newCard).toBeVisible({ timeout: 10000 })
+  await waitForHydration(page)
 
-  // 3) Change its status via the inline menu — moves to `scheduled`.
-  await newCard.getByTestId('status-menu-button').click()
-  await newCard.getByTestId('status-menu-item-scheduled').click()
+  // 3) Move it on the board (keyboard drag, WP-B2) — lead → scheduled.
+  const propertyId = (await newCard.getAttribute('data-property-id'))!
+  await moveCardByKeyboard(page, propertyId, 'scheduled')
   const scheduledCard = page.locator(
-    `[data-testid="pipeline-column"][data-status="scheduled"] [data-testid="property-card"]:has-text("${street}")`,
+    `[data-testid="kanban-column"][data-column="scheduled"] [data-testid="property-card"]:has-text("${street}")`,
   )
   await expect(scheduledCard).toBeVisible({ timeout: 10000 })
 

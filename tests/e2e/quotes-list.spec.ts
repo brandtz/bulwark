@@ -24,7 +24,7 @@ import { signInAsAdmin, waitForHydration } from './_helpers'
 async function pickTwoPropertyIds(page: Page): Promise<[string, string]> {
   await page.goto('/admin/properties?view=list')
   await page.waitForLoadState('networkidle')
-  const cards = page.locator('[data-testid="property-card"]')
+  const cards = page.locator('[data-testid="property-card"]:visible')
   await expect(cards.first()).toBeVisible()
   const first = await cards.first().getAttribute('data-property-id')
   const last = await cards.last().getAttribute('data-property-id')
