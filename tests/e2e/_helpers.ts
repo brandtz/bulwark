@@ -195,3 +195,17 @@ export async function rpc<T = unknown>(page: Page, service: string, method: stri
 export async function activeOrgId(page: Page): Promise<string> {
   return (await rpc<{ activeOrganizationId: string }>(page, 'auth', 'currentUser', [])).activeOrganizationId
 }
+
+/**
+ * AD-11 intake (WP-B2): the client is required. Picks the client whose name
+ * matches `name` (typed into the searchable picker), or the first option.
+ */
+export async function pickIntakeClient(page: Page, name?: string): Promise<void> {
+  const field = page.getByTestId('field-clientId')
+  const box = field.getByRole('combobox')
+  await box.click()
+  if (name) await box.fill(name)
+  const option = name ? field.getByRole('option', { name, exact: false }).first() : field.getByRole('option').first()
+  await option.click()
+  await expect(page.getByTestId('client-linked')).toBeVisible()
+}

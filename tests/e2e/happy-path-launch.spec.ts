@@ -33,7 +33,7 @@
  *     gate. If real breaks, mock isn't a fallback.
  */
 import { test, expect, type Page } from '@playwright/test'
-import { signInAsAdmin, waitForHydration } from './_helpers'
+import { pickIntakeClient, signInAsAdmin, waitForHydration } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -101,20 +101,13 @@ test.describe('Launch happy path (EH-C canary)', () => {
         .getByTestId('field-postalCode')
         .locator('input')
         .fill('94612')
-      // Optional client picker — leave blank if the field-clientId widget
-      // isn't a free-text input. We don't depend on the link.
+      // The client is required (AD-11): link the one created above.
+      await pickIntakeClient(page, clientName)
       await page.getByTestId('submit-button').click()
-      await expect(page).toHaveURL(/\/admin\/properties$/, {
-        timeout: 15000,
-      })
-      const newCard = page.locator(
-        `[data-testid="property-card"]:has-text("${street}")`,
-      )
-      await expect(newCard.first()).toBeVisible({ timeout: 10000 })
-      const propertyId = await newCard
-        .first()
-        .getAttribute('data-property-id')
-      expect(propertyId).toBeTruthy()
+      // Lands on the new property's hub.
+      await page.waitForURL((url) => /\/admin\/properties\/[\w-]+$/u.test(url.pathname) && !url.pathname.endsWith('/new'), { timeout: 15000 })
+      const propertyId = page.url().split('/').pop() as string
+      await expect(page.getByTestId('property-detail')).toContainText(clientName)
 
       // -----------------------------------------------------------------
       // 3) Run an assessment (non-compliant — drives a usable quote).
@@ -308,6 +301,9 @@ test.describe('Launch happy path (EH-C canary)', () => {
         timeout: 10000,
       })
 
+      // Toasts ("Invoice created", "Invoice sent to <client>") stack over the
+      // action bar and hovering pauses their auto-dismiss; clear them first.
+      for (const dismiss of await page.getByRole('status').getByRole('button', { name: 'Dismiss' }).all()) await dismiss.click()
       await page.getByTestId('invoice-mark-paid-button').click()
       await expect(invoiceStatus).toHaveAttribute('data-status', 'paid', {
         timeout: 10000,

@@ -16,7 +16,7 @@
  *     localization). Happy-path is the seatbelt, not the seat.
  */
 import { test, expect } from '@playwright/test'
-import { moveCardByKeyboard, signInAsAdmin, waitForHydration } from './_helpers'
+import { moveCardByKeyboard, pickIntakeClient, signInAsAdmin, waitForHydration } from './_helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -33,10 +33,13 @@ test('E3 happy path: intake → pipeline → status → detail → client', asyn
   await page.getByTestId('field-city').locator('input').fill('Oakland')
   await page.getByTestId('field-state').locator('input').fill('CA')
   await page.getByTestId('field-postalCode').locator('input').fill('94501')
+  await pickIntakeClient(page)
   await page.getByTestId('submit-button').click()
 
-  // 2) Lands on the pipeline with the new card visible in `lead`.
-  await expect(page).toHaveURL(/\/admin\/properties$/, { timeout: 10000 })
+  // 2) Lands on the new property's hub (AD-11); the card is in `lead`.
+  await expect(page).toHaveURL(/\/admin\/properties\/[\w-]+$/, { timeout: 10000 })
+  await expect(page.getByTestId('property-detail')).toBeVisible()
+  await page.goto('/admin/properties')
   const leadColumn = page.locator('[data-testid="kanban-column"][data-column="lead"]')
   const newCard = leadColumn.locator(`[data-testid="property-card"]:has-text("${street}")`)
   await expect(newCard).toBeVisible({ timeout: 10000 })

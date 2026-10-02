@@ -8,7 +8,7 @@
  * keep this free-text path when `geo.status().enabled` is false.
  */
 import { expect, test } from '@playwright/test'
-import { signInAsAdmin, waitForHydration } from './_helpers'
+import { pickIntakeClient, signInAsAdmin, waitForHydration } from './_helpers'
 
 const BASE = 'http://localhost:3000'
 
@@ -47,8 +47,9 @@ test.describe('geo without a provider key (WP-X3)', () => {
     if (await stateField.evaluate((el) => el.tagName === 'SELECT')) await stateField.selectOption('CA')
     else await stateField.fill('CA')
     await page.locator('[data-testid="field-postalCode"] input, input[data-testid="field-postalCode"]').first().fill('95401')
+    await pickIntakeClient(page)
     await page.getByTestId('submit-button').click()
-    await page.waitForURL(/\/admin\/properties\/[\w-]+$/u)
+    await page.waitForURL((url) => /\/admin\/properties\/[\w-]+$/u.test(url.pathname) && !url.pathname.endsWith('/new'))
     await expect(page.getByText(street).first()).toBeVisible()
   })
 })
