@@ -39,7 +39,10 @@ test('E3 happy path: intake → pipeline → status → detail → client', asyn
   // 2) Lands on the new property's hub (AD-11); the card is in `lead`.
   await expect(page).toHaveURL(/\/admin\/properties\/[\w-]+$/, { timeout: 10000 })
   await expect(page.getByTestId('property-detail')).toBeVisible()
-  await page.goto('/admin/properties')
+  // Client-side navigation: the mock lane keeps its data in browser memory,
+  // so a full page load would drop the property just created.
+  await page.getByTestId('property-detail').getByRole('link', { name: 'Properties' }).first().click()
+  await expect(page).toHaveURL(/\/admin\/properties$/u)
   const leadColumn = page.locator('[data-testid="kanban-column"][data-column="lead"]')
   const newCard = leadColumn.locator(`[data-testid="property-card"]:has-text("${street}")`)
   await expect(newCard).toBeVisible({ timeout: 10000 })
