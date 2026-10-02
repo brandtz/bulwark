@@ -126,7 +126,9 @@ const propertySeed: Array<[string, PropertyStatus, string, string]> = [
 ]
 
 export const FIXTURE_PROPERTIES: Property[] = propertySeed.map(([line1, status, city, state], i) => ({
-  id: mk(`property-${i + 1}`),
+  // mk() pads with zeros, so 'property-1' and 'property-10' map to the same
+  // id; the 10th property gets a distinct slug (unit-tested for uniqueness).
+  id: mk(i + 1 === 10 ? 'property-10x' : `property-${i + 1}`),
   organizationId: FIXTURE_ORG_ID,
   addressLine1: line1,
   addressLine2: null,
