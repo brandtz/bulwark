@@ -27,6 +27,7 @@
  *     real split. A finer-grained flag would multiply the test matrix.
  */
 import type { BulwarkServices, ServiceName } from '~~/shared/contracts/services'
+import { RpcInputError, type RpcIssue } from '~~/shared/utils/rpc-error'
 
 interface FetchErrorShape {
   data?: { statusMessage?: string; message?: string }
@@ -37,6 +38,9 @@ interface FetchErrorShape {
 function unwrapFetchError(err: unknown): never {
   const e = err as FetchErrorShape
   const msg = e?.data?.statusMessage ?? e?.data?.message ?? e?.statusMessage ?? e?.message ?? 'Request failed'
+  // WP-X4: 400 input errors carry field-level issues for forms (fieldErrors()).
+  const issues = (e?.data as { data?: { issues?: RpcIssue[] } } | undefined)?.data?.issues
+  if (Array.isArray(issues)) throw new RpcInputError(msg, issues)
   throw new Error(msg)
 }
 

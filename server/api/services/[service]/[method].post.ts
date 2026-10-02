@@ -32,6 +32,7 @@ import type { SessionUser } from '~~/shared/contracts/auth'
 import { authorizeRpc, isPublicRpc } from '~~/server/utils/rpc-policy'
 import { enforceSecurityPolicy } from '~~/server/utils/security-enforcement'
 import { log } from '~~/server/utils/logger'
+import { summarizeIssues, validateRpcArgs } from '~~/server/utils/rpc-validation'
 import { captureException, markCaptured, scrubText } from '~~/server/utils/error-tracking'
 
 type ServiceMap = { [K in keyof BulwarkServices]: BulwarkServices[K] }
@@ -83,6 +84,13 @@ export default defineEventHandler(async (event) => {
     }
   } catch {
     args = []
+  }
+
+  // WP-X4: shape-check the args against the contract schemas before any
+  // service code (or the database) sees them. 400 carries field-level issues.
+  const issues = validateRpcArgs(String(serviceName), methodName, args)
+  if (issues.length) {
+    throw createError({ statusCode: 400, statusMessage: summarizeIssues(issues), data: { issues } })
   }
 
   try {

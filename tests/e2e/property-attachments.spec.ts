@@ -23,7 +23,7 @@ test.describe('property attachments (WP-L02)', () => {
     const me = await (await page.request.post(`${BASE}/api/services/auth/currentUser`, { data: { args: [] } })).json()
     const organizationId = me.activeOrganizationId as string
     const created = await page.request.post(`${BASE}/api/services/property/create`, {
-      data: { args: [{ organizationId, addressLine1: `${Date.now() % 100000} Attachment Way`, city: 'Napa', state: 'CA', postalCode: '94558' }] },
+      data: { args: [{ organizationId, addressLine1: `${Date.now() % 100000} Attachment Way`, addressLine2: null, city: 'Napa', state: 'CA', postalCode: '94558', clientId: null, notes: null }] },
     })
     expect(created.status()).toBe(200)
     const propertyId = (await created.json()).id as string

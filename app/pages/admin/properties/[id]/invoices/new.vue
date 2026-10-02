@@ -90,10 +90,9 @@ interface UiLine {
   unitCostDollars: string // form-bound; converts to cents on submit
 }
 
-let _lineUid = 0
+// Line ids are UUIDs in the contract (InvoiceLineItemSchema; WP-X4 validates).
 function makeUid(): string {
-  _lineUid += 1
-  return `line-${_lineUid}`
+  return crypto.randomUUID()
 }
 
 const lines = ref<UiLine[]>([])

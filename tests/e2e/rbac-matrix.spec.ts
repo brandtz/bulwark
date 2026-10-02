@@ -95,7 +95,7 @@ test.describe('RPC role matrix (WP-Q2)', () => {
         ['user', 'list', [{ organizationId: otherOrg }]],
         ['property', 'get', ['00000000-0000-4000-8000-000000000001', otherOrg]],
         ['property', 'getMany', [[], otherOrg]],
-        ['property', 'create', [{ organizationId: otherOrg, addressLine1: 'x', city: 'x', state: 'CA', postalCode: '0' }]],
+        ['property', 'create', [{ organizationId: otherOrg, addressLine1: 'x', addressLine2: null, city: 'x', state: 'CA', postalCode: '0', clientId: null, notes: null }]],
         ['label', 'updateBranding', [{ organizationId: otherOrg, primaryColor: '#000000' }]],
       ]
       const wrong: string[] = []
@@ -127,7 +127,7 @@ test.describe('RPC role matrix (WP-Q2)', () => {
     const page = { organizationId, page: 1, pageSize: 1 }
     // The other org's own admin creates the records under attack (the Acme seed
     // is thin), then any seeded quotes/invoices/work orders join the probe.
-    const created = await rpc(acme, 'property', 'create', [{ organizationId, addressLine1: `IDOR target ${Date.now()}`, city: 'Oakland', state: 'CA', postalCode: '94607' }])
+    const created = await rpc(acme, 'property', 'create', [{ organizationId, addressLine1: `IDOR target ${Date.now()}`, addressLine2: null, city: 'Oakland', state: 'CA', postalCode: '94607', clientId: null, notes: null }])
     expect(created.status, 'other org creates its property').toBe(200)
     const acmeProperty = (created.body as { id: string }).id
     const client = await rpc(acme, 'client', 'create', [{ organizationId, fullName: 'IDOR Target Client', email: null, phone: '+15555550111', preferredContact: 'phone', notes: null }])
