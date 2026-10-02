@@ -37,6 +37,7 @@ test('E4 happy path: detail → start assessment → non-compliant → summary �
   await page.goto('/admin/properties?view=list')
   await page.waitForLoadState('networkidle')
   const cards = page.locator('[data-testid="property-card"]:visible')
+  await expect(cards.first()).toBeVisible({ timeout: 15_000 })
   const count = await cards.count()
   expect(count).toBeGreaterThan(0)
   await cards.nth(count - 1).click()

@@ -59,7 +59,7 @@ test.describe('Clients list + detail (E3-S6)', () => {
     await page.waitForLoadState('networkidle')
     await page.getByTestId('property-card').first().click()
     await page.waitForLoadState('networkidle')
-    const link = page.getByRole('link', { name: /View client profile/ })
+    const link = page.getByTestId('overview-client-name').getByRole('link')
     await expect(link).toBeVisible({ timeout: 10000 })
     await link.click()
     await expect(page).toHaveURL(/\/admin\/clients\/[\w-]+$/, { timeout: 10000 })

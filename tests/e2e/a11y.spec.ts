@@ -24,7 +24,7 @@ const firstPropertyPath = async (page: Page): Promise<string> => {
   await page.goto('/admin/properties')
   await waitForHydration(page)
   const card = page.getByTestId('property-card').first()
-  await expect(card).toBeVisible()
+  await expect(card).toBeVisible({ timeout: 15_000 })
   await card.click()
   await page.waitForURL(/\/admin\/properties\/[^/]+$/u)
   return new URL(page.url()).pathname

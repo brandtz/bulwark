@@ -66,7 +66,7 @@ const attachmentSvc = useService('propertyAttachment')
 const { t: tLabel } = useLabel()
 const toast = useToast()
 
-const { data: detail, pending, refresh } = await useAsyncData(
+const { data: detail, pending, error: detailError, refresh } = await useAsyncData(
   () => `property-detail-${propertyId.value}-${orgId.value}`,
   async () => {
     const p = await property.get(propertyId.value, orgId.value)
@@ -111,6 +111,7 @@ const { data: detail, pending, refresh } = await useAsyncData(
   },
   { watch: [propertyId, orgId] },
 )
+onMounted(() => { if (detailError.value) void refresh() })
 
 // W2-1 / EH-E (ADR-0018): buildings, contacts, primary photo — separate fetch
 // so a depth failure never blanks the rollup.

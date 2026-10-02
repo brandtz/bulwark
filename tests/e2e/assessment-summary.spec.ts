@@ -20,7 +20,10 @@ import { signInAsAdmin } from './_helpers'
 async function pickFirstPropertyId(page: Page): Promise<string> {
   await page.goto('/admin/properties')
   await page.waitForLoadState('networkidle')
-  const id = await page.locator('[data-testid="property-card"]:visible').first().getAttribute('data-property-id')
+  // The board fills after hydration on the mock lane; wait for a card.
+  const first = page.locator('[data-testid="property-card"]:visible').first()
+  await expect(first).toBeVisible({ timeout: 15_000 })
+  const id = await first.getAttribute('data-property-id')
   expect(id, 'expected at least one property in the fixture pipeline').toBeTruthy()
   return id as string
 }
@@ -67,6 +70,7 @@ test.describe('Assessment summary (E4-S3)', () => {
     await page.goto('/admin/properties?view=list')
     await page.waitForLoadState('networkidle')
     const cards = page.locator('[data-testid="property-card"]:visible')
+    await expect(cards.first()).toBeVisible({ timeout: 15_000 })
     const count = await cards.count()
     expect(count).toBeGreaterThan(0)
     const propertyId = await cards.nth(count - 1).getAttribute('data-property-id')

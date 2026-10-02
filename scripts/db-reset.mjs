@@ -59,6 +59,9 @@ const sql = postgres(url, { max: 1 })
 try {
   await sql.unsafe('DROP SCHEMA IF EXISTS public CASCADE')
   await sql.unsafe('CREATE SCHEMA public')
+  // drizzle-kit keeps its applied-migrations table in the `drizzle` schema;
+  // leaving it makes the migrate step a no-op over an empty public schema.
+  await sql.unsafe('DROP SCHEMA IF EXISTS drizzle CASCADE')
 } finally {
   await sql.end()
 }

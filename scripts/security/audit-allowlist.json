@@ -10,5 +10,11 @@
     "module": "extract-zip",
     "reason": "Same dependency and exposure as GHSA-jmr9-qjv8-65gv (install-time browser download only).",
     "expires": "2026-12-31"
+  },
+  {
+    "id": "GHSA-86w9-cpqp-85rv",
+    "module": "node-forge",
+    "reason": "No patched release exists (<=1.4.0, latest 1.4.0). Pulled in only by listhen (nuxt dev server / nitropack dev HTTPS self-signed certificates); it is not in the production server bundle (.output) and we never verify RSA PKCS#1 signatures with it. Re-check when node-forge or listhen ships a fix.",
+    "expires": "2026-12-31"
   }
 ]

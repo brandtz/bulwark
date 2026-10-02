@@ -52,13 +52,18 @@ const canEdit = computed(() => ['super_admin', 'org_admin', 'org_manager'].inclu
 const { data, pending, error, refresh } = await useAsyncData(
   () => `properties-${orgId.value}`,
   async () => {
+    // Secondary data (assignee names, money) must never blank the board:
+    // `optional` turns sync throws and rejections into a fallback.
+    const optional = async <T,>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+      try { return await fn() } catch { return fallback }
+    }
     const [list, active, users] = await Promise.all([
       property.list({ organizationId: orgId.value, page: 1, pageSize: 200 }),
       statusPipeline.getActive({ organizationId: orgId.value, entityType: 'property' }),
-      userService.list({ organizationId: orgId.value, status: 'active' }).then((r) => r.users).catch((): UserAdminRow[] => []),
+      optional(async () => (await userService.list({ organizationId: orgId.value, status: 'active' })).users, [] as UserAdminRow[]),
     ])
     const pipeline = active ?? await statusPipeline.bootstrap({ organizationId: orgId.value, entityType: 'property' })
-    const summaries = list.rows.length ? await property.summaries(list.rows.map((r) => r.id), orgId.value) : []
+    const summaries = list.rows.length ? await optional(() => property.summaries(list.rows.map((r) => r.id), orgId.value), [] as PropertySummary[]) : []
     return {
       rows: list.rows,
       total: list.total,
@@ -69,6 +74,9 @@ const { data, pending, error, refresh } = await useAsyncData(
   },
   { watch: [orgId] },
 )
+// A failed server render is not refetched by Nuxt on hydration; retry once
+// in the browser so a transient SSR failure never leaves an empty board.
+onMounted(() => { if (error.value) void refresh() })
 
 const statuses = computed<StatusPipelineNode[]>(() => data.value?.statuses ?? [])
 const nodeBy = computed(() => new Map(statuses.value.map((n) => [n.slug, n])))
