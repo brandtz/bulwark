@@ -186,7 +186,7 @@
       "title": "App shells: admin, settings, field, sub, client, stakeholder layouts + nav config",
       "lane": "DS",
       "phase": "0-foundation",
-      "status": "review",
+      "status": "done",
       "size": "M",
       "goal": "Six layouts matching shell/*.html: admin (sidebar+topbar+bottom nav), settings (secondary nav), field (tab strip, tablet two-pane), sub, homeowner→client, insurer→stakeholder (read-only banner). Nav config gains the reserved groups (Schedule, Price book, Vendors, Purchase orders, Tickets, Crew, Timesheets) hidden behind feature flags until their modules ship.",
       "scope": [
@@ -226,7 +226,7 @@
       "decisions": [
         "ED-018"
       ],
-      "agentNotes": "Keep layout names used by pages (`default`, `field`, `sub`, `homeowner`) working via aliases until WP-A6 renames. | 2026-09-29 (claude-code, from WP-X2): every shell layout (default, field, homeowner, sub) renders <AppAnnouncements /> at the top of main (ED-007/ED-057; e2e tests/e2e/announcements.spec.ts). Keep it when the shells are rebuilt; restyle it as a BulwarkBanner. | 2026-10-20 (kanban-board): Claimed and actively implementing WP-A5 (admin, settings, field, sub, client, stakeholder layouts + nav.config.ts + collapse & More sheet). | 2026-10-20 (kanban-board): Implemented WP-A5 shells (admin.vue, settings.vue, stakeholder.vue + default.vue), collapsible AppSidebar (64px with tooltips & cookie/localStorage persistence), AppBottomNav <=5 items with SH-10 More sheet, and nav.config.ts featureFlag support + unit/e2e tests. | 2026-10-20 skeptic review: replaced invalid full-page pixel baselines (Northline prototype data/branding versus Bulwark fixtures; page content out of scope) with 24 shell geometry/theme contracts.",
+      "agentNotes": "Keep layout names used by pages (`default`, `field`, `sub`, `homeowner`) working via aliases until WP-A6 renames. | 2026-09-29 (claude-code, from WP-X2): every shell layout (default, field, homeowner, sub) renders <AppAnnouncements /> at the top of main (ED-007/ED-057; e2e tests/e2e/announcements.spec.ts). Keep it when the shells are rebuilt; restyle it as a BulwarkBanner. | 2026-10-20 (kanban-board): Claimed and actively implementing WP-A5 (admin, settings, field, sub, client, stakeholder layouts + nav.config.ts + collapse & More sheet). | 2026-10-20 (kanban-board): Implemented WP-A5 shells (admin.vue, settings.vue, stakeholder.vue + default.vue), collapsible AppSidebar (64px with tooltips & cookie/localStorage persistence), AppBottomNav <=5 items with SH-10 More sheet, and nav.config.ts featureFlag support + unit/e2e tests. | 2026-10-20 skeptic review: replaced invalid full-page pixel baselines (Northline prototype data/branding versus Bulwark fixtures; page content out of scope) with 24 shell geometry/theme contracts. | 2026-10-20 (kanban-board): Moved to completed: Independent skeptic review passed; shell geometry/theme contract, typecheck, audits, and production deployment c8ea5c3 verified READY.",
       "owner": "copilot (2026-10-19)"
     },
     {
@@ -436,7 +436,7 @@
       "title": "Legal template + notifications feed + command palette + saved views + More sheet (SH-10…13, SH-20…22)",
       "lane": "SCR",
       "phase": "1-shared",
-      "status": "review",
+      "status": "done",
       "size": "M",
       "goal": "Shared surfaces per received SPECs.",
       "scope": [
@@ -495,7 +495,7 @@
         "ED-013",
         "ED-00G"
       ],
-      "agentNotes": "2026-10-20 (kanban-board): Claimed and actively implementing WP-S2 Shared surfaces (legal reading template, notifications feed severity filter, command palette, saved views permissions, and mobile More sheet). | 2026-10-20 (kanban-board): Implemented WP-S2 shared surfaces: LegalDocumentLayout with TOC/effectiveDate/owner/changelog & print-media TOC hiding on privacy/terms/dpa, notifications severity filter (hidden for homeowner), and ED-013 shared saved-view delete permission enforcement + integration test.",
+      "agentNotes": "2026-10-20 (kanban-board): Claimed and actively implementing WP-S2 Shared surfaces (legal reading template, notifications feed severity filter, command palette, saved views permissions, and mobile More sheet). | 2026-10-20 (kanban-board): Implemented WP-S2 shared surfaces: LegalDocumentLayout with TOC/effectiveDate/owner/changelog & print-media TOC hiding on privacy/terms/dpa, notifications severity filter (hidden for homeowner), and ED-013 shared saved-view delete permission enforcement + integration test. | 2026-10-20 (kanban-board): Moved to completed: Independent skeptic review passed; 68 shared-surface E2E contracts, 101 focused unit/integration tests, screen audits, and production deployment c8ea5c3 verified READY.",
       "owner": "copilot (2026-10-19)"
     },
     {
@@ -534,7 +534,7 @@
       "title": "Property pipeline, intake, hub, status change (AD-10…AD-13)",
       "lane": "SCR",
       "phase": "2-admin-core",
-      "status": "review",
+      "status": "done",
       "owner": "claude-code (2026-10-01)",
       "branch": "wp/WP-B2-pipeline",
       "size": "L",
@@ -589,7 +589,7 @@
         "ED-00B",
         "ED-00C"
       ],
-      "agentNotes": "2026-10-01 (claude-code): claimed (A3 done; X4 still todo, so AD-11 intake comes after it). Slice 1 shipped: migration 0025 (ED-066; applied to prod via the Neon MCP first) — assignee, status reason/note/changed-at/resume-on, pipeline wip_limit, property.summaries money roll-up; AD-10 board/list rebuilt on KanbanBoard + DataTable + FilterBar (URL state, keyboard + pointer moves with server re-check, AD-13 dialog for hold/cancel/reason, soft WIP warning, bulk status/assign/export with illegal rows reported by name, phone tab strip, Map disabled). Legacy PipelineColumn/PipelineList/PropertyCard/PropertyStatusMenu removed. Next: AD-12 hub + AD-13 status control, then AD-11 after X4. | 2026-10-02 (claude-code): AD-12 hub + AD-13 status control shipped (d8c4d3e) and AD-11 intake rebuilt (client required with inline create + server field errors, manual/auto address by geo status, duplicate warning with admin Create anyway, programs/buildings/contacts/photos after create, leave guard, lands on the hub). CI: all 8 jobs green from 1bb7aa5 (mock-lane fixes: resilient board load, fixture id collision property-1/property-10). Remaining for review: fill the AD-10..AD-13 screen-contract scaffolds (screen:audit), BulwarkAddressAutocomplete against a real Mapbox key, AD-13 notify-client (needs production email). | 2026-10-20 (kanban-board): Completed and verified AD-10..AD-13 screen-contract Playwright specs (all states, actions, role gates, axe, dark mode, touch density) and passed screen:audit WP-B2 + codegraph:check."
+      "agentNotes": "2026-10-01 (claude-code): claimed (A3 done; X4 still todo, so AD-11 intake comes after it). Slice 1 shipped: migration 0025 (ED-066; applied to prod via the Neon MCP first) — assignee, status reason/note/changed-at/resume-on, pipeline wip_limit, property.summaries money roll-up; AD-10 board/list rebuilt on KanbanBoard + DataTable + FilterBar (URL state, keyboard + pointer moves with server re-check, AD-13 dialog for hold/cancel/reason, soft WIP warning, bulk status/assign/export with illegal rows reported by name, phone tab strip, Map disabled). Legacy PipelineColumn/PipelineList/PropertyCard/PropertyStatusMenu removed. Next: AD-12 hub + AD-13 status control, then AD-11 after X4. | 2026-10-02 (claude-code): AD-12 hub + AD-13 status control shipped (d8c4d3e) and AD-11 intake rebuilt (client required with inline create + server field errors, manual/auto address by geo status, duplicate warning with admin Create anyway, programs/buildings/contacts/photos after create, leave guard, lands on the hub). CI: all 8 jobs green from 1bb7aa5 (mock-lane fixes: resilient board load, fixture id collision property-1/property-10). Remaining for review: fill the AD-10..AD-13 screen-contract scaffolds (screen:audit), BulwarkAddressAutocomplete against a real Mapbox key, AD-13 notify-client (needs production email). | 2026-10-20 (kanban-board): Completed and verified AD-10..AD-13 screen-contract Playwright specs (all states, actions, role gates, axe, dark mode, touch density) and passed screen:audit WP-B2 + codegraph:check. | 2026-10-20 (kanban-board): Moved to completed: Independent skeptic review passed; 123 AD-10–13 E2E cases passed (including rerun mobile checks), three property-pipeline backend integration tests passed, and production deployment c8ea5c3 verified READY."
     },
     {
       "id": "WP-B3",
@@ -964,7 +964,7 @@
       "title": "Message templates MSG-01…MSG-17 (email/SMS/push/in-app) editable via ST-26",
       "lane": "BE",
       "phase": "7-docs-longterm",
-      "status": "review",
+      "status": "done",
       "size": "M",
       "goal": "Template registry keyed by event×channel with variables, defaults from design, tenant overrides via labels; fail-loud delivery (ADR-0002).",
       "scope": [],
@@ -1004,7 +1004,7 @@
         "WP-L03"
       ],
       "decisions": [],
-      "agentNotes": "2026-09-29 (claude-code): stays blocked on design: Packet J (MSG-01…MSG-17) not returned. | 2026-09-29 (claude-code): MSG-01…MSG-17 listed in designs so codegraph shows the real blocker (0/17 received). | 2026-09-30 (claude-code): blocked -> todo. Packet J was returned (design-return/J/documents and /messages); codegraph only indexed screen SPEC folders, so it looked missing. The indexer now reads the template files; all designs received. Screens-first sequencing applies: not ahead of the A2 -> A3 -> B2 path. | 2026-10-20 (kanban-board): Implemented Packet J message template registry (MSG-01..MSG-17) in shared/notifications/message-templates.ts with fail-loud prod vs placeholder dev mode, litmus-safe email HTML, and tenant label overrides. Extended notification-templates.test.ts (60/60 passing).",
+      "agentNotes": "2026-09-29 (claude-code): stays blocked on design: Packet J (MSG-01…MSG-17) not returned. | 2026-09-29 (claude-code): MSG-01…MSG-17 listed in designs so codegraph shows the real blocker (0/17 received). | 2026-09-30 (claude-code): blocked -> todo. Packet J was returned (design-return/J/documents and /messages); codegraph only indexed screen SPEC folders, so it looked missing. The indexer now reads the template files; all designs received. Screens-first sequencing applies: not ahead of the A2 -> A3 -> B2 path. | 2026-10-20 (kanban-board): Implemented Packet J message template registry (MSG-01..MSG-17) in shared/notifications/message-templates.ts with fail-loud prod vs placeholder dev mode, litmus-safe email HTML, and tenant label overrides. Extended notification-templates.test.ts (60/60 passing). | 2026-10-20 (kanban-board): Moved to completed: Independent skeptic review passed; message-template suite (61 focused tests) passed, production build succeeded, and deployment c8ea5c3 verified READY.",
       "owner": "copilot (2026-10-19)"
     },
     {
