@@ -61,7 +61,7 @@ export class RealNotificationService implements INotificationService {
 
   async listForUser(
     userId: string,
-    opts?: { unreadOnly?: boolean; page?: number; pageSize?: number; afterCreatedAt?: string; afterId?: string },
+    opts?: { unreadOnly?: boolean; severity?: Notification['severity']; page?: number; pageSize?: number; afterCreatedAt?: string; afterId?: string },
   ): Promise<NotificationListOutput> {
     assertSelfUser(this.tenantResolver, userId)
     const orgId = this.requireOrg()
@@ -77,9 +77,11 @@ export class RealNotificationService implements INotificationService {
       .from(notifications)
       .where(and(...baseConds, isNull(notifications.readAt)))
     const unreadTotal = unreadRow[0]?.unreadTotal ?? 0
-    const filterConds = opts?.unreadOnly
-      ? [...baseConds, isNull(notifications.readAt)]
-      : baseConds
+    const filterConds = [
+      ...baseConds,
+      ...(opts?.severity ? [eq(notifications.severity, opts.severity)] : []),
+      ...(opts?.unreadOnly ? [isNull(notifications.readAt)] : []),
+    ]
     const totalRow = await db
       .select({ total: sql<number>`count(*)::int` })
       .from(notifications)

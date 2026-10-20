@@ -52,7 +52,7 @@ const jobId = computed(() => /^\/field\/jobs\/([^/]+)/u.exec(route.path)?.[1] ??
 const tabs = computed<FieldTab[]>(() => {
   const job = jobId.value
   return [
-    { to: '/field', labelKey: 'my-day', fallback: 'My Day', icon: 'calendar', match: (p) => p === '/field' || p === '/field/' || (p.startsWith('/field/jobs/') && !p.includes('/inspect') && !p.includes('/photos')) },
+    { to: '/field', labelKey: 'my-day', fallback: 'My Day', icon: 'calendar', match: (p) => p === '/field' || p === '/field/' || p === '/field/dashboard' || (p.startsWith('/field/jobs/') && !p.includes('/inspect') && !p.includes('/photos')) },
     ...(job
       ? [
           { to: `/field/jobs/${job}/inspect`, labelKey: 'inspect', fallback: 'Inspect', icon: 'clipboard-check', match: (p: string) => p.endsWith('/inspect') },

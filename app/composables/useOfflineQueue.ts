@@ -53,6 +53,10 @@ export interface QueuedWrite {
   correlationId?: string
 }
 
+export interface PendingQueuedWrite extends QueuedWrite {
+  namespace: string
+}
+
 export interface DrainResult {
   sent: number
   failed: number
@@ -79,6 +83,17 @@ export function loadQueue(storage: Storage, namespace: string): QueueState {
   } catch {
     return { items: [] }
   }
+}
+
+export function snapshotAllQueuedWrites(storage: Storage): PendingQueuedWrite[] {
+  const pending: PendingQueuedWrite[] = []
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index)
+    if (!key?.startsWith(STORAGE_PREFIX)) continue
+    const namespace = key.slice(STORAGE_PREFIX.length)
+    pending.push(...loadQueue(storage, namespace).items.map((item) => ({ ...item, namespace })))
+  }
+  return pending
 }
 
 export function saveQueue(storage: Storage, namespace: string, state: QueueState): boolean {
@@ -145,6 +160,10 @@ export function useOfflineQueue(options: UseOfflineQueueOptions) {
     return typeof window !== 'undefined' && typeof localStorage !== 'undefined'
   }
 
+  function notifyQueueChanged(): void {
+    if (isBrowser()) window.dispatchEvent(new Event('bulwark:offline-queue-changed'))
+  }
+
   function isOnline(): boolean {
     if (!isBrowser()) return true
     return navigator.onLine
@@ -153,10 +172,13 @@ export function useOfflineQueue(options: UseOfflineQueueOptions) {
   function enqueue(item: Omit<QueuedWrite, 'attempts'>): boolean {
     if (!isBrowser()) return false
     const ok = enqueueItem(localStorage, namespace, item)
-    if (ok && isOnline()) {
-      // Fire-and-forget drain when we're online but used the queue
-      // anyway (caller might have done so defensively).
-      void drain()
+    if (ok) {
+      notifyQueueChanged()
+      if (isOnline()) {
+        // Fire-and-forget drain when we're online but used the queue
+        // anyway (caller might have done so defensively).
+        void drain()
+      }
     }
     return ok
   }
@@ -178,7 +200,9 @@ export function useOfflineQueue(options: UseOfflineQueueOptions) {
 
   async function drain(): Promise<DrainResult> {
     if (!isBrowser()) return { sent: 0, failed: 0, remaining: 0 }
-    return await drainQueue(localStorage, namespace, sendOne)
+    const result = await drainQueue(localStorage, namespace, sendOne)
+    notifyQueueChanged()
+    return result
   }
 
   function snapshot(): QueuedWrite[] {

@@ -10,10 +10,9 @@
     - Card affordances are flat NuxtLinks (no fancy hover states) so
       the same hub renders well at 390px.
 
-  # Decision cast down
-    - Rejected: a sidebar within /settings. The site sidebar already
-      has a Settings link; nesting another sidebar is the wrong UX.
-      Cards + breadcrumbs work everywhere.
+  # Decision
+    - The settings shell provides a secondary navigation rail; this page
+      remains a card-based discovery surface for the settings domains.
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'

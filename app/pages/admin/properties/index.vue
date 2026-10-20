@@ -296,8 +296,10 @@ function exportCsv(list: Row[] = rows.value) {
 
 // ---- phones: one status at a time -------------------------------------------------------
 const narrow = ref(false)
+const hydrated = ref(false)
 const phoneStatus = ref<string | null>(null)
 onMounted(() => {
+  hydrated.value = true
   const mq = window.matchMedia('(max-width: 767px)')
   narrow.value = mq.matches
   mq.addEventListener('change', (e) => { narrow.value = e.matches })
@@ -324,6 +326,7 @@ function applySavedView(payload: { filters: Record<string, unknown> }) {
     <BulwarkPageHeader
       title="Properties"
       :meta="`${rows.length} ${rows.length === 1 ? 'property' : 'properties'} · ${money(pipelineValue)} pipeline value`"
+      data-touch-row
     >
       <template #actions>
         <BulwarkButton variant="secondary" data-testid="pipeline-export" @click="exportCsv()">
@@ -335,7 +338,7 @@ function applySavedView(payload: { filters: Record<string, unknown> }) {
       </template>
     </BulwarkPageHeader>
 
-    <div class="flex items-center gap-3 flex-wrap">
+    <div class="flex items-center gap-3 flex-wrap" data-touch-row>
       <SavedViewsMenu entity-type="property" :current-filters="currentFilters" @apply="applySavedView" />
       <BulwarkSegmentedControl v-model="view" :options="VIEW_OPTIONS" aria-label="Pipeline layout" data-testid="pipeline-view-toggle" />
     </div>
@@ -347,6 +350,7 @@ function applySavedView(payload: { filters: Record<string, unknown> }) {
       :matching="rows.length"
       :saved-views="false"
       search-placeholder="Search address or city"
+      data-touch-row
       @update:model-value="filters.set"
       @clear="filters.clear"
     />
@@ -371,8 +375,8 @@ function applySavedView(payload: { filters: Record<string, unknown> }) {
     />
 
     <template v-else-if="view === 'board'">
-      <div v-if="narrow" class="flex flex-col gap-3">
-        <div class="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Status">
+      <div v-if="hydrated && narrow" class="flex flex-col gap-3">
+        <div class="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Status" data-touch-row>
           <button
             v-for="c in columns"
             :key="c.status.id"
@@ -430,7 +434,7 @@ function applySavedView(payload: { filters: Record<string, unknown> }) {
       @bulk="onBulk"
     >
       <template #cell-addressLine1="{ row }">
-        <NuxtLink :to="`/admin/properties/${row.id}`" class="bw-link font-medium" data-testid="property-card" :data-property-id="row.id">{{ row.addressLine1 }}</NuxtLink>
+        <NuxtLink :to="`/admin/properties/${row.id}`" class="bw-link inline-flex min-h-12 items-center font-medium" data-testid="property-card" :data-property-id="row.id">{{ row.addressLine1 }}</NuxtLink>
       </template>
       <template #cell-statusLabel="{ row }">
         <StatusBadge :hue="nodeBy.get(row.status)?.hue ?? 'gray'" :label="row.statusLabel" />

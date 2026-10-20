@@ -43,7 +43,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <header class="h-topbar bg-surface border-b border-border flex items-center px-4 gap-4 sticky top-0 z-20">
+  <header class="h-topbar bg-surface border-b border-border flex items-center px-4 gap-4 sticky top-0 z-20" data-testid="app-topbar">
     <!-- Breadcrumb / page title slot. Pages set via useHead title; we
          show that as a fallback. The breadcrumbs component lands in E1-S5. -->
     <div class="flex-1 flex items-center min-w-0">

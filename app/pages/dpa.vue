@@ -20,25 +20,24 @@ useHead({ title: 'Data Processing Addendum · Bulwark' })
 
 const effectiveDate = '2026-05-16'
 const supportEmail = 'legal@bulwark.example'
+const toc = [
+  { id: 'dpa-1', label: '1. Roles' },
+  { id: 'dpa-3', label: '3. Subprocessors' },
+  { id: 'dpa-4', label: '4. Security measures' },
+  { id: 'dpa-8', label: '8. Breach notification' },
+]
+const changelog = [{ date: '2026-05-16', summary: 'Initial Data Processing Addendum published.' }]
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-text-primary">
-    <header class="border-b border-border bg-surface">
-      <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-        <NuxtLink to="/" class="font-semibold text-large">Bulwark</NuxtLink>
-        <nav class="text-small">
-          <NuxtLink to="/privacy" class="mr-4 hover:underline">Privacy</NuxtLink>
-          <NuxtLink to="/terms" class="hover:underline">Terms</NuxtLink>
-        </nav>
-      </div>
-    </header>
-
-    <main class="max-w-3xl mx-auto px-6 py-10 prose prose-sm">
-      <h1 class="text-h1 font-semibold mb-2">Data Processing Addendum</h1>
-      <p class="text-text-secondary text-small">Effective {{ effectiveDate }}</p>
-
-      <section class="mt-8">
+  <LegalDocumentLayout
+    title="Data Processing Addendum"
+    :effective-date="effectiveDate"
+    owner="platform"
+    :toc="toc"
+    :changelog="changelog"
+  >
+      <section id="dpa-1" class="mt-4">
         <h2 class="text-h2 font-semibold">1. Roles</h2>
         <p>
           For personal data processed by Bulwark on behalf of your
@@ -64,7 +63,7 @@ const supportEmail = 'legal@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="dpa-3" class="mt-8">
         <h2 class="text-h2 font-semibold">3. Subprocessors</h2>
         <p>
           The controller authorizes Bulwark to engage subprocessors
@@ -80,7 +79,7 @@ const supportEmail = 'legal@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="dpa-4" class="mt-8">
         <h2 class="text-h2 font-semibold">4. Security measures</h2>
         <p>
           Bulwark implements technical and organizational measures
@@ -129,7 +128,7 @@ const supportEmail = 'legal@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="dpa-8" class="mt-8">
         <h2 class="text-h2 font-semibold">8. Breach notification</h2>
         <p>
           Bulwark will notify the controller without undue delay,
@@ -175,15 +174,5 @@ const supportEmail = 'legal@bulwark.example'
           <a :href="`mailto:${supportEmail}`" class="text-primary underline">{{ supportEmail }}</a>.
         </p>
       </section>
-    </main>
-
-    <footer class="border-t border-border bg-surface mt-10">
-      <div class="max-w-3xl mx-auto px-6 py-4 text-small text-text-secondary">
-        © {{ new Date().getFullYear() }} Bulwark.
-        <NuxtLink to="/privacy" class="hover:underline">Privacy</NuxtLink>
-        ·
-        <NuxtLink to="/terms" class="hover:underline">Terms</NuxtLink>
-      </div>
-    </footer>
-  </div>
+  </LegalDocumentLayout>
 </template>

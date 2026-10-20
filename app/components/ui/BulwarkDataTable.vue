@@ -7,8 +7,8 @@
   selects the LOADED rows only; the bulk bar then offers "Select all N" when
   more rows match (useDataTable). Bulk actions emit `bulk` with the selection;
   row actions open a BulwarkMenu. Below 768px the same rows render as a card
-  list (<ul>) from the `card` slot (default: title + three fields) â€” never a
-  sideways-scrolling table.
+  list (<ul>) from the `card` slot (default: title + three fields). Cards are
+  non-interactive containers so links and selection controls stay independent.
 
   `sort` is controlled: the table emits the next sort and the page refetches
   (or sorts client-side with sortRows). Loading shows a table skeleton, error
@@ -241,17 +241,21 @@ const display = (v: unknown) => (v === null || v === undefined || v === '' ? 'â€
       <ul class="bw-datatable__cards flex flex-col gap-2" :aria-label="caption">
         <li v-for="row in rows" :key="keyOf(row)" data-testid="datatable-card">
           <slot name="card" :row="row">
-            <div class="bw-card bw-card--sm bw-card--clickable" role="button" tabindex="0" @click="emit('row-click', row)" @keydown.enter="emit('row-click', row)">
+            <div class="bw-card bw-card--sm">
               <div class="flex items-start gap-2">
-                <input
+                <label
                   v-if="selectable"
-                  type="checkbox"
-                  :checked="table.selection.value.allMatching || table.selection.value.keys.has(keyOf(row))"
-                  :aria-label="`Select ${display(row[titleCol])}`"
-                  style="width: 20px; height: 20px; accent-color: var(--accent)"
-                  @click.stop
-                  @change="toggleRow(keyOf(row))"
+                  class="flex min-h-12 min-w-12 shrink-0 items-center justify-center"
+                  data-touch-row
                 >
+                  <input
+                    type="checkbox"
+                    :checked="table.selection.value.allMatching || table.selection.value.keys.has(keyOf(row))"
+                    :aria-label="`Select ${display(row[titleCol])}`"
+                    style="width: 20px; height: 20px; accent-color: var(--accent)"
+                    @change="toggleRow(keyOf(row))"
+                  >
+                </label>
                 <div class="min-w-0 flex-1">
                   <p class="font-semibold truncate">
                     <slot :name="`cell-${titleCol}`" :row="row" :value="row[titleCol]">{{ display(row[titleCol]) }}</slot>

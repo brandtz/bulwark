@@ -32,7 +32,7 @@ export class MockNotificationService implements INotificationService {
 
   async listForUser(
     userId: string,
-    opts?: { unreadOnly?: boolean; page?: number; pageSize?: number; afterCreatedAt?: string; afterId?: string },
+    opts?: { unreadOnly?: boolean; severity?: Notification['severity']; page?: number; pageSize?: number; afterCreatedAt?: string; afterId?: string },
   ): Promise<NotificationListOutput> {
     const orgId = this.orgId()
     if (orgId) assertSameTenant(this.resolver, orgId)
@@ -40,6 +40,7 @@ export class MockNotificationService implements INotificationService {
     const pageSize = opts?.pageSize ?? 50
     let scope = rows.filter((r) => r.userId === userId && (!orgId || r.organizationId === orgId))
     const unreadTotal = scope.filter((r) => r.readAt === null).length
+    if (opts?.severity) scope = scope.filter((r) => r.severity === opts.severity)
     if (opts?.unreadOnly) scope = scope.filter((r) => r.readAt === null)
     const total = scope.length
     // WP-L06 S3: same order, offset cap and keyset cursor as the real service.

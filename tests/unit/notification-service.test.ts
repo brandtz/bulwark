@@ -21,7 +21,11 @@ beforeEach(() => {
   __resetMockNotificationsForTests()
 })
 
-async function seed(svc: MockNotificationService, n: number): Promise<string[]> {
+async function seed(
+  svc: MockNotificationService,
+  n: number,
+  severity: 'info' | 'success' | 'warning' | 'error' = 'success',
+): Promise<string[]> {
   const ids: string[] = []
   for (let i = 0; i < n; i++) {
     const r = await svc.enqueue({
@@ -30,7 +34,7 @@ async function seed(svc: MockNotificationService, n: number): Promise<string[]> 
       eventType: 'quote.accepted',
       title: `Notification #${i}`,
       body: 'body',
-      severity: 'success',
+      severity,
     })
     ids.push(r.id)
   }
@@ -74,6 +78,30 @@ describe('MockNotificationService', () => {
     const unread = await svc.listForUser(FIXTURE_USER_ADMIN.userId, { unreadOnly: true })
     expect(unread.total).toBe(3)
     for (const row of unread.rows) expect(row.readAt).toBeNull()
+  })
+
+  it('filters severity before pagination while keeping the unread badge total global', async () => {
+    const svc = new MockNotificationService(resolver)
+    await seed(svc, 3, 'success')
+    await seed(svc, 2, 'warning')
+
+    const first = await svc.listForUser(FIXTURE_USER_ADMIN.userId, {
+      severity: 'warning',
+      page: 1,
+      pageSize: 1,
+    })
+    const second = await svc.listForUser(FIXTURE_USER_ADMIN.userId, {
+      severity: 'warning',
+      page: 2,
+      pageSize: 1,
+    })
+
+    expect(first.total).toBe(2)
+    expect(first.unreadTotal).toBe(5)
+    expect(first.rows).toHaveLength(1)
+    expect(second.rows).toHaveLength(1)
+    expect(first.rows[0]!.severity).toBe('warning')
+    expect(second.rows[0]!.severity).toBe('warning')
   })
 
   it('markAllRead flips every unread row', async () => {

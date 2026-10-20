@@ -22,16 +22,40 @@
       topbar slot free of the (admittedly heavy) results list.
 -->
 <script setup lang="ts">
+import type { SearchResult } from '~~/shared/contracts/search'
 import { groupResults } from '~/composables/useGlobalSearch'
 
-const { state, selectedIndex, close, setQuery, moveSelection } = useGlobalSearch()
+const { session, ensureLoaded } = useSession()
+await ensureLoaded()
+const { state, selectedIndex, recent, loadRecent, rememberRecent, close, setQuery, moveSelection } = useGlobalSearch()
 const { t } = useLabel()
 
 const groups = computed(() => groupResults(state.value.results))
+const actions = computed(() => {
+  const role = session.value?.activeRole
+  const common = [{ label: 'Open notifications', to: '/notifications' }]
+  if (['super_admin', 'org_admin', 'org_manager'].includes(role ?? '')) {
+    return [
+      { label: 'New property', to: '/admin/properties/new' },
+      { label: 'New work order', to: '/admin/work-orders/new' },
+      ...common,
+    ]
+  }
+  if (role === 'field') return [{ label: 'Open sync queue', to: '/field/sync-queue' }, ...common]
+  if (role === 'sub_contractor') return [{ label: 'Open my jobs', to: '/sub/work-orders' }, ...common]
+  if (role === 'homeowner') return [{ label: 'View my properties', to: '/homeowner/properties' }, ...common]
+  return common
+})
 
 // Flat order matches `state.results` so the selected index lines up
 // across groups when ↑/↓ pressed.
 const flat = computed(() => state.value.results)
+
+function selectResult(result: SearchResult) {
+  rememberRecent(result)
+  close()
+  void navigateTo(result.url)
+}
 
 function onKeydown(e: KeyboardEvent) {
   if (!state.value.isOpen) return
@@ -54,9 +78,7 @@ function onKeydown(e: KeyboardEvent) {
     const hit = flat.value[selectedIndex.value]
     if (hit) {
       e.preventDefault()
-      const url = hit.url
-      close()
-      void navigateTo(url)
+      selectResult(hit)
     }
   }
 }
@@ -84,6 +106,8 @@ onBeforeUnmount(() => {
     document.removeEventListener('keydown', onKeydown)
   }
 })
+
+onMounted(() => { void loadRecent() })
 
 function onInput(e: Event) {
   const target = e.target as HTMLInputElement
@@ -142,6 +166,16 @@ function entityTypeLabel(t: string): string {
             >Esc</button>
           </div>
 
+          <div
+            v-if="state.offline"
+            class="flex items-center gap-2 px-4 py-2 border-b border-border text-small text-text-secondary"
+            role="status"
+            data-testid="search-palette-offline"
+          >
+            <span class="rounded-pill bg-surface-muted px-2 py-0.5">Read-only</span>
+            <span>Cached results only</span>
+          </div>
+
           <div class="max-h-[60vh] overflow-y-auto">
             <p
               v-if="state.loading"
@@ -153,7 +187,51 @@ function entityTypeLabel(t: string): string {
               v-else-if="state.query.trim() && state.results.length === 0"
               class="px-4 py-6 text-small text-text-secondary"
               data-testid="search-palette-empty"
-            >{{ t('search', 'empty', 'No results. Try a different search.') }}</p>
+            >{{ state.offline ? 'No cached results for this search.' : t('search', 'empty', 'No results. Try a different search.') }}</p>
+
+            <div
+              v-else-if="!state.query.trim()"
+              class="divide-y divide-border"
+              data-testid="search-palette-empty-state"
+            >
+              <section class="px-3 py-3" aria-label="Recent">
+                <h2 class="px-1 pb-2 text-tiny uppercase tracking-wide text-text-secondary">Recent</h2>
+                <p v-if="recent.length === 0" class="px-1 py-2 text-small text-text-secondary">
+                  No recent records yet.
+                </p>
+                <ul v-else>
+                  <li v-for="item in recent" :key="`${item.entityType}-${item.id}`">
+                    <NuxtLink
+                      :to="item.url"
+                      class="block min-h-11 rounded px-3 py-2 hover:bg-surface-muted"
+                      data-testid="search-palette-recent-result"
+                      @click="rememberRecent(item); close()"
+                    >
+                      <span class="block text-body text-text-primary truncate">{{ item.title }}</span>
+                      <span v-if="item.subtitle" class="block text-small text-text-secondary truncate">
+                        {{ item.subtitle }}
+                      </span>
+                    </NuxtLink>
+                  </li>
+                </ul>
+              </section>
+              <section class="px-3 py-3" aria-label="Actions">
+                <h2 class="px-1 pb-2 text-tiny uppercase tracking-wide text-text-secondary">Actions</h2>
+                <ul>
+                  <li v-for="action in actions" :key="action.to">
+                    <NuxtLink
+                      :to="action.to"
+                      class="flex min-h-11 items-center justify-between rounded px-3 py-2 text-small text-text-primary hover:bg-surface-muted"
+                      data-testid="search-palette-action"
+                      @click="close"
+                    >
+                      <span>{{ action.label }}</span>
+                      <kbd class="text-tiny text-text-secondary">Enter</kbd>
+                    </NuxtLink>
+                  </li>
+                </ul>
+              </section>
+            </div>
 
             <ul v-else>
               <template v-for="group in groups" :key="group.entityType">
@@ -172,7 +250,7 @@ function entityTypeLabel(t: string): string {
                     data-testid="search-palette-result"
                     :data-entity-type="row.entityType"
                     :data-entity-id="row.id"
-                    @click="close"
+                    @click="rememberRecent(row); close()"
                   >
                     <p class="text-body text-text-primary truncate">{{ row.title }}</p>
                     <p v-if="row.subtitle" class="text-small text-text-secondary truncate">

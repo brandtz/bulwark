@@ -26,7 +26,14 @@ const { session, ensureLoaded } = useSession()
 await ensureLoaded()
 
 const auth = useService('auth')
-const router = useRouter()
+const {
+  warningOpen: signOutWarningOpen,
+  pendingWrites: pendingSignOutWrites,
+  inspectionFailed: signOutInspectionFailed,
+  requestSignOut,
+  confirmSignOut,
+  cancelSignOut,
+} = useQueuedWorkSignOut()
 
 const activeOrgName = computed(() => {
   const orgId = session.value?.activeOrganizationId
@@ -41,8 +48,7 @@ const signingOut = ref(false)
 async function onSignOut() {
   signingOut.value = true
   try {
-    await auth.logout()
-    await router.push('/login')
+    await requestSignOut()
   } finally {
     signingOut.value = false
   }
@@ -375,5 +381,12 @@ async function onAvatarRemove() {
         {{ signingOut ? 'Signing out…' : 'Sign out' }}
       </BulwarkButton>
     </div>
+    <SignOutQueueWarning
+      :open="signOutWarningOpen"
+      :items="pendingSignOutWrites"
+      :inspection-failed="signOutInspectionFailed"
+      @cancel="cancelSignOut"
+      @confirm="confirmSignOut"
+    />
   </div>
 </template>

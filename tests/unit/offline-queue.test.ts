@@ -15,6 +15,7 @@ import {
   loadQueue,
   drainQueue,
   saveQueue,
+  snapshotAllQueuedWrites,
   type QueuedWrite,
 } from '../../app/composables/useOfflineQueue'
 
@@ -48,6 +49,16 @@ describe('useOfflineQueue helpers', () => {
     enqueueItem(storage, 'check-in', { url: '/checkin', method: 'POST' })
     expect(loadQueue(storage, 'photos').items.map((i) => i.url)).toEqual(['/photo'])
     expect(loadQueue(storage, 'check-in').items.map((i) => i.url)).toEqual(['/checkin'])
+  })
+
+  it('lists pending writes from every namespace', () => {
+    enqueueItem(storage, 'photos', { url: '/photos/upload', method: 'POST' })
+    enqueueItem(storage, 'field-check-in', { url: '/api/field/check-in', method: 'POST' })
+
+    expect(snapshotAllQueuedWrites(storage).map(({ namespace, url }) => ({ namespace, url }))).toEqual([
+      { namespace: 'photos', url: '/photos/upload' },
+      { namespace: 'field-check-in', url: '/api/field/check-in' },
+    ])
   })
 
   it('drainQueue removes items in FIFO when send returns true', async () => {

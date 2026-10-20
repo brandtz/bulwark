@@ -84,8 +84,8 @@ const form = reactive({
 const programIds = ref<string[]>([])
 interface BuildingRow { key: number, name: string, kind: string, squareFeet: string }
 interface ContactRow { key: number, firstName: string, lastName: string, email: string, phone: string, kind: string }
-let rowKey = 0
-const buildings = ref<BuildingRow[]>([{ key: rowKey++, name: 'Main', kind: 'house', squareFeet: '' }])
+const rowKey = ref(1)
+const buildings = ref<BuildingRow[]>([{ key: 0, name: 'Main', kind: 'house', squareFeet: '' }])
 const contacts = ref<ContactRow[]>([])
 const photos = ref<File[]>([])
 const errors = ref<Record<string, string>>({})
@@ -197,8 +197,8 @@ async function saveNewClient() {
 function toggleProgram(id: string, on: boolean) {
   programIds.value = on ? [...programIds.value.filter((x) => x !== id), id] : programIds.value.filter((x) => x !== id)
 }
-const addBuilding = () => buildings.value.push({ key: rowKey++, name: '', kind: 'house', squareFeet: '' })
-const addContact = () => contacts.value.push({ key: rowKey++, firstName: '', lastName: '', email: '', phone: '', kind: 'owner' })
+const addBuilding = () => buildings.value.push({ key: rowKey.value++, name: '', kind: 'house', squareFeet: '' })
+const addContact = () => contacts.value.push({ key: rowKey.value++, firstName: '', lastName: '', email: '', phone: '', kind: 'owner' })
 const PHOTO_MAX = 12 * 1024 * 1024
 const photoError = ref('')
 function addPhotos(list: FileList | File[] | null | undefined) {
@@ -319,7 +319,7 @@ function confirmLeave() {
 
 <template>
   <div class="p-4 md:p-6" :class="'pb-28 xl:pb-6'" data-testid="property-intake-form">
-    <BulwarkPageHeader title="New property" :breadcrumbs="[{ label: 'Properties', to: '/admin/properties' }, { label: 'New' }]" />
+    <BulwarkPageHeader title="New property" :breadcrumbs="[{ label: 'Properties', to: '/admin/properties' }, { label: 'New' }]" data-touch-row />
 
     <div class="mt-4 flex flex-col xl:flex-row gap-6 items-start">
       <form class="flex flex-col gap-4 w-full xl:max-w-[720px]" novalidate @submit.prevent="submit('hub')">
@@ -329,7 +329,7 @@ function confirmLeave() {
         <BulwarkBanner v-if="serverError" tone="danger" data-testid="server-error">{{ serverError }}</BulwarkBanner>
 
         <!-- Address -->
-        <BulwarkCard padding="md">
+        <BulwarkCard padding="md" data-touch-row>
           <BulwarkSectionHeader title="Address" />
           <div v-if="!manual" class="relative">
             <div class="bw-field">
@@ -392,7 +392,7 @@ function confirmLeave() {
         </BulwarkCard>
 
         <!-- Client -->
-        <BulwarkCard padding="md">
+        <BulwarkCard padding="md" data-touch-row>
           <BulwarkSectionHeader title="Client" />
           <BulwarkSelect
             v-model="form.clientId"
@@ -422,7 +422,7 @@ function confirmLeave() {
         </BulwarkCard>
 
         <!-- Programs -->
-        <BulwarkCard padding="md">
+        <BulwarkCard padding="md" data-touch-row>
           <BulwarkSectionHeader title="Programs" description="Programs pick the inspection template and deliverables." />
           <div v-if="refs?.programs.length" class="flex flex-wrap gap-2" role="group" aria-label="Programs">
             <BulwarkChips
@@ -439,7 +439,7 @@ function confirmLeave() {
         </BulwarkCard>
 
         <!-- Buildings -->
-        <BulwarkCard padding="md">
+        <BulwarkCard padding="md" data-touch-row>
           <BulwarkSectionHeader title="Buildings" />
           <ul class="flex flex-col gap-3">
             <li v-for="(b, i) in buildings" :key="b.key" class="grid grid-cols-[1fr_auto] md:grid-cols-[2fr_1fr_1fr_auto] gap-3 items-end" data-testid="intake-building-row">
@@ -454,7 +454,7 @@ function confirmLeave() {
         </BulwarkCard>
 
         <!-- Contacts -->
-        <BulwarkCard padding="md">
+        <BulwarkCard padding="md" data-touch-row>
           <BulwarkSectionHeader title="Contacts" description="Optional. The client stays the owner of record." />
           <ul v-if="contacts.length" class="flex flex-col gap-3">
             <li v-for="(c, i) in contacts" :key="c.key" class="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end" data-testid="intake-contact-row">
@@ -468,7 +468,7 @@ function confirmLeave() {
         </BulwarkCard>
 
         <!-- Photos -->
-        <BulwarkCard padding="md">
+        <BulwarkCard padding="md" data-touch-row>
           <BulwarkSectionHeader title="Photos" description="JPG or PNG, up to 12 MB each. Uploads continue after you create the property." />
           <div
             class="flex flex-col items-center gap-2 p-6 text-center"

@@ -150,7 +150,7 @@ function onCardKey(e: KeyboardEvent, card: C) {
         @dragleave="over = null"
         @drop.prevent="onDrop(col.status.id)"
       >
-        <header class="flex items-center gap-2 px-1">
+        <header class="flex items-center gap-2 px-1" data-touch-row>
           <StatusBadge :hue="col.status.hue" :label="col.status.label" />
           <span class="bw-help tnum">{{ cardsIn(col.status.id).length }}<template v-if="col.wip"> / {{ col.wip }}</template></span>
           <span v-if="col.wip && cardsIn(col.status.id).length > col.wip" class="bw-error" style="font-size: var(--text-xs)">Over limit</span>

@@ -34,6 +34,7 @@ const { t } = useLabel()
 
 const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 const userId = computed(() => session.value?.userId ?? '')
+const canDeleteShared = computed(() => ['super_admin', 'org_admin'].includes(session.value?.activeRole ?? ''))
 
 const rowsByType = ref<Record<SavedViewEntityType, SavedView[]>>(
   Object.fromEntries(
@@ -163,6 +164,7 @@ function nonEmptyGroups() {
                     @click="toggleDefault(v)"
                   >{{ v.isDefault ? 'Clear default' : 'Set default' }}</button>
                   <button
+                    v-if="v.userId === userId || canDeleteShared"
                     type="button"
                     class="text-small text-status-error hover:underline"
                     data-testid="saved-views-delete"

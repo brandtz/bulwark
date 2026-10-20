@@ -4,9 +4,8 @@
  * Decisions:
  *   - Deterministic UUIDs (the `mk()` helper) so spec assertions can reference
  *     them stably across runs.
- *   - One demo org, three users (admin/field/sub), 12+ properties spanning
- *     every PropertyStatus so the pipeline kanban has at least one card per
- *     column on first paint.
+ *   - One demo org and deterministic personas for every role used by the
+ *     screen-contract suite, plus 12+ properties spanning every status.
  *
  * Decisions NOT taken:
  *   - We don't randomize fixtures with faker. Determinism > variety for an
@@ -55,6 +54,18 @@ export const FIXTURE_USER_ADMIN: SessionUser = {
   ],
 }
 
+export const FIXTURE_USER_MANAGER: SessionUser = {
+  userId: mk('user-morgan-manager'),
+  email: 'morgan@bulwark.demo',
+  fullName: 'Morgan Lee',
+  avatarUrl: null,
+  activeOrganizationId: FIXTURE_ORG_ID,
+  activeRole: 'org_manager',
+  memberships: [
+    { organizationId: FIXTURE_ORG_ID, organizationName: 'Bulwark Demo Co.', role: 'org_manager' },
+  ],
+}
+
 export const FIXTURE_USER_FIELD: SessionUser = {
   userId: mk('user-matthew-field'),
   email: 'matthew@bulwark.demo',
@@ -91,6 +102,42 @@ export const FIXTURE_USER_SUPER: SessionUser = {
   memberships: [
     { organizationId: FIXTURE_ORG_ID, organizationName: 'Bulwark Demo Co.', role: 'super_admin' },
     { organizationId: FIXTURE_ORG_ID_2, organizationName: FIXTURE_ORG_2_NAME, role: 'super_admin' },
+  ],
+}
+
+export const FIXTURE_USER_VIEWER: SessionUser = {
+  userId: mk('user-vivian-viewer'),
+  email: 'vivian@bulwark.demo',
+  fullName: 'Vivian Chen',
+  avatarUrl: null,
+  activeOrganizationId: FIXTURE_ORG_ID,
+  activeRole: 'viewer',
+  memberships: [
+    { organizationId: FIXTURE_ORG_ID, organizationName: 'Bulwark Demo Co.', role: 'viewer' },
+  ],
+}
+
+export const FIXTURE_USER_HOMEOWNER: SessionUser = {
+  userId: mk('user-homer-homeowner'),
+  email: 'homer@bulwark.demo',
+  fullName: 'Homer Smith',
+  avatarUrl: null,
+  activeOrganizationId: FIXTURE_ORG_ID,
+  activeRole: 'homeowner',
+  memberships: [
+    { organizationId: FIXTURE_ORG_ID, organizationName: 'Bulwark Demo Co.', role: 'homeowner' },
+  ],
+}
+
+export const FIXTURE_USER_STAKEHOLDER: SessionUser = {
+  userId: mk('user-insurer-stakeholder'),
+  email: 'insurer@bulwark.demo',
+  fullName: 'Morgan Insurance',
+  avatarUrl: null,
+  activeOrganizationId: FIXTURE_ORG_ID,
+  activeRole: 'stakeholder',
+  memberships: [
+    { organizationId: FIXTURE_ORG_ID, organizationName: 'Bulwark Demo Co.', role: 'stakeholder' },
   ],
 }
 

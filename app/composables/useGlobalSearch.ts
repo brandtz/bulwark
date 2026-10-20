@@ -31,13 +31,14 @@
  *     pagination would duplicate scoring + add visible "loading"
  *     flicker that hurts the cmd-k feel.
  */
-import type { SearchEntityType, SearchResult } from '~~/shared/contracts/search'
+import { SearchResultSchema, type SearchEntityType, type SearchResult } from '~~/shared/contracts/search'
 
 export interface GlobalSearchState {
   isOpen: boolean
   query: string
   results: SearchResult[]
   loading: boolean
+  offline: boolean
 }
 
 export interface DebouncerHandle {
@@ -91,6 +92,8 @@ export function groupResults(
 
 const DEBOUNCE_MS = 200
 const LIMIT = 25
+const RECENT_LIMIT = 5
+const SEARCH_CACHE_LIMIT = 10
 
 export function useGlobalSearch() {
   const state = useState<GlobalSearchState>('bulwark.global-search', () => ({
@@ -98,7 +101,12 @@ export function useGlobalSearch() {
     query: '',
     results: [],
     loading: false,
+    offline: false,
   }))
+  const { session, ensureLoaded } = useSession()
+  const recent = useState<SearchResult[]>('bulwark.global-search.recent', () => [])
+  const recentOwner = useState<string>('bulwark.global-search.recent-owner', () => '')
+  const searchCache = useState<Record<string, SearchResult[]>>('bulwark.global-search.cache', () => ({}))
 
   // Selection index for keyboard nav. Lives outside the persisted state
   // shape so the test surface stays small.
@@ -109,22 +117,88 @@ export function useGlobalSearch() {
 
   const debouncer = createDebouncer(DEBOUNCE_MS)
 
+  function currentScope(): string {
+    const userId = session.value?.userId
+    const organizationId = session.value?.activeOrganizationId
+    return userId && organizationId ? `${userId}:${organizationId}` : ''
+  }
+
+  function recentStorageKey(scope: string): string {
+    return `bulwark.search.recent.${scope}`
+  }
+
+  async function loadRecent(): Promise<void> {
+    await ensureLoaded()
+    if (!import.meta.client) return
+    const scope = currentScope()
+    if (scope === recentOwner.value) return
+    recentOwner.value = scope
+    recent.value = []
+    if (!scope) return
+
+    const key = recentStorageKey(scope)
+    try {
+      const raw = window.localStorage.getItem(key)
+      if (!raw) return
+      const parsed: unknown = JSON.parse(raw)
+      const result = SearchResultSchema.array().max(RECENT_LIMIT).safeParse(parsed)
+      if (!result.success) {
+        console.error('Invalid recent search history', result.error)
+        window.localStorage.removeItem(key)
+        return
+      }
+      recent.value = result.data
+    } catch (error) {
+      console.error('Could not load recent search history', error)
+    }
+  }
+
+  function rememberRecent(result: SearchResult): void {
+    if (!import.meta.client) return
+    const scope = currentScope()
+    if (!scope) return
+    if (recentOwner.value !== scope) {
+      recentOwner.value = scope
+      recent.value = []
+    }
+    const validated = SearchResultSchema.parse(result)
+    recent.value = [
+      validated,
+      ...recent.value.filter((item) => item.id !== validated.id || item.entityType !== validated.entityType),
+    ].slice(0, RECENT_LIMIT)
+    try {
+      window.localStorage.setItem(recentStorageKey(scope), JSON.stringify(recent.value))
+    } catch (error) {
+      console.error('Could not save recent search history', error)
+    }
+  }
+
   async function run(query: string) {
     const trimmed = query.trim()
     if (!trimmed) {
       state.value.results = []
       state.value.loading = false
+      state.value.offline = false
       return
     }
-    const { session, ensureLoaded } = useSession()
     await ensureLoaded()
     const orgId = session.value?.activeOrganizationId
-    if (!orgId) {
+    const userId = session.value?.userId
+    if (!orgId || !userId) {
       state.value.results = []
       state.value.loading = false
       return
     }
     const mySerial = ++serial.value
+    const cacheKey = `${userId}:${orgId}:${trimmed.toLowerCase()}`
+    if (import.meta.client && !navigator.onLine) {
+      state.value.offline = true
+      state.value.results = searchCache.value[cacheKey] ?? []
+      state.value.loading = false
+      selectedIndex.value = 0
+      return
+    }
+    state.value.offline = false
     state.value.loading = true
     try {
       const search = useService('search')
@@ -137,6 +211,19 @@ export function useGlobalSearch() {
       if (mySerial === serial.value) {
         state.value.results = out.results
         selectedIndex.value = 0
+        searchCache.value = {
+          ...searchCache.value,
+          [cacheKey]: out.results,
+        }
+        const cachedKeys = Object.keys(searchCache.value)
+        if (cachedKeys.length > SEARCH_CACHE_LIMIT) {
+          const nextCache: Record<string, SearchResult[]> = {}
+          for (const key of cachedKeys.slice(-SEARCH_CACHE_LIMIT)) {
+            const rows = searchCache.value[key]
+            if (rows) nextCache[key] = rows
+          }
+          searchCache.value = nextCache
+        }
       }
     } catch {
       if (mySerial === serial.value) state.value.results = []
@@ -155,6 +242,7 @@ export function useGlobalSearch() {
     state.value.query = ''
     state.value.results = []
     state.value.loading = false
+    state.value.offline = false
     selectedIndex.value = 0
   }
 
@@ -165,6 +253,7 @@ export function useGlobalSearch() {
       debouncer.cancel()
       state.value.results = []
       state.value.loading = false
+      state.value.offline = false
       return
     }
     debouncer.schedule(() => {
@@ -187,6 +276,9 @@ export function useGlobalSearch() {
   return {
     state,
     selectedIndex,
+    recent,
+    loadRecent,
+    rememberRecent,
     open,
     close,
     setQuery,

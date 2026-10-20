@@ -76,7 +76,7 @@ const totalProps = computed(() => data.value?.total ?? 0)
       </BulwarkCard>
     </div>
 
-    <p class="text-small text-text-disabled mt-8 text-center">
+    <p class="text-small text-text-secondary mt-8 text-center">
       Pipeline kanban + property detail land in Epic E3. Compliance, quotes, work orders follow in E4–E8.
     </p>
   </div>

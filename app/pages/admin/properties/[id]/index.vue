@@ -198,9 +198,10 @@ const openItems = computed<OpenItem[]>(() => {
 })
 
 const nextMilestone = computed(() => {
-  const now = new Date().toISOString()
-  const due = unpaid.value.map((i) => ({ at: i.dueDate ?? i.dueAt, label: 'Payment due' })).filter((x) => x.at && x.at >= now.slice(0, 10))
-  const starts = jobs.value.filter((w) => w.scheduledStart && w.scheduledStart >= now).map((w) => ({ at: w.scheduledStart, label: 'Job starts' }))
+  const today = new Date().toISOString().slice(0, 10)
+  const isUpcoming = (at: string | null | undefined) => Boolean(at && at.slice(0, 10) >= today)
+  const due = unpaid.value.map((i) => ({ at: i.dueDate ?? i.dueAt, label: 'Payment due' })).filter((x) => isUpcoming(x.at))
+  const starts = jobs.value.filter((w) => isUpcoming(w.scheduledStart)).map((w) => ({ at: w.scheduledStart, label: 'Job starts' }))
   const next = [...due, ...starts].sort((a, b) => String(a.at).localeCompare(String(b.at)))[0]
   return next ? `${next.label} ${fmtDate(next.at)}` : 'None scheduled'
 })
@@ -270,24 +271,26 @@ watch(activeTab, (next, prev) => {
 watch(() => route.query.tab, () => { activeTab.value = readTab() })
 
 const narrow = ref(false)
+const hydrated = ref(false)
 onMounted(() => {
+  hydrated.value = true
   const mq = window.matchMedia('(max-width: 767px)')
   narrow.value = mq.matches
   mq.addEventListener('change', (e) => { narrow.value = e.matches })
 })
 const PHONE_TABS: TabKey[] = ['overview', 'inspections', 'quotes', 'jobs']
-const visibleTabs = computed(() => (narrow.value
+const visibleTabs = computed(() => (hydrated.value && narrow.value
   ? tabs.value.filter((t) => PHONE_TABS.includes(t.value) || t.value === activeTab.value)
   : tabs.value))
 const moreItems = computed<MenuEntry[]>(() => tabs.value
-  .filter((t) => !narrow.value || !PHONE_TABS.includes(t.value))
+  .filter((t) => !(hydrated.value && narrow.value) || !PHONE_TABS.includes(t.value))
   .map((t) => ({ label: t.count ? `${t.label} (${t.count})` : t.label, value: t.value })))
 
 const base = computed(() => `/admin/properties/${propertyId.value}`)
 </script>
 
 <template>
-  <div class="p-4 md:p-6 flex flex-col gap-4 min-w-0" :class="narrow && p && !readonly && 'pb-24'" data-testid="property-detail">
+  <div class="p-4 md:p-6 flex flex-col gap-4 min-w-0" :class="hydrated && narrow && p && !readonly && 'pb-24'" data-testid="property-detail">
     <div v-if="pending && !detail" class="flex flex-col gap-4" data-testid="property-loading">
       <BulwarkSkeleton class="h-16 w-2/3" />
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4"><BulwarkSkeleton v-for="i in 4" :key="i" class="h-20" /></div>
@@ -314,6 +317,7 @@ const base = computed(() => `/admin/properties/${propertyId.value}`)
         class="sticky top-0 z-10"
         style="background: var(--bg-page)"
         data-testid="property-header"
+        data-touch-row
       >
         <template #actions>
           <PropertyStatusControl
@@ -325,7 +329,7 @@ const base = computed(() => `/admin/properties/${propertyId.value}`)
             :disabled="!canEdit"
             @changed="refresh()"
           />
-          <template v-if="!readonly && !narrow">
+          <template v-if="!readonly && !(hydrated && narrow)">
             <NuxtLink :to="`${base}/assessment`" class="bw-btn bw-btn--secondary" data-testid="hub-new-inspection">New inspection</NuxtLink>
             <NuxtLink :to="`${base}/quotes/new`" class="bw-btn bw-btn--secondary" data-testid="hub-new-quote">New quote</NuxtLink>
             <NuxtLink v-if="!isHold" :to="`${base}/work-orders/new`" class="bw-btn bw-btn--primary" data-testid="hub-new-job">New job</NuxtLink>
@@ -358,19 +362,19 @@ const base = computed(() => `/admin/properties/${propertyId.value}`)
           <dt class="bw-help">Invoiced</dt>
           <dd class="text-xl font-semibold tnum" data-testid="stat-invoiced">{{ money(detail.summary?.invoicedCents) }}</dd>
         </div>
-        <div class="bw-card bw-card--sm" :class="narrow && 'hidden'">
+        <div class="bw-card bw-card--sm" :class="hydrated && narrow && 'hidden'">
           <dt class="bw-help">Balance</dt>
           <dd class="text-xl font-semibold tnum" :style="(detail.summary?.balanceCents ?? 0) > 0 ? 'color: var(--danger-fg)' : undefined" data-testid="stat-balance">
             {{ money(detail.summary?.balanceCents) }}<span v-if="(detail.summary?.balanceCents ?? 0) > 0" class="sr-only"> outstanding</span>
           </dd>
         </div>
-        <div class="bw-card bw-card--sm" :class="narrow && 'hidden'">
+        <div class="bw-card bw-card--sm" :class="hydrated && narrow && 'hidden'">
           <dt class="bw-help">Next milestone</dt>
           <dd class="font-semibold" data-testid="stat-milestone">{{ nextMilestone }}</dd>
         </div>
       </dl>
 
-      <div class="flex items-end gap-2 min-w-0">
+      <div class="flex items-end gap-2 min-w-0" data-touch-row>
         <BulwarkTabs
           v-model="activeTab"
           :tabs="visibleTabs"
@@ -380,7 +384,7 @@ const base = computed(() => `/admin/properties/${propertyId.value}`)
           data-testid="property-tabs"
         >
           <template #tab-overview>
-            <section class="grid grid-cols-1 xl:grid-cols-3 gap-4" data-testid="tab-panel-overview">
+            <section class="grid grid-cols-1 xl:grid-cols-3 gap-4" data-testid="tab-panel-overview" data-touch-row>
               <div class="xl:col-span-2 flex flex-col gap-4">
                 <BulwarkCard padding="md" data-testid="overview-open-items">
                   <BulwarkSectionHeader title="Open items" />
@@ -619,7 +623,7 @@ const base = computed(() => `/admin/properties/${propertyId.value}`)
       </BulwarkModal>
 
       <div
-        v-if="narrow && !readonly"
+        v-if="hydrated && narrow && !readonly"
         class="fixed bottom-0 inset-x-0 flex gap-2 p-3 border-t"
         style="background: var(--bg-surface); border-color: var(--border-subtle); z-index: var(--z-sticky, 20)"
       >

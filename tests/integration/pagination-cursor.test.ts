@@ -124,7 +124,7 @@ d('cursor pagination on every keyset list (WP-L06 S3)', () => {
       organizationId: orgId, propertyId, quoteId: qs[0]!.id, workOrderNumber: `LW-${i}`, tradeSlots: [], materials: [], createdById: userId, createdAt: sharedMs(i),
     })) as never)
     await db.insert(notifications).values(Array.from({ length: N }, (_, i) => ({
-      organizationId: orgId, userId, eventType: 'l06.test', title: `n${i}`, body: 'b', createdAt: sharedMs(i),
+      organizationId: orgId, userId, eventType: 'l06.test', title: `n${i}`, body: 'b', severity: i % 2 === 0 ? 'info' : 'warning', createdAt: sharedMs(i),
     })) as never)
     await db.insert(auditLog).values(Array.from({ length: AUDIT_ROWS }, (_, i) => ({
       organizationId: orgId, entityType: 'l06_test', entityId: propertyId, action: 'update', createdAt: sharedMs(i),
@@ -163,6 +163,18 @@ d('cursor pagination on every keyset list (WP-L06 S3)', () => {
       if (name !== 'audit.filter') expect(seen).toHaveLength(N)
     })
   }
+
+  it('filters notification severity before pagination', async () => {
+    const service = new RealNotificationService(() => ({ userId, organizationId: orgId }))
+    const pageOne = await service.listForUser(userId, { severity: 'warning', page: 1, pageSize: 2 })
+    const pageTwo = await service.listForUser(userId, { severity: 'warning', page: 2, pageSize: 2 })
+
+    expect(pageOne.total).toBe(Math.floor(N / 2))
+    expect(pageOne.unreadTotal).toBe(N)
+    expect(pageOne.rows).toHaveLength(2)
+    expect(pageTwo.rows).toHaveLength(2)
+    expect([...pageOne.rows, ...pageTwo.rows].every((row) => row.severity === 'warning')).toBe(true)
+  })
 
   it('audit.exportCsv walks past its page size without repeating or dropping rows', async () => {
     const csv = await new RealAuditService().exportCsv({ organizationId: orgId, entityType: 'l06_test' })

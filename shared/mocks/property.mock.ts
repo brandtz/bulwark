@@ -106,7 +106,7 @@ export class MockPropertyService implements IPropertyService {
     // WP-L06 S3: same newest-first order, offset cap and keyset cursor as the real service.
     const paged = pageRows(scoped.slice().sort(compareNewestFirst), input)
     return {
-      rows: paged.rows,
+      rows: paged.rows.map((row) => ({ ...row })),
       total,
       page: input.page,
       pageSize: input.pageSize,
@@ -117,14 +117,16 @@ export class MockPropertyService implements IPropertyService {
   async get(id: string, organizationId: string): Promise<Property | null> {
     assertSameTenant(this.tenantResolver, organizationId)
     const r = rows.find(x => x.id === id && x.organizationId === organizationId)
-    return r && !r.deletedAt ? r : null
+    return r && !r.deletedAt ? { ...r } : null
   }
 
   async getMany(ids: string[], organizationId: string): Promise<Property[]> {
     assertSameTenant(this.tenantResolver, organizationId)
     const wanted = new Set(ids)
     if (wanted.size > 500) throw new Error('Invalid getMany: at most 500 ids')
-    return rows.filter((x) => wanted.has(x.id) && x.organizationId === organizationId && !x.deletedAt)
+    return rows
+      .filter((x) => wanted.has(x.id) && x.organizationId === organizationId && !x.deletedAt)
+      .map((row) => ({ ...row }))
   }
 
   async create(input: PropertyCreateInput): Promise<Property> {

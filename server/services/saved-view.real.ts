@@ -20,7 +20,9 @@ import type {
 } from '../../shared/contracts/saved-view'
 import { getDb } from '../db/client'
 import { savedViews, type SavedViewRow } from '../db/schema/saved_views'
-import { assertSameTenant, type TenantResolver } from './_tenant'
+import { auditLog } from '../db/schema/audit_log'
+import { memberships } from '../db/schema/users'
+import { assertSameTenant, ForbiddenError, SYSTEM_USER_ID, type TenantResolver } from './_tenant'
 import { assertActsAsSelf, assertSelfUser } from './_caller'
 import { withAudit } from './_tx'
 
@@ -47,6 +49,39 @@ export class RealSavedViewService implements ISavedViewService {
 
   private actorUserId(): string | null {
     return this.tenantResolver?.()?.userId ?? null
+  }
+
+  /**
+   * ED-013: Deleting or mutating an org-shared view (`userId IS NULL`) is allowed
+   * only for `super_admin` / `org_admin` or the user who originally created it.
+   * An `org_manager` cannot delete another user's shared view (403).
+   */
+  private async assertCanManageSharedView(viewId: string, organizationId: string): Promise<void> {
+    const caller = this.actorUserId()
+    if (!caller || caller === SYSTEM_USER_ID) return
+    const db = getDb()
+    const [mem] = await db
+      .select({ role: memberships.role })
+      .from(memberships)
+      .where(and(eq(memberships.userId, caller), eq(memberships.organizationId, organizationId)))
+      .limit(1)
+    if (mem && (mem.role === 'super_admin' || mem.role === 'org_admin')) return
+
+    const [createdAudit] = await db
+      .select({ actorUserId: auditLog.actorUserId })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.organizationId, organizationId),
+          eq(auditLog.entityType, 'saved_view'),
+          eq(auditLog.entityId, viewId),
+          eq(auditLog.action, 'create'),
+        ),
+      )
+      .limit(1)
+    if (createdAudit?.actorUserId === caller) return
+
+    throw new ForbiddenError('Forbidden: only the creator or an organization admin can modify or delete this shared view')
   }
 
   async list(input: SavedViewListInput): Promise<SavedView[]> {
@@ -139,6 +174,7 @@ export class RealSavedViewService implements ISavedViewService {
         .limit(1)
       if (!before) throw new Error('Saved view not found')
       if (before.userId) await assertActsAsSelf(this.tenantResolver, before.userId, input.organizationId)
+      else await this.assertCanManageSharedView(before.id, input.organizationId)
 
       const patch: Partial<typeof savedViews.$inferInsert> = { updatedAt: new Date() }
       if (input.name !== undefined) patch.name = input.name
@@ -193,6 +229,7 @@ export class RealSavedViewService implements ISavedViewService {
         .limit(1)
       if (!before) return
       if (before.userId) await assertActsAsSelf(this.tenantResolver, before.userId, organizationId)
+      else await this.assertCanManageSharedView(before.id, organizationId)
       await tx
         .update(savedViews)
         .set({ deletedAt: new Date(), updatedAt: new Date() })
@@ -210,10 +247,22 @@ export class RealSavedViewService implements ISavedViewService {
 
   async setDefault(id: string, organizationId: string): Promise<SavedView> {
     assertSameTenant(this.tenantResolver, organizationId)
-    const [target] = await getDb().select({ userId: savedViews.userId }).from(savedViews)
-      .where(and(eq(savedViews.id, id), eq(savedViews.organizationId, organizationId))).limit(1)
-    if (target?.userId) await assertActsAsSelf(this.tenantResolver, target.userId, organizationId)
     return await withAudit(async ({ tx, audit }) => {
+      const [target] = await tx
+        .select({ userId: savedViews.userId })
+        .from(savedViews)
+        .where(
+          and(
+            eq(savedViews.id, id),
+            eq(savedViews.organizationId, organizationId),
+            sql`${savedViews.deletedAt} IS NULL`,
+          ),
+        )
+        .limit(1)
+      if (!target) throw new Error('Saved view not found')
+      if (target.userId) await assertActsAsSelf(this.tenantResolver, target.userId, organizationId)
+      else await this.assertCanManageSharedView(id, organizationId)
+
       const [row] = await tx
         .update(savedViews)
         .set({ isDefault: true, updatedAt: new Date() })

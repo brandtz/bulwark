@@ -1,14 +1,14 @@
 <!--
-  layouts/default.vue — the SINGLE authenticated app layout.
+  layouts/default.vue — the default authenticated admin shell.
 
   Per ADR-0005:
-    - This is the ONLY file allowed to render persistent navigation.
+    - Pages use this shell unless route middleware selects a specialized shell.
     - Pages render into <slot /> via <NuxtPage>.
     - Per-page custom chrome opts into a different layout (auth, public,
       fullscreen) — those land in E2-S1 and E10-S1.
 
-  This file ensures the demo's "sidebar appears on some pages and not others"
-  failure mode is structurally impossible.
+  Shared navigation lives in the shell layouts, keeping the demo's
+  "sidebar appears on some pages and not others" failure mode controlled.
 -->
 <script setup lang="ts">
 const { ensureLoaded } = useSession()
@@ -54,7 +54,7 @@ await ensureLoaded()
         class="no-print border-t border-border bg-surface px-4 py-3 text-tiny text-text-secondary flex flex-wrap items-center justify-between gap-2"
         data-testid="app-legal-footer"
       >
-        <div>© {{ new Date().getFullYear() }} Bulwark</div>
+        <div>© 2026 Bulwark</div>
         <nav class="flex gap-3">
           <NuxtLink to="/privacy" class="hover:underline" data-testid="footer-link-privacy">Privacy</NuxtLink>
           <NuxtLink to="/terms" class="hover:underline" data-testid="footer-link-terms">Terms</NuxtLink>

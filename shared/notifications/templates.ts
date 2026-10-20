@@ -256,6 +256,8 @@ function humanizeEventName(name: string): string {
     .replace(/^\w/, (c) => c.toUpperCase())
 }
 
+export * from './message-templates'
+
 /** Event names with a dedicated template (used by tests + docs). */
 export const TEMPLATED_EVENT_NAMES = [
   'quote.accepted',

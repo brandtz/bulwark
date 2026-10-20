@@ -33,7 +33,17 @@ import type {
   AcceptInviteInput,
   InvitePreview,
 } from '../contracts/auth'
-import { FIXTURE_USER_ADMIN, FIXTURE_USER_FIELD, FIXTURE_USER_SUB, FIXTURE_USER_SUPER, FIXTURE_ORG_ID } from './fixtures'
+import {
+  FIXTURE_USER_ADMIN,
+  FIXTURE_USER_FIELD,
+  FIXTURE_USER_HOMEOWNER,
+  FIXTURE_USER_MANAGER,
+  FIXTURE_USER_STAKEHOLDER,
+  FIXTURE_USER_SUB,
+  FIXTURE_USER_SUPER,
+  FIXTURE_USER_VIEWER,
+  FIXTURE_ORG_ID,
+} from './fixtures'
 
 export interface MockAuthSessionAdapter {
   getActivePersonaEmail(): string | null
@@ -49,9 +59,13 @@ export interface MockAuthSessionAdapter {
 
 const userByEmail: Record<string, SessionUser> = {
   'drew@bulwark.demo': FIXTURE_USER_ADMIN,
+  'morgan@bulwark.demo': FIXTURE_USER_MANAGER,
   'matthew@bulwark.demo': FIXTURE_USER_FIELD,
   'jeff@bulwark.demo': FIXTURE_USER_SUB,
   'sasha@bulwark.platform': FIXTURE_USER_SUPER,
+  'vivian@bulwark.demo': FIXTURE_USER_VIEWER,
+  'homer@bulwark.demo': FIXTURE_USER_HOMEOWNER,
+  'insurer@bulwark.demo': FIXTURE_USER_STAKEHOLDER,
 }
 
 function lookup(email: string | null): SessionUser | null {
@@ -313,4 +327,3 @@ export function mintInviteTokenForDev(opts: {
     exp: Date.now() + (opts.ttlMs ?? ONE_HOUR_MS),
   })
 }
-

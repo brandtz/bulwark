@@ -11,6 +11,8 @@
     - "Save current view" opens a modal (`BulwarkModal`) with a name,
       a "default" toggle, and a "share" toggle. Submits via
       `savedView.create({ userId: shared ? null : session.userId })`.
+    - Applying a saved view tracks its filter baseline and exposes
+      Reset/Save controls when the current list state changes.
     - The component does NOT own filter state — it emits `apply` and
       lets each page decide how to translate the saved shape into
       route query / local state.
@@ -46,6 +48,8 @@ const open = ref(false)
 const wrapperRef = ref<HTMLElement | null>(null)
 const views = ref<SavedView[]>([])
 const loading = ref(false)
+const selectedView = ref<SavedView | null>(null)
+const updateError = ref<string | null>(null)
 
 async function refreshList() {
   if (!orgId.value || !userId.value) return
@@ -64,6 +68,20 @@ async function refreshList() {
 }
 
 const partitioned = computed(() => partitionSavedViews(views.value, userId.value))
+const modified = computed(() => {
+  const selected = selectedView.value
+  if (!selected) return false
+  const filtersChanged = JSON.stringify(props.currentFilters) !== JSON.stringify(selected.filters)
+  const sortChanged = props.currentSort !== undefined
+    && (props.currentSort.sortBy !== selected.sortBy || props.currentSort.sortDir !== selected.sortDir)
+  return filtersChanged || sortChanged
+})
+const canSaveSelected = computed(() => {
+  const selected = selectedView.value
+  if (!selected) return false
+  if (selected.userId === userId.value) return true
+  return selected.userId === null && ['super_admin', 'org_admin'].includes(session.value?.activeRole ?? '')
+})
 
 function toggle() {
   open.value = !open.value
@@ -72,13 +90,42 @@ function toggle() {
 function close() { open.value = false }
 
 function applyView(v: SavedView) {
+  selectedView.value = v
+  updateError.value = null
   emit('apply', { filters: v.filters, sortBy: v.sortBy, sortDir: v.sortDir })
   close()
 }
 
 function applyDefault() {
+  selectedView.value = null
+  updateError.value = null
   emit('apply', { filters: {}, sortBy: null, sortDir: null })
   close()
+}
+
+function resetSelectedView() {
+  const selected = selectedView.value
+  if (!selected) return
+  emit('apply', { filters: selected.filters, sortBy: selected.sortBy, sortDir: selected.sortDir })
+}
+
+async function saveSelectedView() {
+  const selected = selectedView.value
+  if (!selected || !canSaveSelected.value) return
+  updateError.value = null
+  try {
+    selectedView.value = await savedView.update({
+      id: selected.id,
+      organizationId: orgId.value,
+      filters: { ...props.currentFilters },
+      ...(props.currentSort
+        ? { sortBy: props.currentSort.sortBy, sortDir: props.currentSort.sortDir }
+        : {}),
+    })
+    await refreshList()
+  } catch (error) {
+    updateError.value = error instanceof Error ? error.message : 'Could not update saved view'
+  }
 }
 
 function onDocMousedown(ev: MouseEvent) {
@@ -158,6 +205,25 @@ async function submitSave() {
       <span>{{ t('saved-views', 'title', 'Views') }}</span>
       <BulwarkIcon name="chevron-down" size="sm" class="text-text-secondary" />
     </button>
+    <div
+      v-if="modified"
+      class="inline-flex items-center gap-2 ml-2"
+      data-testid="saved-view-modified"
+    >
+      <span class="text-small text-text-secondary">Modified</span>
+      <button
+        v-if="canSaveSelected"
+        type="button"
+        class="min-h-10 px-3 rounded-input border border-border text-small hover:bg-surface-muted"
+        @click="saveSelectedView"
+      >Save</button>
+      <button
+        type="button"
+        class="min-h-10 px-3 rounded-input border border-border text-small hover:bg-surface-muted"
+        @click="resetSelectedView"
+      >Reset</button>
+    </div>
+    <p v-if="updateError" class="text-small text-status-error" role="alert">{{ updateError }}</p>
 
     <div
       v-if="open"

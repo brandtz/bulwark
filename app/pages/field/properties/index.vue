@@ -17,8 +17,10 @@
 import { ROLE_GROUPS } from '~/composables/usePermissions'
 
 definePageMeta({
+  layout: 'field',
   middleware: ['role'],
   requiredRoles: ROLE_GROUPS.field,
+  fieldTitle: 'My properties',
 })
 
 useHead({ title: 'My properties' })

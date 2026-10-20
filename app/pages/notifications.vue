@@ -10,7 +10,7 @@
       so the two surfaces stay consistent.
 -->
 <script setup lang="ts">
-import type { Notification } from '~~/shared/contracts/notification'
+import type { Notification, NotificationSeverity } from '~~/shared/contracts/notification'
 
 definePageMeta({})
 useHead({ title: 'Notifications' })
@@ -20,34 +20,49 @@ await ensureLoaded()
 const notif = useService('notification')
 
 const userId = computed(() => session.value?.userId ?? '')
+const isClient = computed(() => session.value?.activeRole === 'homeowner')
 
 const page = ref(1)
 const pageSize = 50
 const unreadOnly = ref(false)
+const severityFilter = ref<'ALL' | NotificationSeverity>('ALL')
 const items = ref<Notification[]>([])
 const total = ref(0)
 const unreadTotal = ref(0)
-const loading = ref(false)
+const loading = ref(true)
+const loadError = ref('')
 
 async function load() {
-  if (!userId.value) return
+  if (!userId.value) {
+    loading.value = false
+    return
+  }
   loading.value = true
+  loadError.value = ''
   try {
     const r = await notif.listForUser(userId.value, {
       page: page.value,
       pageSize,
       unreadOnly: unreadOnly.value,
+      severity: severityFilter.value === 'ALL' ? undefined : severityFilter.value,
     })
     items.value = r.rows
     total.value = r.total
     unreadTotal.value = r.unreadTotal
+  } catch (error) {
+    loadError.value = 'Could not load notifications.'
+    console.error('Failed to load notifications', error)
   } finally {
     loading.value = false
   }
 }
-await load()
+onMounted(() => { void load() })
 
-watch([unreadOnly, page], () => { void load() })
+watch([unreadOnly, severityFilter], () => {
+  if (page.value !== 1) page.value = 1
+  else void load()
+})
+watch(page, () => { void load() })
 
 async function onOpen(item: Notification) {
   if (item.readAt === null) {
@@ -95,12 +110,25 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize))
     <header class="mt-2 flex items-start justify-between gap-3">
       <div>
         <h1 class="text-h3 text-text-primary">Notifications</h1>
-        <p class="text-small text-text-secondary">
+        <p class="text-small text-text-secondary" data-testid="notifications-summary">
           {{ unreadTotal }} unread &middot; {{ total }} total
         </p>
       </div>
-      <div class="flex items-center gap-2">
-        <label class="flex items-center gap-2 text-small text-text-secondary">
+      <div class="flex items-center gap-2 flex-wrap">
+        <select
+          v-if="!isClient"
+          v-model="severityFilter"
+          class="min-h-12 px-2.5 rounded-input border border-border bg-surface text-small"
+          aria-label="Filter by severity"
+          data-testid="notifications-filter-severity"
+        >
+          <option value="ALL">All severities</option>
+          <option value="info">Info</option>
+          <option value="success">Success</option>
+          <option value="warning">Warning</option>
+          <option value="error">Error</option>
+        </select>
+        <label class="flex min-h-12 min-w-12 items-center gap-2 text-small text-text-secondary" data-touch-row>
           <input
             v-model="unreadOnly"
             type="checkbox"
@@ -110,7 +138,7 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize))
         </label>
         <button
           type="button"
-          class="px-3 py-1.5 rounded-input border border-border text-small hover:bg-surface-muted"
+          class="min-h-12 px-3 rounded-input border border-border text-small hover:bg-surface-muted"
           data-testid="notifications-mark-all-read"
           @click="onMarkAll"
         >
@@ -127,11 +155,26 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize))
         Loading…
       </li>
       <li
+        v-else-if="loadError"
+        class="px-4 py-10 text-center text-small text-status-error"
+        role="alert"
+        data-testid="notifications-error"
+      >
+        <p>{{ loadError }}</p>
+        <button type="button" class="mt-3 underline" @click="load">Retry</button>
+      </li>
+      <li
         v-else-if="items.length === 0"
         class="px-4 py-10 text-center text-small text-text-secondary"
         data-testid="notifications-empty"
       >
         All caught up.
+        <NuxtLink
+          to="/profile/notifications"
+          class="mt-3 inline-flex min-h-12 items-center text-primary hover:underline"
+        >
+          Notification preferences
+        </NuxtLink>
       </li>
       <li
         v-for="item in items"

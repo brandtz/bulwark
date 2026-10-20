@@ -17,10 +17,13 @@
 -->
 <script setup lang="ts">
 import { ROLE_GROUPS } from '~/composables/usePermissions'
+import { useOfflineQueue } from '~/composables/useOfflineQueue'
 
 definePageMeta({
+  layout: 'field',
   middleware: ['role'],
   requiredRoles: ROLE_GROUPS.field,
+  fieldTitle: 'Today',
 })
 
 useHead({ title: 'Today' })
@@ -32,6 +35,12 @@ const orgId = computed(() => session.value?.activeOrganizationId ?? '')
 
 const property = useService('property')
 const workOrder = useService('workOrder')
+const offline = useOfflineQueue({ namespace: 'field-check-in' })
+const pendingCheckIns = ref(0)
+
+function refreshPendingCheckIns() {
+  pendingCheckIns.value = offline.snapshot().length
+}
 
 const { data: kpis } = await useAsyncData(
   () => `field-dashboard-${orgId.value}`,
@@ -55,6 +64,14 @@ const today = new Date().toLocaleDateString(undefined, {
   weekday: 'long',
   month: 'short',
   day: 'numeric',
+})
+
+onMounted(() => {
+  refreshPendingCheckIns()
+  window.addEventListener('bulwark:offline-queue-changed', refreshPendingCheckIns)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('bulwark:offline-queue-changed', refreshPendingCheckIns)
 })
 </script>
 
@@ -108,9 +125,12 @@ const today = new Date().toLocaleDateString(undefined, {
       </NuxtLink>
       <NuxtLink to="/field/sync-queue" class="block" data-testid="field-link-sync">
         <BulwarkCard padding="md" clickable>
-          <p class="text-body font-medium">Sync queue</p>
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-body font-medium">Sync queue</p>
+            <span class="bw-chip" data-testid="field-sync-queue-count">{{ pendingCheckIns }} queued</span>
+          </div>
           <p class="text-small text-text-secondary mt-1">
-            Offline mode lands in Phase 2.
+            Check-in updates waiting to sync.
           </p>
         </BulwarkCard>
       </NuxtLink>

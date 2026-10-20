@@ -44,7 +44,7 @@ export async function expectVisualParity(page: Page, opts: VisualOpts) {
   }
   await page.setViewportSize(VARIANT_VIEWPORT[variant])
   if (variant === 'dark') await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'))
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
   const actual = await page.screenshot({ fullPage: false, clip: opts.clip, mask: opts.mask?.map((m) => page.locator(m)), animations: 'disabled' })
   expect(actual, `Visual parity ${opts.id}/${variant}`).toMatchSnapshot(name, { maxDiffPixelRatio: opts.maxDiffPixelRatio ?? 0.005 })
 }

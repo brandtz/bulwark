@@ -20,8 +20,10 @@ import { ROLE_GROUPS } from '~/composables/usePermissions'
 import { evaluateCompliance } from '~~/shared/utils/compliance'
 
 definePageMeta({
+  layout: 'field',
   middleware: ['role'],
   requiredRoles: ROLE_GROUPS.field,
+  fieldTitle: 'Property',
 })
 
 const route = useRoute()

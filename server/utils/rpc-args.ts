@@ -33,6 +33,7 @@ import { GeoAutocompleteInputSchema, GeoGeocodeInputSchema, GeoRouteInputSchema,
 import { HomeownerInviteInputSchema } from '~~/shared/contracts/homeowner'
 import { InspectionCreateInputSchema, InspectionListInputSchema, InspectionSignInputSchema, SaveResponsesInputSchema } from '~~/shared/contracts/inspection'
 import { FieldAddInputSchema, FieldUpdateInputSchema, InspectionTemplateCreateInputSchema, InspectionTemplateListInputSchema, InspectionTemplateUpdateInputSchema, SectionAddInputSchema } from '~~/shared/contracts/inspection-template'
+import { NotificationSeveritySchema } from '~~/shared/contracts/notification'
 import { InvoiceCreateInputSchema, InvoiceListInputSchema } from '~~/shared/contracts/invoice'
 import { InvoicePaymentListInputSchema, InvoicePaymentMethodSchema, InvoicePaymentRecordInputSchema } from '~~/shared/contracts/invoice-payment'
 import { JobCreateInputSchema, JobKindSchema } from '~~/shared/contracts/job'
@@ -261,7 +262,7 @@ export const RPC_ARGS: Record<string, Record<string, ArgsRule>> = {
   },
   notification: {
     enqueue: SYSTEM,
-    listForUser: args(id, z.object({ unreadOnly: z.boolean().optional(), page: z.number().int().positive().optional(), pageSize: z.number().int().positive().optional(), afterCreatedAt: z.string().optional(), afterId: id.optional() }).optional()),
+    listForUser: args(id, z.object({ unreadOnly: z.boolean().optional(), severity: NotificationSeveritySchema.optional(), page: z.number().int().positive().optional(), pageSize: z.number().int().positive().optional(), afterCreatedAt: z.string().optional(), afterId: id.optional() }).optional()),
     markAllRead: args(id),
     markRead: args(id),
     unreadCountForUser: args(id),

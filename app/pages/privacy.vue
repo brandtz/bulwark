@@ -25,25 +25,25 @@ useHead({ title: 'Privacy Policy · Bulwark' })
 
 const effectiveDate = '2026-05-16'
 const supportEmail = 'privacy@bulwark.example'
+const toc = [
+  { id: 'sec-1', label: '1. Data we collect' },
+  { id: 'sec-2', label: '2. Why we collect it' },
+  { id: 'sec-3', label: '3. Legal bases' },
+  { id: 'sec-7', label: '7. Your rights' },
+  { id: 'sec-12', label: '12. Contact us' },
+]
+const changelog = [{ date: '2026-05-16', summary: 'Initial platform privacy policy published.' }]
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-text-primary">
-    <header class="border-b border-border bg-surface">
-      <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-        <NuxtLink to="/" class="font-semibold text-large">Bulwark</NuxtLink>
-        <nav class="text-small">
-          <NuxtLink to="/terms" class="mr-4 hover:underline">Terms</NuxtLink>
-          <NuxtLink to="/dpa" class="hover:underline">DPA</NuxtLink>
-        </nav>
-      </div>
-    </header>
-
-    <main class="max-w-3xl mx-auto px-6 py-10 prose prose-sm">
-      <h1 class="text-h1 font-semibold mb-2">Privacy Policy</h1>
-      <p class="text-text-secondary text-small">Effective {{ effectiveDate }}</p>
-
-      <section class="mt-8">
+  <LegalDocumentLayout
+    title="Privacy Policy"
+    :effective-date="effectiveDate"
+    owner="platform"
+    :toc="toc"
+    :changelog="changelog"
+  >
+      <section class="mt-4">
         <p>
           Bulwark (&quot;we&quot;, &quot;our&quot;) provides field-service
           management software for contractors, their subcontractors,
@@ -54,7 +54,7 @@ const supportEmail = 'privacy@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="sec-1" class="mt-8">
         <h2 class="text-h2 font-semibold">1. Data we collect</h2>
         <ul class="list-disc pl-6">
           <li>
@@ -103,7 +103,7 @@ const supportEmail = 'privacy@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="sec-2" class="mt-8">
         <h2 class="text-h2 font-semibold">2. How we use your data</h2>
         <ul class="list-disc pl-6">
           <li>To provide the Bulwark service to your organization.</li>
@@ -131,7 +131,7 @@ const supportEmail = 'privacy@bulwark.example'
         </ul>
       </section>
 
-      <section class="mt-8">
+      <section id="sec-3" class="mt-8">
         <h2 class="text-h2 font-semibold">3. Legal bases (GDPR)</h2>
         <ul class="list-disc pl-6">
           <li>
@@ -211,7 +211,7 @@ const supportEmail = 'privacy@bulwark.example'
         </ul>
       </section>
 
-      <section class="mt-8">
+      <section id="sec-7" class="mt-8">
         <h2 class="text-h2 font-semibold">7. Your rights</h2>
         <p>
           Depending on where you live, you have the following rights.
@@ -286,22 +286,12 @@ const supportEmail = 'privacy@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="sec-12" class="mt-8">
         <h2 class="text-h2 font-semibold">12. Contact us</h2>
         <p>
           Questions, complaints, or requests can be sent to
           <a :href="`mailto:${supportEmail}`" class="text-primary underline">{{ supportEmail }}</a>.
         </p>
       </section>
-    </main>
-
-    <footer class="border-t border-border bg-surface mt-10">
-      <div class="max-w-3xl mx-auto px-6 py-4 text-small text-text-secondary">
-        © {{ new Date().getFullYear() }} Bulwark.
-        <NuxtLink to="/terms" class="hover:underline">Terms</NuxtLink>
-        ·
-        <NuxtLink to="/dpa" class="hover:underline">DPA</NuxtLink>
-      </div>
-    </footer>
-  </div>
+  </LegalDocumentLayout>
 </template>

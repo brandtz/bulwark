@@ -52,7 +52,7 @@ export default defineConfig({
     // BULWARK_E2E_SERVER_COMMAND lets CI (and memory-constrained machines) run against the
     // built server instead, e.g. `node .output/server/index.mjs` after `pnpm build`.
     command: process.env.BULWARK_E2E_SERVER_COMMAND || 'pnpm dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:3000/login',
     reuseExistingServer: !process.env.CI,
     // Cold-start of Nuxt 3.21 dev with 60+ routes + Vite scan regularly
     // exceeds 2 minutes on dev hardware; bump to 5 minutes so the e2e

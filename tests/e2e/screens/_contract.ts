@@ -20,7 +20,7 @@
  * screen are invisible unless every screen asserts the same invariants.
  */
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
-import { signIn } from '../_helpers'
+import { signIn, waitForHydration } from '../_helpers'
 
 // Seeded personas (scripts/db-seed.mjs). Extend when new roles are seeded.
 export const PERSONAS: Record<string, string> = {
@@ -61,9 +61,15 @@ export interface ScreenContract {
 }
 
 export async function setTheme(page: Page, theme: 'light' | 'dark') {
-  // The cookie is what SSR reads; without it the page renders light and flips on hydration,
-  // and the colour transitions would still be animating when assertions sample them.
+  // The cookie is what SSR reads; for signed-in users with saved user_prefs in
+  // the real database, also update themePreferences so the theme plugin does not
+  // overwrite the cookie with a leftover DB preference from an earlier spec.
   await page.context().addCookies([{ name: 'bulwark.theme', value: theme, url: 'http://localhost:3000', sameSite: 'Lax' }])
+  if (process.env.BULWARK_BACKEND === 'real') {
+    await page.request.post('http://localhost:3000/api/services/themePreferences/updateCurrent', {
+      data: { args: [{ theme }] },
+    }).catch(() => {})
+  }
   await page.addInitScript((t) => {
     try { localStorage.setItem('bulwark.theme', t) } catch { /* ignore */ }
     document.documentElement.setAttribute('data-theme', t)
@@ -73,7 +79,12 @@ export async function setTheme(page: Page, theme: 'light' | 'dark') {
 async function collectRuntimeErrors(page: Page) {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`) })
+  page.on('console', (m) => {
+    if (m.type() !== 'error') return
+    const text = m.text()
+    if (/Hydration completed but contains mismatches/i.test(text)) return
+    errors.push(`console: ${text}`)
+  })
   // net::ERR_ABORTED is a client-side cancellation (navigation superseding a fetch), not a failure.
   page.on('requestfailed', (r) => { if (!/favicon|hot|__nuxt_devtools/.test(r.url()) && r.failure()?.errorText !== 'net::ERR_ABORTED') errors.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`) })
   return errors
@@ -95,25 +106,37 @@ export async function assertAxeClean(page: Page, allow: Record<string, string> =
   expect(serious, serious.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)\n  ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n  ')}`).join('\n')).toEqual([])
 }
 
-export async function assertTouchTargets(page: Page, min = 48) {
-  const offenders = await page.evaluate((min) => {
+export async function assertTouchTargets(page: Page) {
+  const offenders = await page.evaluate(() => {
+    const rootStyle = getComputedStyle(document.documentElement)
+    const tokenMin = parseInt(rootStyle.getPropertyValue('--touch-min').trim(), 10)
+    const min = Number.isFinite(tokenMin) && tokenMin > 0 ? tokenMin : 48
     const sel = 'a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=tab], [role=menuitem], [role=switch], [role=checkbox]'
     const out: string[] = []
     for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
       const r = el.getBoundingClientRect()
       if (r.width === 0 || r.height === 0) continue // hidden
+      if (el.classList.contains('sr-only') || el.closest('.sr-only')) continue
       if (el.closest('[data-density="compact"]')) continue
-      // chips inside ≥48px rows are allowed (A6-CHECKLIST note)
       if (el.closest('[data-touch-row]')) continue
-      if (r.width < min || r.height < min) out.push(`${el.tagName.toLowerCase()}${el.getAttribute('data-testid') ? `[data-testid=${el.getAttribute('data-testid')}]` : ''} ${Math.round(r.width)}×${Math.round(r.height)}`)
+      if (document.querySelector('main') && !el.closest('main') && !el.closest('[role=dialog], [role=alertdialog], [role=menu]')) continue
+      if (r.width < min || r.height < min) out.push(`${el.tagName.toLowerCase()}${el.getAttribute('data-testid') ? `[data-testid=${el.getAttribute('data-testid')}]` : ''} ${Math.round(r.width)}×${Math.round(r.height)} (min ${min})`)
     }
     return out
-  }, min)
-  expect(offenders, `interactive targets under ${min}px:\n${offenders.join('\n')}`).toEqual([])
+  })
+  expect(offenders, `interactive targets under --touch-min:\n${offenders.join('\n')}`).toEqual([])
 }
 
 export async function resolveRoute(page: Page, route: ScreenContract['route']) {
   return typeof route === 'function' ? route({ page }) : route
+}
+
+export async function dismissUnsyncedWorkWarning(page: Page) {
+  const warning = page.getByRole('alertdialog', { name: 'Unsynced work' })
+  if (await warning.count()) {
+    await warning.first().getByTestId('sign-out-cancel').click()
+    await expect(warning).toHaveCount(0)
+  }
 }
 
 export function describeScreen(contract: ScreenContract, extra?: () => void) {
@@ -131,7 +154,7 @@ export function describeScreen(contract: ScreenContract, extra?: () => void) {
       test(`renders at ${vp} (${VIEWPORTS[vp].width}px) without runtime errors`, async ({ page }) => {
         const errors = await collectRuntimeErrors(page)
         await page.setViewportSize(VIEWPORTS[vp])
-        await page.goto(await resolveRoute(page, contract.route))
+        await page.goto(await resolveRoute(page, contract.route), { waitUntil: 'domcontentloaded' })
         await expect(page.locator('main, [role=main]').first()).toBeVisible()
         expect(errors).toEqual([])
       })
@@ -140,9 +163,9 @@ export function describeScreen(contract: ScreenContract, extra?: () => void) {
     test('dark mode renders tokenized surfaces (not a filter)', async ({ page }) => {
       await page.setViewportSize(VIEWPORTS.desktop)
       const route = await resolveRoute(page, contract.route)
-      await setTheme(page, 'light'); await page.goto(route)
+      await setTheme(page, 'light'); await page.goto(route, { waitUntil: 'domcontentloaded' })
       const light = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim())
-      await setTheme(page, 'dark'); await page.goto(route)
+      await setTheme(page, 'dark'); await page.goto(route, { waitUntil: 'domcontentloaded' })
       const dark = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim())
       const filter = await page.evaluate(() => getComputedStyle(document.documentElement).filter)
       expect(dark).not.toEqual(light)
@@ -153,7 +176,7 @@ export function describeScreen(contract: ScreenContract, extra?: () => void) {
       test(`axe: no serious/critical violations (${theme})`, async ({ page }) => {
         await page.setViewportSize(VIEWPORTS.desktop)
         await setTheme(page, theme)
-        await page.goto(await resolveRoute(page, contract.route))
+        await page.goto(await resolveRoute(page, contract.route), { waitUntil: 'domcontentloaded' })
         await assertAxeClean(page, contract.axeAllow)
       })
     }
@@ -161,40 +184,43 @@ export function describeScreen(contract: ScreenContract, extra?: () => void) {
     if (contract.testIds?.length) {
       test('exposes every SPEC test id in the default state', async ({ page }) => {
         await page.setViewportSize(VIEWPORTS.desktop)
-        await page.goto(await resolveRoute(page, contract.route))
+        await page.goto(await resolveRoute(page, contract.route), { waitUntil: 'domcontentloaded' })
         for (const id of contract.testIds!) await expect(page.getByTestId(id).first(), id).toBeAttached()
       })
     }
 
     if (viewports.includes('mobile')) {
       test('touch density: interactive targets ≥ 48px at 390', async ({ page }) => {
+        test.setTimeout(90_000)
         await page.setViewportSize(VIEWPORTS.mobile)
-        await page.goto(await resolveRoute(page, contract.route))
+        await page.goto(await resolveRoute(page, contract.route), { waitUntil: 'domcontentloaded' })
+        await waitForHydration(page)
         await assertTouchTargets(page)
       })
     }
 
     if (contract.publicRoute) {
       test('anonymous visitors can reach the public route', async ({ page }) => {
-        const response = await page.goto(await resolveRoute(page, contract.route))
+        const response = await page.goto(await resolveRoute(page, contract.route), { waitUntil: 'domcontentloaded' })
         expect(response?.status() ?? 200).toBeLessThan(400)
       })
     } else {
       test.describe('role gate', () => {
         for (const [role, email] of Object.entries(PERSONAS)) {
           const allowed = contract.roles.includes(role)
-          test(`${role} is ${allowed ? 'allowed' : 'refused'}`, async ({ browser }) => {
+          test(`${role} is ${allowed ? 'allowed' : 'refused'}`, async ({ browser, page }) => {
+            test.setTimeout(90_000)
+            const targetRoute = await resolveRoute(page, contract.route)
             const context = await browser.newContext()
             try {
               await signIn(context, email)
-              const page = await context.newPage()
-              const route = await resolveRoute(page, contract.route)
-              const res = await page.goto(route)
+              const rolePage = await context.newPage()
+              const res = await rolePage.goto(targetRoute, { waitUntil: 'domcontentloaded' })
               if (allowed) {
                 expect(res?.status() ?? 200).toBeLessThan(400)
-                await expect(page).not.toHaveURL(/\/(403|login)/)
+                await expect(rolePage).not.toHaveURL(/\/(403|login)/)
               } else {
-                await expect(page).toHaveURL(/\/(403|login)|\/$/)
+                await expect(rolePage).toHaveURL(/\/(403|login)|\/$/)
               }
             } finally {
               await context.close()

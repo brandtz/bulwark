@@ -19,25 +19,24 @@ useHead({ title: 'Terms of Service · Bulwark' })
 
 const effectiveDate = '2026-05-16'
 const supportEmail = 'legal@bulwark.example'
+const toc = [
+  { id: 'tos-1', label: '1. The Service' },
+  { id: 'tos-4', label: '4. Acceptable use' },
+  { id: 'tos-9', label: '9. Limitation of liability' },
+  { id: 'tos-13', label: '13. Contact' },
+]
+const changelog = [{ date: '2026-05-16', summary: 'Initial Terms of Service published.' }]
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-text-primary">
-    <header class="border-b border-border bg-surface">
-      <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-        <NuxtLink to="/" class="font-semibold text-large">Bulwark</NuxtLink>
-        <nav class="text-small">
-          <NuxtLink to="/privacy" class="mr-4 hover:underline">Privacy</NuxtLink>
-          <NuxtLink to="/dpa" class="hover:underline">DPA</NuxtLink>
-        </nav>
-      </div>
-    </header>
-
-    <main class="max-w-3xl mx-auto px-6 py-10 prose prose-sm">
-      <h1 class="text-h1 font-semibold mb-2">Terms of Service</h1>
-      <p class="text-text-secondary text-small">Effective {{ effectiveDate }}</p>
-
-      <section class="mt-8">
+  <LegalDocumentLayout
+    title="Terms of Service"
+    :effective-date="effectiveDate"
+    owner="platform"
+    :toc="toc"
+    :changelog="changelog"
+  >
+      <section id="tos-1" class="mt-4">
         <h2 class="text-h2 font-semibold">1. The Service</h2>
         <p>
           Bulwark provides web-based field-service management
@@ -71,7 +70,7 @@ const supportEmail = 'legal@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="tos-4" class="mt-8">
         <h2 class="text-h2 font-semibold">4. Acceptable use</h2>
         <ul class="list-disc pl-6">
           <li>No unlawful, infringing, or harmful content.</li>
@@ -125,7 +124,7 @@ const supportEmail = 'legal@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="tos-9" class="mt-8">
         <h2 class="text-h2 font-semibold">9. Limitation of liability</h2>
         <p>
           TO THE FULLEST EXTENT PERMITTED BY LAW, BULWARK&rsquo;S
@@ -168,22 +167,12 @@ const supportEmail = 'legal@bulwark.example'
         </p>
       </section>
 
-      <section class="mt-8">
+      <section id="tos-13" class="mt-8">
         <h2 class="text-h2 font-semibold">13. Contact</h2>
         <p>
           Questions about these Terms can be sent to
           <a :href="`mailto:${supportEmail}`" class="text-primary underline">{{ supportEmail }}</a>.
         </p>
       </section>
-    </main>
-
-    <footer class="border-t border-border bg-surface mt-10">
-      <div class="max-w-3xl mx-auto px-6 py-4 text-small text-text-secondary">
-        © {{ new Date().getFullYear() }} Bulwark.
-        <NuxtLink to="/privacy" class="hover:underline">Privacy</NuxtLink>
-        ·
-        <NuxtLink to="/dpa" class="hover:underline">DPA</NuxtLink>
-      </div>
-    </footer>
-  </div>
+  </LegalDocumentLayout>
 </template>

@@ -34,8 +34,15 @@
 
 <script setup lang="ts">
 const { session } = useSession()
-const { logout } = useAuth()
 const route = useRoute()
+const {
+  warningOpen: signOutWarningOpen,
+  pendingWrites: pendingSignOutWrites,
+  inspectionFailed: signOutInspectionFailed,
+  requestSignOut,
+  confirmSignOut,
+  cancelSignOut,
+} = useQueuedWorkSignOut()
 
 const open = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
@@ -76,7 +83,7 @@ watch(() => route.fullPath, () => close())
 
 async function doLogout() {
   close()
-  await logout()
+  await requestSignOut()
 }
 </script>
 
@@ -150,4 +157,11 @@ async function doLogout() {
       >Sign out</button>
     </div>
   </div>
+  <SignOutQueueWarning
+    :open="signOutWarningOpen"
+    :items="pendingSignOutWrites"
+    :inspection-failed="signOutInspectionFailed"
+    @cancel="cancelSignOut"
+    @confirm="confirmSignOut"
+  />
 </template>
